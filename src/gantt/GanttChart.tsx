@@ -109,6 +109,16 @@ const ZOOM_LEVELS: ZoomLevel[] = [
   },
 ];
 
+/** What the status bar calls each zoom level. */
+const SCALE_LABELS: Record<string, string> = {
+  day: 'Giorni',
+  week: 'Settimane',
+  month: 'Mesi',
+  quarter: 'Trimestri',
+};
+
+export const INITIAL_SCALE_LABEL = SCALE_LABELS.week;
+
 export interface GanttHandle {
   getProject(): Project;
   loadProject(project: Project): void;
@@ -211,24 +221,30 @@ export function GanttChart({
   project,
   onChange,
   onOpenTask,
+  onScaleChange,
   ref,
 }: {
   project: Project;
   onChange?: () => void;
   onOpenTask?: (id: string) => void;
+  onScaleChange?: (label: string) => void;
   ref?: Ref<GanttHandle>;
 }) {
   const host = useRef<HTMLDivElement>(null);
   // Held in a ref because the dhtmlx handlers are registered once, in an effect
   // that must not re-run when a callback identity changes.
   const openTaskRef = useRef(onOpenTask);
+  const scaleChangeRef = useRef(onScaleChange);
+  const changeRef = useRef(onChange);
   const projectRef = useRef(project);
   const solvedRef = useRef<SolvedProject>(solve(project));
   const applyingRef = useRef(false);
 
   useEffect(() => {
     openTaskRef.current = onOpenTask;
-  }, [onOpenTask]);
+    scaleChangeRef.current = onScaleChange;
+    changeRef.current = onChange;
+  }, [onChange, onOpenTask, onScaleChange]);
 
   const applySolution = useCallback(
     (notify = true) => {
@@ -254,9 +270,13 @@ export function GanttChart({
       // update events that would bounce straight back into this function.
       gantt.refreshData();
       applyingRef.current = false;
-      if (notify) onChange?.();
+      if (notify) changeRef.current?.();
     },
-    [onChange],
+    // Deliberately no dependencies. This function is a dependency of the effect
+    // that calls gantt.init(), so an identity that changed with every render of
+    // the parent would tear the chart down and rebuild it on every keystroke —
+    // and gantt.ext.zoom.init() would reset the zoom level while doing so.
+    [],
   );
 
   const loadProject = useCallback((next: Project) => {
@@ -437,7 +457,8 @@ export function GanttChart({
         // The colour no longer has a column of its own: it rides along with the
         // name, and the details dialog is where it is picked.
         template: (task) =>
-          `<span class="gantt-dot" style="background:${String(task.bar_color || DEFAULT_BAR_COLOR)}"></span>${escapeHtml(String(task.text ?? ''))}`,
+          `<span class="gantt-dot" style="background:${String(task.bar_color || DEFAULT_BAR_COLOR)}"></span>` +
+          `<span class="${task.is_summary ? 'gantt-name gantt-name--summary' : 'gantt-name'}">${escapeHtml(String(task.text ?? ''))}</span>`,
         editor: { type: 'text', map_to: 'text' },
       },
       {
@@ -521,6 +542,11 @@ export function GanttChart({
     };
 
     gantt.ext.zoom.init({ levels: ZOOM_LEVELS, activeLevelIndex: 1, useKey: 'ctrlKey' });
+    // Zooming also happens by ctrl+wheel, so the status bar cannot rely on its
+    // own buttons to know which scale is showing.
+    const zoomHandler = gantt.ext.zoom.attachEvent('onAfterZoom', (_level, config) => {
+      scaleChangeRef.current?.(SCALE_LABELS[config.name ?? ''] ?? '');
+    });
     gantt.init(container);
 
     const pullFromView = (id: string | number) => {
@@ -693,6 +719,7 @@ export function GanttChart({
 
     return () => {
       observer.disconnect();
+      gantt.ext.zoom.detachEvent(zoomHandler);
       container.removeEventListener('dblclick', openEditor, true);
       handlers.forEach((handlerId) => gantt.detachEvent(handlerId));
       // Deliberately no destructor(): it leaves the singleton unusable, and

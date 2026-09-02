@@ -1,11 +1,12 @@
 import { useCallback, useRef, useState, type DragEvent } from 'react';
 import type { CalendarSpec, Resource } from './scheduler';
-import { GanttChart, type GanttHandle } from './gantt/GanttChart';
+import { GanttChart, INITIAL_SCALE_LABEL, type GanttHandle } from './gantt/GanttChart';
 import { COLOR_OPTIONS } from './gantt/colors';
 import { CalendarDialog } from './gantt/CalendarDialog';
 import { EmptyState } from './gantt/EmptyState';
 import { ResourceDialog } from './gantt/ResourceDialog';
 import { TaskDialog, type TaskDetails, type TaskPatch } from './gantt/TaskDialog';
+import { StatusBar } from './gantt/StatusBar';
 import { Toolbar } from './gantt/Toolbar';
 import { PROJECT_EXTENSION, downloadText, pickTextFile } from './gantt/files';
 import { DEFAULT_CALENDAR } from './scheduler';
@@ -23,6 +24,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [taskCount, setTaskCount] = useState(initialProject.tasks.length);
   const [dragging, setDragging] = useState(false);
+  const [scale, setScale] = useState(INITIAL_SCALE_LABEL);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   // Snapshotted on open, like the other dialogs: the chart owns the live task.
@@ -198,10 +200,6 @@ export default function App() {
           onAddTask={handleAddTask}
           onEditResources={openResources}
           onEditCalendar={openCalendar}
-          onToday={() => chart.current?.scrollToToday()}
-          onZoomIn={() => chart.current?.zoomIn()}
-          onZoomOut={() => chart.current?.zoomOut()}
-          onZoomToFit={() => chart.current?.zoomToFit()}
         />
       </header>
 
@@ -220,6 +218,7 @@ export default function App() {
             syncCount();
           }}
           onOpenTask={openTaskDetails}
+          onScaleChange={setScale}
         />
         {taskCount === 0 && (
           <EmptyState
@@ -230,6 +229,15 @@ export default function App() {
         )}
         {dragging && <div className="app__dropzone">Rilascia il file .gantt per aprirlo</div>}
       </div>
+
+      <StatusBar
+        taskCount={taskCount}
+        scale={scale}
+        onToday={() => chart.current?.scrollToToday()}
+        onZoomIn={() => chart.current?.zoomIn()}
+        onZoomOut={() => chart.current?.zoomOut()}
+        onZoomToFit={() => chart.current?.zoomToFit()}
+      />
 
       {resourcesOpen && (
         <ResourceDialog

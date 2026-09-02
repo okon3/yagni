@@ -198,7 +198,9 @@
 .gantt_task_line.gantt-bar--summary {
   --dhx-gantt-task-background: #55637a;
   --dhx-gantt-task-border: #3c4757;
-  border-radius: 3px;
+  /* Rounded like every other bar: a rectangle among capsules read as a
+     different kind of object rather than as a rollup of them. */
+  border-radius: var(--radius-pill);
   height: 10px !important;
   margin-top: 7px;
   box-shadow: none;
@@ -293,4 +295,9 @@
 
 .gantt_row .gantt-rowinfo:hover {
   color: var(--accent);
+}
+
+/* A group is a heading for the rows under it, so its name carries the weight. */
+.gantt-name--summary {
+  font-weight: 650;
 }

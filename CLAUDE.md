@@ -114,6 +114,11 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   the rule.
 - **When verifying anything visual, read `getComputedStyle`** — not the attribute,
   not the data field. Both of the bugs above were invisible from the code.
+- **Nothing that `gantt.init()` depends on may change identity per render.** The
+  init effect depends on `applySolution`, so a parent callback baked into it
+  (`onChange`) tore the chart down and rebuilt it on every state change in `App`
+  — and `gantt.ext.zoom.init()` reset the zoom level each time. Parent callbacks
+  go into refs; the effect's dependencies stay empty in practice.
 - **Never call `gantt.destructor()`** in cleanup. It leaves the singleton unusable
   and StrictMode's mount/unmount/mount then re-inits a dead instance
   (`cannot read tasksStore`). Use `clearAll()`.

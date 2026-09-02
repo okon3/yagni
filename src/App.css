@@ -645,3 +645,52 @@
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-raised);
 }
+
+/* Zoom belongs where the timeline ends rather than in the file toolbar: it is a
+   property of the view, not an action on the project. */
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding: 5px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusbar__spacer {
+  flex: 1;
+}
+
+.statusbar__scale strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.statusbar__zoom {
+  display: flex;
+  gap: 2px;
+}
+
+.statusbar button {
+  font: inherit;
+  padding: 3px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.statusbar button:hover {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+
+.statusbar__zoom button {
+  min-width: 26px;
+  background: var(--surface-sunken);
+}
