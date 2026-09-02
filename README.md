@@ -1,4 +1,4 @@
-# Gantt with effort splitting
+# YAGNI — Yet Another Gantt, Nothing Innovative
 
 A Gantt chart editor in the spirit of [onlinegantt.com](https://www.onlinegantt.com/#/gantt),
 plus the feature that tool does not have: when several tasks assigned to the same

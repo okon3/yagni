@@ -32,14 +32,39 @@
   color: var(--ink);
 }
 
-/* Stands in for a product mark, so the title has the same weight on the page as
-   the toolbar sitting next to it. */
 .app__mark {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  background: linear-gradient(150deg, var(--accent), var(--accent-strong));
+  display: block;
+  flex: none;
+}
+
+/* The name is an acronym, and an acronym nobody can expand is just noise: the
+   expansion appears on hover rather than taking room in the bar. */
+.app__brand {
+  position: relative;
+  cursor: default;
+}
+
+.app__expansion {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  z-index: 30;
+}
+
+.app__brand:hover .app__expansion,
+.app__brand:focus-visible .app__expansion {
+  opacity: 1;
 }
 
 /* Fills whatever is left below the bar; the chart is absolute inside it so its

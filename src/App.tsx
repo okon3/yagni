@@ -182,8 +182,12 @@ export default function App() {
     >
       <header className="app__bar">
         <h1>
-          <span className="app__mark" aria-hidden="true" />
-          Gantt con split dell&apos;effort
+          {/* One SVG for the header and the favicon, so the mark cannot drift. */}
+          <img className="app__mark" src="/favicon.svg" alt="" width={20} height={20} />
+          <span className="app__brand">
+            YAGNI
+            <span className="app__expansion">Yet Another Gantt, Nothing Innovative</span>
+          </span>
         </h1>
         <Toolbar
           filename={filename}
