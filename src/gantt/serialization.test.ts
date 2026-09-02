@@ -81,7 +81,10 @@ describe('round trip', () => {
           id: 'r1',
           name: 'Marta',
           availability: 0.5,
-          daysOff: [{ from: '2026-07-01', to: '2026-07-15', label: 'Ferie' }],
+          availabilityOverrides: [
+            { from: '2026-07-01', to: '2026-07-15', availability: 0, label: 'Ferie' },
+            { from: '2026-09-02', to: '2026-09-20', availability: 0.25 },
+          ],
         },
         { id: 'r2', name: 'Ugo' },
       ],
@@ -92,9 +95,11 @@ describe('round trip', () => {
     const restored = deserializeProject(serializeProject(project));
     expect(restored.calendar.holidays).toEqual(project.calendar.holidays);
     expect(restored.calendar.workingDays).toEqual([1, 2, 3, 4]);
-    expect(restored.resources[0].daysOff).toEqual(project.resources[0].daysOff);
-    // A resource with no absences must not gain an empty array.
-    expect(restored.resources[1].daysOff).toBeUndefined();
+    expect(restored.resources[0].availabilityOverrides).toEqual(
+      project.resources[0].availabilityOverrides,
+    );
+    // A resource with no periods must not gain an empty array.
+    expect(restored.resources[1].availabilityOverrides).toBeUndefined();
   });
 
   it('survives a DST boundary', () => {
@@ -184,6 +189,21 @@ describe('rejects broken files', () => {
       }),
     ],
     [
+      'an availability share outside 0..1',
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 2,
+        resources: [
+          {
+            id: 'r1',
+            name: 'X',
+            availabilityOverrides: [{ from: '2026-09-02', to: '2026-09-20', availability: 25 }],
+          },
+        ],
+        tasks: [],
+      }),
+    ],
+    [
       'a dangling predecessor',
       JSON.stringify({
         format: 'gantt-effort-split',
@@ -198,6 +218,22 @@ describe('rejects broken files', () => {
       expect(() => deserializeProject(text)).toThrow(ProjectFileError);
     });
   }
+
+  it('reads version 1 absences as overrides at zero', () => {
+    const project = deserializeProject(
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 1,
+        resources: [
+          { id: 'r1', name: 'Marta', daysOff: [{ from: '2026-07-01', to: '2026-07-15' }] },
+        ],
+        tasks: [],
+      }),
+    );
+    expect(project.resources[0].availabilityOverrides).toEqual([
+      { from: '2026-07-01', to: '2026-07-15', availability: 0 },
+    ]);
+  });
 
   it('accepts a file with no tasks', () => {
     const project = deserializeProject(

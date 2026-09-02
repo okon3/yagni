@@ -1,0 +1,96 @@
+import { countWorkingDaysInRange, type AvailabilityOverride } from '../scheduler';
+
+/**
+ * Editor for the periods where somebody's availability differs from their
+ * default. Zero percent is an absence — same mechanism, no separate concept.
+ */
+export function AvailabilityList({
+  periods,
+  workingWeekdays,
+  onChange,
+}: {
+  periods: AvailabilityOverride[];
+  workingWeekdays: number[];
+  onChange(periods: AvailabilityOverride[]): void;
+}) {
+  const update = (index: number, patch: Partial<AvailabilityOverride>) => {
+    onChange(
+      periods.map((period, position) => (position === index ? { ...period, ...patch } : period)),
+    );
+  };
+
+  const add = () => {
+    const today = new Date();
+    const pad = (value: number) => String(value).padStart(2, '0');
+    const iso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    onChange([...periods, { from: iso, to: iso, availability: 0 }]);
+  };
+
+  return (
+    <div className="ranges">
+      {periods.length === 0 && (
+        <p className="ranges__empty">
+          Nessun periodo: vale la disponibilità di default per tutta la durata del progetto.
+        </p>
+      )}
+
+      {periods.map((period, index) => {
+        const working = countWorkingDaysInRange(period, workingWeekdays);
+        const percent = Math.round(period.availability * 100);
+        return (
+          <div className="ranges__row" key={index}>
+            <input
+              type="date"
+              value={period.from}
+              onChange={(event) => update(index, { from: event.target.value })}
+            />
+            <span className="ranges__to">→</span>
+            <input
+              type="date"
+              value={period.to}
+              min={period.from}
+              onChange={(event) => update(index, { to: event.target.value })}
+            />
+            <input
+              className="ranges__pct"
+              type="number"
+              min={0}
+              max={100}
+              step={5}
+              value={percent}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                update(index, {
+                  availability: Number.isFinite(next) ? Math.min(100, Math.max(0, next)) / 100 : 0,
+                });
+              }}
+            />
+            <span className="ranges__unit">%</span>
+            <input
+              className="ranges__label"
+              placeholder={percent === 0 ? 'Ferie, permesso...' : 'Motivo (opzionale)'}
+              value={period.label ?? ''}
+              onChange={(event) => update(index, { label: event.target.value })}
+            />
+            <span className={`ranges__count${working === 0 ? ' ranges__count--none' : ''}`}>
+              {working === 0
+                ? 'nessun giorno lavorativo'
+                : `${working} ${working === 1 ? 'giorno' : 'giorni'}${percent === 0 ? ' via' : ''}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => onChange(periods.filter((_, position) => position !== index))}
+              title="Rimuovi"
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })}
+
+      <button type="button" className="ranges__add" onClick={add}>
+        Aggiungi periodo
+      </button>
+    </div>
+  );
+}

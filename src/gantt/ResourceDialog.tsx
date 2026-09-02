@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { countWorkingDaysInRange, type DayRange, type Resource } from '../scheduler';
-import { DayRangeList } from './DayRangeList';
+import { countWorkingDaysInRange, type AvailabilityOverride, type Resource } from '../scheduler';
+import { AvailabilityList } from './AvailabilityList';
 
 export interface ResourceUsage {
   /** Number of tasks assigned to each resource id. */
@@ -12,7 +12,7 @@ interface DraftResource {
   name: string;
   /** Percentage, 100 = full time. Kept as text so a half-typed value survives. */
   availability: string;
-  daysOff: DayRange[];
+  periods: AvailabilityOverride[];
 }
 
 function toDraft(resources: Resource[]): DraftResource[] {
@@ -20,7 +20,7 @@ function toDraft(resources: Resource[]): DraftResource[] {
     id: resource.id,
     name: resource.name,
     availability: String(Math.round((resource.availability ?? 1) * 100)),
-    daysOff: resource.daysOff ?? [],
+    periods: resource.availabilityOverrides ?? [],
   }));
 }
 
@@ -57,8 +57,21 @@ export function ResourceDialog({
     dialog.current?.showModal();
   }, []);
 
-  const absenceDays = (draft: DraftResource) =>
-    draft.daysOff.reduce((total, range) => total + countWorkingDaysInRange(range, workingWeekdays), 0);
+  /** Short summary for the collapsed row: how many days are away, how many reduced. */
+  const periodSummary = (draft: DraftResource) => {
+    let away = 0;
+    let reduced = 0;
+    for (const period of draft.periods) {
+      const working = countWorkingDaysInRange(period, workingWeekdays);
+      if (period.availability === 0) away += working;
+      else reduced += working;
+    }
+    if (away === 0 && reduced === 0) return 'nessuno';
+    const parts = [];
+    if (away > 0) parts.push(`${away} g via`);
+    if (reduced > 0) parts.push(`${reduced} g ridotti`);
+    return parts.join(', ');
+  };
 
   const update = (index: number, patch: Partial<DraftResource>) => {
     setDrafts((current) =>
@@ -84,7 +97,7 @@ export function ResourceDialog({
   const add = () => {
     setDrafts((current) => [
       ...current,
-      { id: nextResourceId(current), name: '', availability: '100', daysOff: [] },
+      { id: nextResourceId(current), name: '', availability: '100', periods: [] },
     ]);
   };
 
@@ -107,9 +120,9 @@ export function ResourceDialog({
         setError(`Disponibilità non valida per "${name}": usa un valore tra 1 e 100`);
         return;
       }
-      const incomplete = draft.daysOff.find((range) => !range.from || !range.to);
+      const incomplete = draft.periods.find((period) => !period.from || !period.to);
       if (incomplete) {
-        setError(`Un'assenza di "${name}" non ha inizio o fine`);
+        setError(`Un periodo di "${name}" non ha inizio o fine`);
         return;
       }
       cleaned.push({
@@ -118,7 +131,7 @@ export function ResourceDialog({
         availability: percentage / 100,
         // Omitted rather than an empty array, to keep the saved file free of
         // fields that say nothing.
-        ...(draft.daysOff.length > 0 ? { daysOff: draft.daysOff } : {}),
+        ...(draft.periods.length > 0 ? { availabilityOverrides: draft.periods } : {}),
       });
     }
 
@@ -131,8 +144,10 @@ export function ResourceDialog({
     <dialog ref={dialog} className="resources" onCancel={onCancel} onClose={onCancel}>
       <h2>Persone</h2>
       <p className="resources__hint">
-        La disponibilità è la quota di giornata lavorativa: 50% significa mezza giornata, e l&apos;effort
-        assegnato si divide comunque in parti uguali fra le attività concorrenti.
+        La disponibilità è la quota di giornata lavorativa che la persona dedica al progetto: 50%
+        significa mezza giornata. Nei <strong>periodi</strong> puoi sovrascriverla per intervalli
+        specifici — 0% è un&apos;assenza. L&apos;effort disponibile si divide comunque in parti uguali
+        fra le attività concorrenti.
       </p>
 
       <table className="resources__table">
@@ -140,7 +155,7 @@ export function ResourceDialog({
           <tr>
             <th>Nome</th>
             <th>Disponibilità</th>
-            <th>Assenze</th>
+            <th>Periodi</th>
             <th>Attività</th>
             <th />
           </tr>
@@ -174,7 +189,7 @@ export function ResourceDialog({
                   }`}
                   onClick={() => setExpanded(expanded === draft.id ? null : draft.id)}
                 >
-                  {absenceDays(draft) > 0 ? `${absenceDays(draft)} g` : 'nessuna'}
+                  {periodSummary(draft)}
                 </button>
               </td>
               <td className="resources__count">{usage.taskCounts.get(draft.id) ?? 0}</td>
@@ -187,11 +202,10 @@ export function ResourceDialog({
             expanded === draft.id ? (
               <tr key={`${draft.id}-off`} className="resources__offRow">
                 <td colSpan={5}>
-                  <DayRangeList
-                    ranges={draft.daysOff}
+                  <AvailabilityList
+                    periods={draft.periods}
                     workingWeekdays={workingWeekdays}
-                    labelPlaceholder="Motivo (ferie, permesso...)"
-                    onChange={(daysOff) => update(index, { daysOff })}
+                    onChange={(periods) => update(index, { periods })}
                   />
                 </td>
               </tr>

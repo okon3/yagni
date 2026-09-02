@@ -54,44 +54,50 @@ export function schedule(
   const resourceById = new Map(resources.map((resource) => [resource.id, resource]));
 
   /**
-   * Absences projected onto the working-minute axis.
+   * Availability overrides projected onto the working-minute axis.
    *
-   * Days that are not working days collapse to the same coordinate, so an
-   * absence falling entirely on a weekend or inside a company shutdown becomes a
+   * Days that are not working days collapse to the same coordinate, so a period
+   * falling entirely on a weekend or inside a company shutdown becomes a
    * zero-width interval and correctly costs nothing.
    */
-  const absences = new Map<ResourceId, { from: number; to: number }[]>();
-  const absenceEdges: number[] = [];
+  const overrides = new Map<ResourceId, { from: number; to: number; availability: number }[]>();
+  const capacityEdges: number[] = [];
   for (const resource of resources) {
-    const days = [...expandRanges(resource.daysOff)].sort((a, b) => a - b);
-    const intervals: { from: number; to: number }[] = [];
-    for (const day of days) {
-      const from = calendar.dayStartInWorkingMinutes(day);
-      const to = calendar.dayStartInWorkingMinutes(day + 1);
-      if (to <= from) continue;
-      // Consecutive days off merge into one interval, which keeps the event list
-      // short for a two-week holiday.
-      const last = intervals[intervals.length - 1];
-      if (last && last.to === from) last.to = to;
-      else intervals.push({ from, to });
+    const intervals: { from: number; to: number; availability: number }[] = [];
+    for (const override of resource.availabilityOverrides ?? []) {
+      const days = [...expandRanges([override])].sort((a, b) => a - b);
+      for (const day of days) {
+        const from = calendar.dayStartInWorkingMinutes(day);
+        const to = calendar.dayStartInWorkingMinutes(day + 1);
+        if (to <= from) continue;
+        const availability = Math.max(0, override.availability);
+        // Consecutive days at the same rate merge into one interval, keeping the
+        // event list short for a two-week period.
+        const last = intervals[intervals.length - 1];
+        if (last && last.to === from && last.availability === availability) last.to = to;
+        else intervals.push({ from, to, availability });
+      }
     }
     if (intervals.length === 0) continue;
-    absences.set(resource.id, intervals);
-    for (const interval of intervals) absenceEdges.push(interval.from, interval.to);
+    overrides.set(resource.id, intervals);
+    for (const interval of intervals) capacityEdges.push(interval.from, interval.to);
   }
-  absenceEdges.sort((a, b) => a - b);
-
-  const isAway = (resourceId: ResourceId, at: number): boolean =>
-    (absences.get(resourceId) ?? []).some((interval) => at >= interval.from && at < interval.to);
+  capacityEdges.sort((a, b) => a - b);
 
   const capacityAt = (resourceId: ResourceId, at: number): number => {
     const resource = resourceById.get(resourceId);
     if (!resource) return 0;
-    return isAway(resourceId, at) ? 0 : (resource.availability ?? 1);
+    // Last match wins, so a narrow exception declared after a broad period takes
+    // precedence over it.
+    const covering = (overrides.get(resourceId) ?? []).filter(
+      (interval) => at >= interval.from && at < interval.to,
+    );
+    if (covering.length > 0) return covering[covering.length - 1].availability;
+    return resource.availability ?? 1;
   };
 
-  const nextAbsenceEdge = (after: number): number | undefined =>
-    absenceEdges.find((edge) => edge > after);
+  const nextCapacityEdge = (after: number): number | undefined =>
+    capacityEdges.find((edge) => edge > after);
   const successors = buildSuccessorIndex(tasks);
 
   const states = new Map<TaskId, SimTask>();
@@ -155,9 +161,9 @@ export function schedule(
   let clock = Math.min(...initialReady);
   // Each iteration consumes at least one completion, one arrival, or one absence
   // edge; the bound turns any future logic error into a clear failure instead of
-  // a hang. It has to count the absence edges too, or a team with a lot of
+  // a hang. It has to count the capacity edges too, or a team with a lot of
   // holiday would trip a convergence error that is not one.
-  const maxIterations = 4 * states.size + 2 * absenceEdges.length + 16;
+  const maxIterations = 4 * states.size + 2 * capacityEdges.length + 16;
 
   for (let iteration = 0; remainingCount > 0; iteration++) {
     if (iteration > maxIterations) {
@@ -221,7 +227,7 @@ export function schedule(
     let step = nextArrival === undefined ? Infinity : nextArrival - clock;
     // An absence starting or ending changes the rates even though no task
     // started or finished, so its edges are events in their own right.
-    const nextCapacityChange = nextAbsenceEdge(clock);
+    const nextCapacityChange = nextCapacityEdge(clock);
     if (nextCapacityChange !== undefined) step = Math.min(step, nextCapacityChange - clock);
     for (const state of active) {
       const rate = rates.get(state.task.id)!;

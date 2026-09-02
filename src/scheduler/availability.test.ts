@@ -84,7 +84,7 @@ describe('personal absences', () => {
   it('suspends the task and resumes it after the absence', () => {
     const result = run(
       [{ id: 'a', name: 'A', effort: days(3), startConstraint: MONDAY, resourceId: 'alice' }],
-      [{ ...alice, daysOff: [{ from: '2026-09-09', to: '2026-09-09' }] }],
+      [{ ...alice, availabilityOverrides: [{ from: '2026-09-09', to: '2026-09-09', availability: 0 }] }],
       );
     // Monday and Tuesday worked, Wednesday off, Thursday finishes it: the span
     // covers 4 working days for 3 days of work.
@@ -95,7 +95,7 @@ describe('personal absences', () => {
   it('leaves a gap in the allocation profile', () => {
     const result = run(
       [{ id: 'a', name: 'A', effort: days(3), startConstraint: MONDAY, resourceId: 'alice' }],
-      [{ ...alice, daysOff: [{ from: '2026-09-09', to: '2026-09-09' }] }],
+      [{ ...alice, availabilityOverrides: [{ from: '2026-09-09', to: '2026-09-09', availability: 0 }] }],
     );
     const segments = result.tasks.get('a')!.segments;
     expect(segments).toHaveLength(2);
@@ -113,7 +113,7 @@ describe('personal absences', () => {
   it('delays the start when the absence covers it', () => {
     const result = run(
       [{ id: 'a', name: 'A', effort: days(1), startConstraint: MONDAY, resourceId: 'alice' }],
-      [{ ...alice, daysOff: [{ from: '2026-09-07', to: '2026-09-08' }] }],
+      [{ ...alice, availabilityOverrides: [{ from: '2026-09-07', to: '2026-09-08', availability: 0 }] }],
     );
     // Monday and Tuesday are off, so work starts Wednesday.
     expect(result.tasks.get('a')!.start).toEqual(day(2));
@@ -127,7 +127,7 @@ describe('personal absences', () => {
         { id: 'b', name: 'B', effort: days(2), startConstraint: MONDAY, resourceId: 'bob' },
       ],
       [
-        { ...alice, daysOff: [{ from: '2026-09-08', to: '2026-09-08' }] },
+        { ...alice, availabilityOverrides: [{ from: '2026-09-08', to: '2026-09-08', availability: 0 }] },
         { id: 'bob', name: 'Bob' },
       ],
     );
@@ -142,7 +142,7 @@ describe('personal absences', () => {
         { id: 'b', name: 'B', effort: days(1), startConstraint: MONDAY, resourceId: 'alice' },
       ],
       // Tuesday off, in the middle of the two days these tasks would take.
-      [{ ...alice, daysOff: [{ from: '2026-09-08', to: '2026-09-08' }] }],
+      [{ ...alice, availabilityOverrides: [{ from: '2026-09-08', to: '2026-09-08', availability: 0 }] }],
     );
     // A day of effort each at 50% is two working days, and the absence adds one.
     expect(elapsedDays(result, 'a')).toBe(3);
@@ -159,7 +159,7 @@ describe('personal absences', () => {
   it('costs nothing when the absence falls on a weekend', () => {
     const result = run(
       [{ id: 'a', name: 'A', effort: days(5), startConstraint: MONDAY, resourceId: 'alice' }],
-      [{ ...alice, daysOff: [{ from: '2026-09-12', to: '2026-09-13' }] }],
+      [{ ...alice, availabilityOverrides: [{ from: '2026-09-12', to: '2026-09-13', availability: 0 }] }],
     );
     expect(elapsedDays(result, 'a')).toBe(5);
   });
@@ -167,7 +167,7 @@ describe('personal absences', () => {
   it('handles an absence spanning more than a week', () => {
     const result = run(
       [{ id: 'a', name: 'A', effort: days(2), startConstraint: MONDAY, resourceId: 'alice' }],
-      [{ ...alice, daysOff: [{ from: '2026-09-08', to: '2026-09-21' }] }],
+      [{ ...alice, availabilityOverrides: [{ from: '2026-09-08', to: '2026-09-21', availability: 0 }] }],
     );
     // One day Monday, then away until 21 September; work resumes on the 22nd.
     expect(result.tasks.get('a')!.end).toEqual(new Date(2026, 8, 22, 17, 0));
@@ -176,7 +176,7 @@ describe('personal absences', () => {
   it('combines with partial availability', () => {
     const result = run(
       [{ id: 'a', name: 'A', effort: days(2), startConstraint: MONDAY, resourceId: 'alice' }],
-      [{ ...alice, availability: 0.5, daysOff: [{ from: '2026-09-09', to: '2026-09-09' }] }],
+      [{ ...alice, availability: 0.5, availabilityOverrides: [{ from: '2026-09-09', to: '2026-09-09', availability: 0 }] }],
     );
     // 2 days of effort at 50% is 4 working days, plus the day off.
     expect(elapsedDays(result, 'a')).toBe(5);
@@ -192,11 +192,122 @@ describe('personal absences', () => {
   });
 });
 
+describe('availability that varies over time', () => {
+  it('applies a reduced rate for the period and the default outside it', () => {
+    const result = run(
+      [{ id: 'a', name: 'A', effort: days(3), startConstraint: MONDAY, resourceId: 'alice' }],
+      // Monday and Tuesday at 25%, full time from Wednesday.
+      [
+        {
+          ...alice,
+          availabilityOverrides: [{ from: '2026-09-07', to: '2026-09-08', availability: 0.25 }],
+        },
+      ],
+    );
+    const segments = result.tasks.get('a')!.segments;
+    expect(segments.map((segment) => segment.rate)).toEqual([0.25, 1]);
+    // 0.5 days burnt over the two slow days, 2.5 left at full rate.
+    expect(elapsedDays(result, 'a')).toBeCloseTo(4.5, 9);
+  });
+
+  it('overrides the default availability rather than multiplying it', () => {
+    const result = run(
+      [{ id: 'a', name: 'A', effort: days(1), startConstraint: MONDAY, resourceId: 'alice' }],
+      [
+        {
+          ...alice,
+          availability: 0.5,
+          availabilityOverrides: [{ from: '2026-09-07', to: '2026-09-11', availability: 0.25 }],
+        },
+      ],
+    );
+    // 25%, not 12.5%: the period replaces the default for its duration.
+    expect(result.tasks.get('a')!.segments[0].rate).toBe(0.25);
+    expect(elapsedDays(result, 'a')).toBe(4);
+  });
+
+  it('compounds a reduced period with the split between tasks', () => {
+    const result = run(
+      [
+        { id: 'a', name: 'A', effort: days(1), startConstraint: MONDAY, resourceId: 'alice' },
+        { id: 'b', name: 'B', effort: days(1), startConstraint: MONDAY, resourceId: 'alice' },
+      ],
+      [
+        {
+          ...alice,
+          availabilityOverrides: [{ from: '2026-09-07', to: '2026-09-30', availability: 0.5 }],
+        },
+      ],
+    );
+    // Half a person split two ways is a quarter each.
+    expect(result.tasks.get('a')!.segments[0].rate).toBe(0.25);
+    expect(elapsedDays(result, 'a')).toBe(4);
+  });
+
+  it('lets a later override win over an earlier one that overlaps', () => {
+    const result = run(
+      [{ id: 'a', name: 'A', effort: days(2), startConstraint: MONDAY, resourceId: 'alice' }],
+      [
+        {
+          ...alice,
+          availabilityOverrides: [
+            // A broad half-time spell, then one day carved out of it as leave.
+            { from: '2026-09-07', to: '2026-09-30', availability: 0.5 },
+            { from: '2026-09-08', to: '2026-09-08', availability: 0 },
+          ],
+        },
+      ],
+    );
+    const rates = result.tasks.get('a')!.segments.map((segment) => segment.rate);
+    // Monday at 50%, Tuesday away, back to 50% afterwards.
+    expect(rates).toEqual([0.5, 0.5]);
+    expect(result.tasks.get('a')!.segments[0].endWorkingMinutes).toBe(days(1));
+    expect(result.tasks.get('a')!.segments[1].startWorkingMinutes).toBe(days(2));
+  });
+
+  it('treats a zero override exactly like an absence', () => {
+    const away = run(
+      [{ id: 'a', name: 'A', effort: days(3), startConstraint: MONDAY, resourceId: 'alice' }],
+      [
+        {
+          ...alice,
+          availabilityOverrides: [{ from: '2026-09-09', to: '2026-09-09', availability: 0 }],
+        },
+      ],
+    );
+    expect(elapsedDays(away, 'a')).toBe(4);
+  });
+
+  it('conserves effort across changing rates', () => {
+    const effort = days(4);
+    const result = run(
+      [{ id: 'a', name: 'A', effort, startConstraint: MONDAY, resourceId: 'alice' }],
+      [
+        {
+          ...alice,
+          availabilityOverrides: [
+            { from: '2026-09-08', to: '2026-09-09', availability: 0.25 },
+            { from: '2026-09-10', to: '2026-09-11', availability: 0 },
+          ],
+        },
+      ],
+    );
+    const burnt = result.tasks
+      .get('a')!
+      .segments.reduce(
+        (total, segment) =>
+          total + segment.rate * (segment.endWorkingMinutes - segment.startWorkingMinutes),
+        0,
+      );
+    expect(burnt).toBeCloseTo(effort, 6);
+  });
+});
+
 describe('shutdowns and absences together', () => {
   it('does not double-count an absence inside a shutdown', () => {
     const result = run(
       [{ id: 'a', name: 'A', effort: days(3), startConstraint: MONDAY, resourceId: 'alice' }],
-      [{ ...alice, daysOff: [{ from: '2026-09-09', to: '2026-09-09' }] }],
+      [{ ...alice, availabilityOverrides: [{ from: '2026-09-09', to: '2026-09-09', availability: 0 }] }],
       // The same Wednesday is already closed for everybody.
       { ...DEFAULT_CALENDAR, holidays: [{ from: '2026-09-09', to: '2026-09-09' }] },
     );

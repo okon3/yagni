@@ -22,17 +22,33 @@ export interface Task {
   predecessors?: TaskId[];
 }
 
+/**
+ * A stretch where a resource's availability differs from its default.
+ *
+ * An absence is just this with `availability: 0` — holiday and reduced capacity
+ * are the same mechanism, so the engine has one notion to reason about instead
+ * of two that could disagree.
+ */
+export interface AvailabilityOverride extends DayRange {
+  /** Share of a full working day. 0 means away. */
+  availability: number;
+}
+
 export interface Resource {
   id: ResourceId;
   name: string;
-  /** Share of a full working day this resource is available for. 1 = full time. */
+  /** Default share of a full working day. 1 = full time. */
   availability?: number;
   /**
-   * Personal absences — holiday, leave. Unlike a company shutdown these cannot
-   * be removed from the shared time axis, since the rest of the team keeps
-   * working, so they become stretches of zero capacity instead.
+   * Periods where availability differs from the default — holiday, part-time
+   * spells, a stint on another project.
+   *
+   * Unlike a company shutdown these cannot be removed from the shared time axis,
+   * since the rest of the team keeps working; they become stretches of different
+   * capacity instead. Where two overlap, the one declared last wins, so a
+   * specific exception can be added after a broad rule.
    */
-  daysOff?: DayRange[];
+  availabilityOverrides?: AvailabilityOverride[];
 }
 
 /** A stretch of time during which a task progressed at a constant rate. */

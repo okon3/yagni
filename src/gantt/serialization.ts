@@ -1,8 +1,15 @@
-import { DEFAULT_CALENDAR, isDayString, type CalendarSpec, type DayRange, type Resource } from '../scheduler';
+import {
+  DEFAULT_CALENDAR,
+  isDayString,
+  type AvailabilityOverride,
+  type CalendarSpec,
+  type DayRange,
+  type Resource,
+} from '../scheduler';
 import type { Project, ProjectTask } from './project';
 
 export const FILE_FORMAT = 'gantt-effort-split';
-export const FILE_VERSION = 1;
+export const FILE_VERSION = 2;
 
 export class ProjectFileError extends Error {
   constructor(message: string) {
@@ -121,9 +128,31 @@ export function deserializeProject(text: string): Project {
     if (record.availability !== undefined) {
       resource.availability = requireNumber(record.availability, `resources[${index}].availability`);
     }
-    if (record.daysOff !== undefined) {
-      resource.daysOff = parseDayRanges(record.daysOff, `resources[${index}].daysOff`);
+    const overrides: AvailabilityOverride[] = [];
+    // Version 1 stored absences separately; they are overrides at zero now, so
+    // files written before the change still load with the same meaning.
+    for (const range of record.daysOff !== undefined
+      ? parseDayRanges(record.daysOff, `resources[${index}].daysOff`)
+      : []) {
+      overrides.push({ ...range, availability: 0 });
     }
+    if (record.availabilityOverrides !== undefined) {
+      const context = `resources[${index}].availabilityOverrides`;
+      asArray(record.availabilityOverrides, context).forEach((entry, position) => {
+        const [range] = parseDayRanges([entry], `${context}[${position}]`);
+        const share = requireNumber(
+          asRecord(entry, `${context}[${position}]`).availability,
+          `${context}[${position}].availability`,
+        );
+        if (share < 0 || share > 1) {
+          throw new ProjectFileError(
+            `${context}[${position}].availability: attesa una quota fra 0 e 1`,
+          );
+        }
+        overrides.push({ ...range, availability: share });
+      });
+    }
+    if (overrides.length > 0) resource.availabilityOverrides = overrides;
     return resource;
   });
 

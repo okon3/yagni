@@ -49,10 +49,7 @@ construction: the simulation loop contains no calendar logic at all.
 - **Bar colour is inherited.** It is set on the top-level task and applies to the
   whole subtree, so moving a branch recolours it.
 
-### Days off
-
-The two kinds are handled differently, because they mean different things to a
-shared time axis.
+### Time off and changing availability
 
 **Company shutdowns** (`calendar.holidays`) apply to everyone, so they leave the
 axis entirely, exactly like a weekend. Tasks move later, their effort does not
@@ -61,20 +58,36 @@ sorted index and subtracted with a binary search, and the inverse mapping settle
 by fixed point instead of walking day by day, because that path runs on every
 event.
 
-**Personal absences** (`resource.daysOff`) cannot leave the axis — the rest of the
-team keeps working — so they become stretches of **zero capacity**, which makes
-capacity a function of time. Absence edges are events like any other, and the
-allocation policy receives a capacity that is already resolved, so it never has to
-know about days off. An absence **pauses** every task sharing that person without
-redistributing their share, and appears as a gap in the allocation profile.
+**Per-person availability** cannot leave the axis — the rest of the team keeps
+working — so it becomes capacity that varies with time. Each resource has a
+default `availability` plus `availabilityOverrides`: periods that replace it for
+their duration.
 
-An absence falling on a weekend or inside a shutdown costs nothing, and the UI
-says so rather than leaving the user wondering why no date moved.
+An **absence is just an override at zero**, not a separate mechanism. Holiday and
+a spell at 25% are the same thing to the engine, which is why there is one notion
+here instead of two that could disagree about a day covered by both.
+
+Three rules worth knowing:
+
+- An override **replaces** the default, it does not multiply it. Somebody on 50%
+  with a period at 25% works at 25% for that period, not 12.5%.
+- Where two overrides overlap, **the last one declared wins**, so a narrow
+  exception can be carved out of a broad period — a fortnight at 50% with a day
+  of leave inside it.
+- The split between concurrent tasks still applies on top: half a person shared
+  between two tasks gives each a quarter.
+
+Override edges are events like any other, and the allocation policy receives a
+capacity that is already resolved, so it never has to know about calendars. A
+period at zero **pauses** every task sharing that person without redistributing
+their share, and appears as a gap in the allocation profile.
+
+A period falling on a weekend or inside a shutdown costs nothing, and the UI says
+so rather than leaving the user wondering why no date moved.
 
 What is still global is the **working week and the daily hours**: one person cannot
 have different working hours from another. That would break the shared axis and
-need conversions between per-resource axes at every event. `availability` covers
-uniform part-time, and `daysOff` covers time away.
+need conversions between per-resource axes at every event.
 
 ## Layout
 
@@ -115,8 +128,11 @@ premises. Dates are written as local wall-clock time; `toISOString` would shift 
 to UTC and move an 08:00 start to the previous day.
 
 Parsing is strict — unknown resources, duplicate ids, dangling predecessors, a
-circular hierarchy and future versions are all rejected, and the open project is
-left untouched when a file fails to load.
+circular hierarchy, an availability share outside 0..1 and future versions are all
+rejected, and the open project is left untouched when a file fails to load.
+
+The current version is **2**. Version 1 files still load: their `daysOff` are read
+as availability overrides at zero, which is what they always meant.
 
 ## Development
 

@@ -449,3 +449,8 @@
   padding: 4px 6px 12px;
   background: #f8fafc;
 }
+
+.ranges__pct {
+  width: 62px;
+  text-align: right;
+}
