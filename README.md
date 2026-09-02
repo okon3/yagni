@@ -46,9 +46,32 @@ construction: the simulation loop contains no calendar logic at all.
 - **Bar colour is inherited.** It is set on the top-level task and applies to the
   whole subtree, so moving a branch recolours it.
 
-One deliberate limitation: a **single global calendar**, not one per resource.
-Per-resource calendars would break the shared linear axis and need conversions
-between axes at every event. `availability` covers the uniform part-time case.
+### Days off
+
+The two kinds are handled differently, because they mean different things to a
+shared time axis.
+
+**Company shutdowns** (`calendar.holidays`) apply to everyone, so they leave the
+axis entirely, exactly like a weekend. Tasks move later, their effort does not
+change. This is what breaks the tidy week arithmetic: holidays are held as a
+sorted index and subtracted with a binary search, and the inverse mapping settles
+by fixed point instead of walking day by day, because that path runs on every
+event.
+
+**Personal absences** (`resource.daysOff`) cannot leave the axis — the rest of the
+team keeps working — so they become stretches of **zero capacity**, which makes
+capacity a function of time. Absence edges are events like any other, and the
+allocation policy receives a capacity that is already resolved, so it never has to
+know about days off. An absence **pauses** every task sharing that person without
+redistributing their share, and appears as a gap in the allocation profile.
+
+An absence falling on a weekend or inside a shutdown costs nothing, and the UI
+says so rather than leaving the user wondering why no date moved.
+
+What is still global is the **working week and the daily hours**: one person cannot
+have different working hours from another. That would break the shared axis and
+need conversions between per-resource axes at every event. `availability` covers
+uniform part-time, and `daysOff` covers time away.
 
 ## Layout
 
