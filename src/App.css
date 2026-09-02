@@ -330,3 +330,122 @@
 .empty__primary:hover {
   background: #3366c4;
 }
+
+.calendar {
+  min-width: 560px;
+}
+
+.calendar__week {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eceff3;
+  font-size: 13px;
+}
+
+.calendar__weekLabel {
+  color: #5a6472;
+  font-weight: 600;
+}
+
+.calendar__days {
+  display: flex;
+  gap: 10px;
+}
+
+.calendar__day {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.calendar__subhead {
+  font-size: 13px;
+  margin: 16px 0 8px;
+}
+
+.ranges {
+  font-size: 13px;
+}
+
+.ranges__empty {
+  margin: 0 0 8px;
+  color: #7b8798;
+}
+
+.ranges__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ranges__row input {
+  font: inherit;
+  padding: 4px 7px;
+  border: 1px solid #ccd3dd;
+  border-radius: 4px;
+}
+
+.ranges__label {
+  flex: 1;
+  min-width: 90px;
+}
+
+.ranges__to {
+  color: #7b8798;
+}
+
+.ranges__count {
+  min-width: 82px;
+  text-align: right;
+  color: #5a6472;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A period that lands entirely on non-working days costs nothing, which is worth
+   saying out loud rather than leaving the user to wonder. */
+.ranges__count--none {
+  color: #b4530a;
+}
+
+.ranges__row button,
+.ranges__add {
+  font: inherit;
+  padding: 4px 9px;
+  border: 1px solid #ccd3dd;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.ranges__row button {
+  color: #8a3a17;
+}
+
+.ranges__add:hover,
+.ranges__row button:hover {
+  background: #eef2f7;
+}
+
+.resources__absences {
+  font: inherit;
+  padding: 3px 9px;
+  border: 1px solid #ccd3dd;
+  border-radius: 4px;
+  background: #fff;
+  color: #24518f;
+  cursor: pointer;
+}
+
+.resources__absences--open {
+  background: #e9eff7;
+  border-color: #a9b6c8;
+}
+
+.resources__offRow td {
+  padding: 4px 6px 12px;
+  background: #f8fafc;
+}

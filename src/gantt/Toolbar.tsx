@@ -6,6 +6,7 @@ export interface ToolbarProps {
   onSave(): void;
   onAddTask(): void;
   onEditResources(): void;
+  onEditCalendar(): void;
   onToday(): void;
   onZoomIn(): void;
   onZoomOut(): void;
@@ -20,6 +21,7 @@ export function Toolbar({
   onSave,
   onAddTask,
   onEditResources,
+  onEditCalendar,
   onToday,
   onZoomIn,
   onZoomOut,
@@ -44,6 +46,9 @@ export function Toolbar({
         </button>
         <button type="button" onClick={onEditResources}>
           Persone
+        </button>
+        <button type="button" onClick={onEditCalendar}>
+          Calendario
         </button>
       </div>
       <div className="toolbar__group">

@@ -1,4 +1,4 @@
-import { DEFAULT_CALENDAR, type CalendarSpec, type Resource } from '../scheduler';
+import { DEFAULT_CALENDAR, isDayString, type CalendarSpec, type DayRange, type Resource } from '../scheduler';
 import type { Project, ProjectTask } from './project';
 
 export const FILE_FORMAT = 'gantt-effort-split';
@@ -34,6 +34,18 @@ function parseDate(value: unknown, context: string): Date {
   const date = new Date(year, month - 1, day, hour, minute);
   if (Number.isNaN(date.getTime())) throw new ProjectFileError(`${context}: invalid date "${value}"`);
   return date;
+}
+
+function parseDayRanges(value: unknown, context: string): DayRange[] {
+  return asArray(value, context).map((entry, index) => {
+    const record = asRecord(entry, `${context}[${index}]`);
+    if (!isDayString(record.from) || !isDayString(record.to)) {
+      throw new ProjectFileError(`${context}[${index}]: attesa una data YYYY-MM-DD`);
+    }
+    const range: DayRange = { from: record.from, to: record.to };
+    if (typeof record.label === 'string' && record.label.length > 0) range.label = record.label;
+    return range;
+  });
 }
 
 export function serializeProject(project: Project): string {
@@ -109,6 +121,9 @@ export function deserializeProject(text: string): Project {
     if (record.availability !== undefined) {
       resource.availability = requireNumber(record.availability, `resources[${index}].availability`);
     }
+    if (record.daysOff !== undefined) {
+      resource.daysOff = parseDayRanges(record.daysOff, `resources[${index}].daysOff`);
+    }
     return resource;
   });
 
@@ -180,9 +195,10 @@ export function deserializeProject(text: string): Project {
     }
   }
 
-  return {
-    calendar: (root.calendar as CalendarSpec | undefined) ?? DEFAULT_CALENDAR,
-    resources,
-    tasks,
-  };
+  const calendar = (root.calendar as CalendarSpec | undefined) ?? DEFAULT_CALENDAR;
+  if (calendar.holidays !== undefined) {
+    calendar.holidays = parseDayRanges(calendar.holidays, 'calendar.holidays');
+  }
+
+  return { calendar, resources, tasks };
 }

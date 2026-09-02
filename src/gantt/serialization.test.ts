@@ -66,6 +66,37 @@ describe('round trip', () => {
     expect(restored.tasks[1].color).toBe('#2f9e6e');
   });
 
+  it('preserves company shutdowns and personal absences', () => {
+    const project: Project = {
+      calendar: {
+        ...DEFAULT_CALENDAR,
+        workingDays: [1, 2, 3, 4],
+        holidays: [
+          { from: '2026-12-24', to: '2027-01-06', label: 'Chiusura invernale' },
+          { from: '2026-08-14', to: '2026-08-14' },
+        ],
+      },
+      resources: [
+        {
+          id: 'r1',
+          name: 'Marta',
+          availability: 0.5,
+          daysOff: [{ from: '2026-07-01', to: '2026-07-15', label: 'Ferie' }],
+        },
+        { id: 'r2', name: 'Ugo' },
+      ],
+      tasks: [
+        { id: '1', name: 'A', nominalDays: 2, start: new Date(2026, 5, 1, 8, 0), resourceId: 'r1' },
+      ],
+    };
+    const restored = deserializeProject(serializeProject(project));
+    expect(restored.calendar.holidays).toEqual(project.calendar.holidays);
+    expect(restored.calendar.workingDays).toEqual([1, 2, 3, 4]);
+    expect(restored.resources[0].daysOff).toEqual(project.resources[0].daysOff);
+    // A resource with no absences must not gain an empty array.
+    expect(restored.resources[1].daysOff).toBeUndefined();
+  });
+
   it('survives a DST boundary', () => {
     // Italy moves the clock on the last Sunday of March.
     const project: Project = {
@@ -132,6 +163,24 @@ describe('rejects broken files', () => {
           { id: '1', nominalDays: 1, start: '2026-01-05T08:00', parentId: '2' },
           { id: '2', nominalDays: 1, start: '2026-01-05T08:00', parentId: '1' },
         ],
+      }),
+    ],
+    [
+      'a malformed holiday date',
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 1,
+        calendar: { workingDays: [1], windows: [{ from: 480, to: 960 }], holidays: [{ from: '24/12/2026', to: '2026-12-24' }] },
+        tasks: [],
+      }),
+    ],
+    [
+      'an absence that is not a day range',
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 1,
+        resources: [{ id: 'r1', name: 'X', daysOff: [{ from: '2026-07-01' }] }],
+        tasks: [],
       }),
     ],
     [

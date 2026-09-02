@@ -2,7 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useRef, type Ref } from 'r
 import { gantt, type ZoomLevel } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { isShared, renderSegments } from './segmentBar';
-import type { Resource, ScheduledTask } from '../scheduler';
+import type { CalendarSpec, Resource, ScheduledTask } from '../scheduler';
 import { effectiveColorOf, solve, type Project, type SolvedProject } from './project';
 import './gantt.css';
 
@@ -75,6 +75,8 @@ export interface GanttHandle {
   getResources(): Resource[];
   /** Tasks assigned to a removed resource are released to "no resource". */
   setResources(resources: Resource[], releasedResourceIds: string[]): void;
+  getCalendar(): CalendarSpec;
+  setCalendar(calendar: CalendarSpec): void;
   countTasksByResource(): Map<string, number>;
   addTask(): void;
   zoomIn(): void;
@@ -230,6 +232,14 @@ export function GanttChart({
           }));
         }
         applySolution();
+      },
+      getCalendar: () => projectRef.current.calendar,
+      setCalendar: (calendar) => {
+        projectRef.current.calendar = calendar;
+        // Shutdowns leave the time axis, so every date shifts: the timeline
+        // scales have to be redrawn, not just the task data.
+        applySolution();
+        gantt.render();
       },
       countTasksByResource: () => {
         const counts = new Map<string, number>();
@@ -500,12 +510,16 @@ export function GanttChart({
             : undefined;
           const start = item.start_date ? new Date(item.start_date as Date) : new Date();
           start.setHours(8, 0, 0, 0);
+          // Honour whatever the caller supplied and only fall back to a day of
+          // effort, so a row created with data does not silently lose it.
+          const supplied = Number(item.nominal_days);
           projectRef.current.tasks.push({
             id: key,
             name: String(item.text || 'Nuova attività'),
-            nominalDays: 1,
+            nominalDays: Number.isFinite(supplied) && supplied >= 0 ? supplied : 1,
             start,
             parentId: parent,
+            resourceId: (item.resource_id as string | undefined) || undefined,
           });
         }
         applySolution();

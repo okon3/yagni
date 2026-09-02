@@ -1,10 +1,12 @@
 import { useCallback, useRef, useState, type DragEvent } from 'react';
-import type { Resource } from './scheduler';
+import type { CalendarSpec, Resource } from './scheduler';
 import { GanttChart, type GanttHandle } from './gantt/GanttChart';
+import { CalendarDialog } from './gantt/CalendarDialog';
 import { EmptyState } from './gantt/EmptyState';
 import { ResourceDialog } from './gantt/ResourceDialog';
 import { Toolbar } from './gantt/Toolbar';
 import { PROJECT_EXTENSION, downloadText, pickTextFile } from './gantt/files';
+import { DEFAULT_CALENDAR } from './scheduler';
 import { emptyProject } from './gantt/project';
 import { ProjectFileError, deserializeProject, serializeProject } from './gantt/serialization';
 import './App.css';
@@ -20,6 +22,8 @@ export default function App() {
   const [taskCount, setTaskCount] = useState(initialProject.tasks.length);
   const [dragging, setDragging] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarSnapshot, setCalendarSnapshot] = useState<CalendarSpec>(DEFAULT_CALENDAR);
   // Snapshotted when the dialog opens: the chart owns the live project, and
   // reading it on every render would fight the imperative handle.
   const [resourceSnapshot, setResourceSnapshot] = useState<{
@@ -96,7 +100,21 @@ export default function App() {
       resources: handle.getResources(),
       taskCounts: handle.countTasksByResource(),
     });
+    setCalendarSnapshot(handle.getCalendar());
     setResourcesOpen(true);
+  }, []);
+
+  const openCalendar = useCallback(() => {
+    const handle = chart.current;
+    if (!handle) return;
+    setCalendarSnapshot(handle.getCalendar());
+    setCalendarOpen(true);
+  }, []);
+
+  const saveCalendar = useCallback((calendar: CalendarSpec) => {
+    chart.current?.setCalendar(calendar);
+    setCalendarOpen(false);
+    setDirty(true);
   }, []);
 
   const saveResources = useCallback((resources: Resource[], releasedIds: string[]) => {
@@ -148,6 +166,7 @@ export default function App() {
           onSave={handleSave}
           onAddTask={handleAddTask}
           onEditResources={openResources}
+          onEditCalendar={openCalendar}
           onToday={() => chart.current?.scrollToToday()}
           onZoomIn={() => chart.current?.zoomIn()}
           onZoomOut={() => chart.current?.zoomOut()}
@@ -184,8 +203,17 @@ export default function App() {
         <ResourceDialog
           resources={resourceSnapshot.resources}
           usage={{ taskCounts: resourceSnapshot.taskCounts }}
+          workingWeekdays={calendarSnapshot.workingDays}
           onCancel={() => setResourcesOpen(false)}
           onSave={saveResources}
+        />
+      )}
+
+      {calendarOpen && (
+        <CalendarDialog
+          calendar={calendarSnapshot}
+          onCancel={() => setCalendarOpen(false)}
+          onSave={saveCalendar}
         />
       )}
     </main>

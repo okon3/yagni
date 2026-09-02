@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Resource } from '../scheduler';
+import { countWorkingDaysInRange, type DayRange, type Resource } from '../scheduler';
+import { DayRangeList } from './DayRangeList';
 
 export interface ResourceUsage {
   /** Number of tasks assigned to each resource id. */
@@ -11,6 +12,7 @@ interface DraftResource {
   name: string;
   /** Percentage, 100 = full time. Kept as text so a half-typed value survives. */
   availability: string;
+  daysOff: DayRange[];
 }
 
 function toDraft(resources: Resource[]): DraftResource[] {
@@ -18,6 +20,7 @@ function toDraft(resources: Resource[]): DraftResource[] {
     id: resource.id,
     name: resource.name,
     availability: String(Math.round((resource.availability ?? 1) * 100)),
+    daysOff: resource.daysOff ?? [],
   }));
 }
 
@@ -34,21 +37,28 @@ function nextResourceId(drafts: DraftResource[]): string {
 export function ResourceDialog({
   resources,
   usage,
+  workingWeekdays,
   onCancel,
   onSave,
 }: {
   resources: Resource[];
   usage: ResourceUsage;
+  workingWeekdays: number[];
   onCancel(): void;
   onSave(resources: Resource[], releasedTaskIds: string[]): void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [drafts, setDrafts] = useState<DraftResource[]>(() => toDraft(resources));
   const [error, setError] = useState<string | null>(null);
+  /** Which person's absences are expanded; only one at a time keeps it readable. */
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
+
+  const absenceDays = (draft: DraftResource) =>
+    draft.daysOff.reduce((total, range) => total + countWorkingDaysInRange(range, workingWeekdays), 0);
 
   const update = (index: number, patch: Partial<DraftResource>) => {
     setDrafts((current) =>
@@ -74,7 +84,7 @@ export function ResourceDialog({
   const add = () => {
     setDrafts((current) => [
       ...current,
-      { id: nextResourceId(current), name: '', availability: '100' },
+      { id: nextResourceId(current), name: '', availability: '100', daysOff: [] },
     ]);
   };
 
@@ -97,7 +107,19 @@ export function ResourceDialog({
         setError(`Disponibilità non valida per "${name}": usa un valore tra 1 e 100`);
         return;
       }
-      cleaned.push({ id: draft.id, name, availability: percentage / 100 });
+      const incomplete = draft.daysOff.find((range) => !range.from || !range.to);
+      if (incomplete) {
+        setError(`Un'assenza di "${name}" non ha inizio o fine`);
+        return;
+      }
+      cleaned.push({
+        id: draft.id,
+        name,
+        availability: percentage / 100,
+        // Omitted rather than an empty array, to keep the saved file free of
+        // fields that say nothing.
+        ...(draft.daysOff.length > 0 ? { daysOff: draft.daysOff } : {}),
+      });
     }
 
     const survivingIds = new Set(cleaned.map((resource) => resource.id));
@@ -118,12 +140,13 @@ export function ResourceDialog({
           <tr>
             <th>Nome</th>
             <th>Disponibilità</th>
+            <th>Assenze</th>
             <th>Attività</th>
             <th />
           </tr>
         </thead>
         <tbody>
-          {drafts.map((draft, index) => (
+          {drafts.flatMap((draft, index) => [
             <tr key={draft.id}>
               <td>
                 <input
@@ -143,17 +166,40 @@ export function ResourceDialog({
                 />
                 <span className="resources__unit">%</span>
               </td>
+              <td className="resources__count">
+                <button
+                  type="button"
+                  className={`resources__absences${
+                    expanded === draft.id ? ' resources__absences--open' : ''
+                  }`}
+                  onClick={() => setExpanded(expanded === draft.id ? null : draft.id)}
+                >
+                  {absenceDays(draft) > 0 ? `${absenceDays(draft)} g` : 'nessuna'}
+                </button>
+              </td>
               <td className="resources__count">{usage.taskCounts.get(draft.id) ?? 0}</td>
               <td>
                 <button type="button" onClick={() => remove(index)} title="Rimuovi">
                   ✕
                 </button>
               </td>
-            </tr>
-          ))}
+            </tr>,
+            expanded === draft.id ? (
+              <tr key={`${draft.id}-off`} className="resources__offRow">
+                <td colSpan={5}>
+                  <DayRangeList
+                    ranges={draft.daysOff}
+                    workingWeekdays={workingWeekdays}
+                    labelPlaceholder="Motivo (ferie, permesso...)"
+                    onChange={(daysOff) => update(index, { daysOff })}
+                  />
+                </td>
+              </tr>
+            ) : null,
+          ])}
           {drafts.length === 0 && (
             <tr>
-              <td colSpan={4} className="resources__empty">
+              <td colSpan={5} className="resources__empty">
                 Nessuna persona. Aggiungine una per poter assegnare le attività.
               </td>
             </tr>

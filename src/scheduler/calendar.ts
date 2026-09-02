@@ -1,3 +1,5 @@
+import { dayIndexOf, expandRanges, type DayRange } from './dayRange';
+
 const MS_PER_DAY = 86_400_000;
 
 /** Minutes from midnight. */
@@ -10,6 +12,8 @@ export interface CalendarSpec {
   /** Working weekdays as JS `Date#getDay` indices, 0 = Sunday. */
   workingDays: number[];
   windows: DailyWindow[];
+  /** Company-wide shutdowns: removed from the axis, like weekends. */
+  holidays?: DayRange[];
 }
 
 /** Matches the 8-12 / 13-17 working day onlinegantt.com defaults to. */
@@ -20,14 +24,6 @@ export const DEFAULT_CALENDAR: CalendarSpec = {
     { from: 13 * 60, to: 17 * 60 },
   ],
 };
-
-/**
- * Day arithmetic goes through UTC midnights so that a DST shift cannot turn a
- * day into 23 or 25 hours and desynchronise the day index from the wall clock.
- */
-function dayIndex(date: Date): number {
-  return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / MS_PER_DAY);
-}
 
 function dateAtDayIndex(index: number, minuteOfDay: number): Date {
   const utc = new Date(index * MS_PER_DAY);
@@ -47,17 +43,35 @@ function weekdayOf(index: number): number {
   return (((index + 4) % 7) + 7) % 7;
 }
 
+/** Number of entries in the sorted array that are strictly below `value`. */
+function countBelow(sorted: number[], value: number): number {
+  let low = 0;
+  let high = sorted.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (sorted[middle] < value) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
 /**
  * Maps wall-clock dates onto a linear axis of working minutes and back.
  *
- * Collapsing nights, weekends and lunch breaks out of the time axis is what lets
- * the simulation treat resource capacity as constant: one working minute of
- * elapsed time is exactly one man-minute of capacity per full-time resource.
+ * Collapsing nights, weekends, lunch breaks and company shutdowns out of the
+ * time axis is what lets the simulation treat resource capacity as constant: one
+ * working minute of elapsed time is exactly one man-minute of capacity per
+ * full-time resource.
  */
 export class WorkingCalendar {
   private readonly workingDaySet: Set<number>;
   private readonly workingDaysPerWeek: number;
   private readonly windows: DailyWindow[];
+  /**
+   * Sorted day indices of holidays that would otherwise have been working days.
+   * Ones falling on a weekend are dropped, or they would be subtracted twice.
+   */
+  private readonly holidays: number[];
   readonly minutesPerDay: number;
   /** Normalised to the first working day at or after the requested origin. */
   private readonly originDay: number;
@@ -74,16 +88,34 @@ export class WorkingCalendar {
     }
     this.minutesPerDay = this.windows.reduce((sum, w) => sum + (w.to - w.from), 0);
 
-    let day = dayIndex(origin);
-    while (!this.workingDaySet.has(weekdayOf(day))) day++;
+    this.holidays = [...expandRanges(spec.holidays)]
+      .filter((day) => this.workingDaySet.has(weekdayOf(day)))
+      .sort((a, b) => a - b);
+
+    let day = dayIndexOf(origin);
+    while (!this.isWorkingDay(day)) day++;
     this.originDay = day;
+  }
+
+  private isWorkingDay(day: number): boolean {
+    return this.workingDaySet.has(weekdayOf(day)) && countBelow(this.holidays, day + 1) === countBelow(this.holidays, day);
   }
 
   get origin(): Date {
     return dateAtDayIndex(this.originDay, this.windows[0].from);
   }
 
-  /** Working days in `[originDay, day)`. Counts whole weeks, then scans at most six days. */
+  /** Holidays in `[originDay, day)`. */
+  private holidaysBefore(day: number): number {
+    return countBelow(this.holidays, day) - countBelow(this.holidays, this.originDay);
+  }
+
+  /**
+   * Working days in `[originDay, day)`.
+   *
+   * Whole weeks are counted arithmetically and the holidays inside the span are
+   * subtracted, which keeps this O(log h) instead of walking day by day.
+   */
   private workingDaysBefore(day: number): number {
     const delta = day - this.originDay;
     if (delta <= 0) return 0;
@@ -92,11 +124,27 @@ export class WorkingCalendar {
     for (let offset = weeks * 7; offset < delta; offset++) {
       if (this.workingDaySet.has(weekdayOf(this.originDay + offset))) count++;
     }
-    return count;
+    return count - this.holidaysBefore(day);
   }
 
   /** Inverse of `workingDaysBefore`: the day index holding the nth working day. */
   private dayOfNthWorkingDay(n: number): number {
+    // Start from the holiday-free estimate, then keep pushing it out by however
+    // many holidays the span swallowed. Each pass can only reveal holidays
+    // further along, so this settles in a couple of rounds.
+    let target = n;
+    for (let pass = 0; pass < 64; pass++) {
+      const day = this.weeklyNthWorkingDay(target);
+      const skipped = this.holidaysBefore(day + 1);
+      if (target === n + skipped && this.isWorkingDay(day)) return day;
+      target = n + skipped;
+      if (!this.isWorkingDay(day)) target++;
+    }
+    throw new Error('Calendar could not resolve a working day: too many holidays');
+  }
+
+  /** The nth weekly working day, ignoring holidays. */
+  private weeklyNthWorkingDay(n: number): number {
     const weeks = Math.floor(n / this.workingDaysPerWeek);
     let remaining = n - weeks * this.workingDaysPerWeek;
     let day = this.originDay + weeks * 7;
@@ -133,11 +181,11 @@ export class WorkingCalendar {
 
   /** Dates falling outside working time round forward to the next working minute. */
   toWorkingMinutes(date: Date): number {
-    const day = dayIndex(date);
+    const day = dayIndexOf(date);
     if (day < this.originDay) return 0;
     const minuteOfDay = date.getHours() * 60 + date.getMinutes();
     const daysPart = this.workingDaysBefore(day) * this.minutesPerDay;
-    if (!this.workingDaySet.has(weekdayOf(day))) return daysPart;
+    if (!this.isWorkingDay(day)) return daysPart;
     return daysPart + this.workedMinutesInDayUpTo(minuteOfDay);
   }
 
@@ -160,6 +208,16 @@ export class WorkingCalendar {
       this.dayOfNthWorkingDay(wholeDays),
       this.minuteOfDayAfterWorking(remainder),
     );
+  }
+
+  /**
+   * Start of the given day on the working-minute axis.
+   *
+   * Days that are not working days collapse onto the next working day, which is
+   * what makes an absence that falls entirely on a weekend a zero-width interval.
+   */
+  dayStartInWorkingMinutes(day: number): number {
+    return this.workingDaysBefore(Math.max(day, this.originDay)) * this.minutesPerDay;
   }
 
   /** Convenience for callers that think in days, such as duration columns. */

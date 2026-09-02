@@ -1,3 +1,5 @@
+import type { DayRange } from './dayRange';
+
 export type TaskId = string;
 export type ResourceId = string;
 
@@ -25,6 +27,12 @@ export interface Resource {
   name: string;
   /** Share of a full working day this resource is available for. 1 = full time. */
   availability?: number;
+  /**
+   * Personal absences — holiday, leave. Unlike a company shutdown these cannot
+   * be removed from the shared time axis, since the rest of the team keeps
+   * working, so they become stretches of zero capacity instead.
+   */
+  daysOff?: DayRange[];
 }
 
 /** A stretch of time during which a task progressed at a constant rate. */

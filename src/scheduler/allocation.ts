@@ -9,6 +9,12 @@ export interface AllocationCandidate {
 export interface AllocationRequest {
   /** Absent for the pool of unassigned tasks, which never contend. */
   resource: Resource | undefined;
+  /**
+   * Capacity available for this stretch of time, already accounting for the
+   * resource's availability and any absence in progress — so a policy never has
+   * to know about days off. Zero means the resource cannot work right now.
+   */
+  capacity: number;
   candidates: AllocationCandidate[];
 }
 
@@ -22,11 +28,9 @@ export interface AllocationRequest {
 export type AllocationPolicy = (request: AllocationRequest) => Map<TaskId, number>;
 
 /** Splits the resource evenly, which is what makes two concurrent tasks run at 50%. */
-export const equalSplit: AllocationPolicy = ({ resource, candidates }) => {
+export const equalSplit: AllocationPolicy = ({ capacity, candidates }) => {
   const rates = new Map<TaskId, number>();
-  if (candidates.length === 0) return rates;
-  // Unassigned tasks have no owner to share, so each one progresses at full rate.
-  const capacity = resource ? (resource.availability ?? 1) : candidates.length;
+  if (candidates.length === 0 || capacity <= 0) return rates;
   const rate = capacity / candidates.length;
   for (const candidate of candidates) rates.set(candidate.id, rate);
   return rates;

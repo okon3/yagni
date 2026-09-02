@@ -1,9 +1,11 @@
 import { equalSplit, type AllocationPolicy } from './allocation';
 import { DEFAULT_CALENDAR, WorkingCalendar, type CalendarSpec } from './calendar';
+import { expandRanges } from './dayRange';
 import { assertAcyclic, buildSuccessorIndex } from './topology';
 import type {
   AllocationSegment,
   Resource,
+  ResourceId,
   Schedule,
   ScheduledTask,
   Task,
@@ -50,6 +52,46 @@ export function schedule(
   const calendar = new WorkingCalendar(origin, options.calendar ?? DEFAULT_CALENDAR);
   const allocate = options.allocate ?? equalSplit;
   const resourceById = new Map(resources.map((resource) => [resource.id, resource]));
+
+  /**
+   * Absences projected onto the working-minute axis.
+   *
+   * Days that are not working days collapse to the same coordinate, so an
+   * absence falling entirely on a weekend or inside a company shutdown becomes a
+   * zero-width interval and correctly costs nothing.
+   */
+  const absences = new Map<ResourceId, { from: number; to: number }[]>();
+  const absenceEdges: number[] = [];
+  for (const resource of resources) {
+    const days = [...expandRanges(resource.daysOff)].sort((a, b) => a - b);
+    const intervals: { from: number; to: number }[] = [];
+    for (const day of days) {
+      const from = calendar.dayStartInWorkingMinutes(day);
+      const to = calendar.dayStartInWorkingMinutes(day + 1);
+      if (to <= from) continue;
+      // Consecutive days off merge into one interval, which keeps the event list
+      // short for a two-week holiday.
+      const last = intervals[intervals.length - 1];
+      if (last && last.to === from) last.to = to;
+      else intervals.push({ from, to });
+    }
+    if (intervals.length === 0) continue;
+    absences.set(resource.id, intervals);
+    for (const interval of intervals) absenceEdges.push(interval.from, interval.to);
+  }
+  absenceEdges.sort((a, b) => a - b);
+
+  const isAway = (resourceId: ResourceId, at: number): boolean =>
+    (absences.get(resourceId) ?? []).some((interval) => at >= interval.from && at < interval.to);
+
+  const capacityAt = (resourceId: ResourceId, at: number): number => {
+    const resource = resourceById.get(resourceId);
+    if (!resource) return 0;
+    return isAway(resourceId, at) ? 0 : (resource.availability ?? 1);
+  };
+
+  const nextAbsenceEdge = (after: number): number | undefined =>
+    absenceEdges.find((edge) => edge > after);
   const successors = buildSuccessorIndex(tasks);
 
   const states = new Map<TaskId, SimTask>();
@@ -111,9 +153,11 @@ export function schedule(
   }
 
   let clock = Math.min(...initialReady);
-  // Each iteration consumes at least one completion or one arrival; the bound
-  // turns any future logic error into a clear failure instead of a hang.
-  const maxIterations = 4 * states.size + 16;
+  // Each iteration consumes at least one completion, one arrival, or one absence
+  // edge; the bound turns any future logic error into a clear failure instead of
+  // a hang. It has to count the absence edges too, or a team with a lot of
+  // holiday would trip a convergence error that is not one.
+  const maxIterations = 4 * states.size + 2 * absenceEdges.length + 16;
 
   for (let iteration = 0; remainingCount > 0; iteration++) {
     if (iteration > maxIterations) {
@@ -164,19 +208,28 @@ export function schedule(
 
     const rates = new Map<TaskId, number>();
     for (const [key, group] of groups) {
+      const resource = key === null ? undefined : resourceById.get(key);
       const granted = allocate({
-        resource: key === null ? undefined : resourceById.get(key),
+        resource,
+        // Unassigned tasks have no owner to share, so each one gets a full rate.
+        capacity: key === null ? group.length : capacityAt(key, clock),
         candidates: group.map((state) => ({ id: state.task.id, remaining: state.remaining })),
       });
       for (const state of group) rates.set(state.task.id, granted.get(state.task.id) ?? 0);
     }
 
     let step = nextArrival === undefined ? Infinity : nextArrival - clock;
+    // An absence starting or ending changes the rates even though no task
+    // started or finished, so its edges are events in their own right.
+    const nextCapacityChange = nextAbsenceEdge(clock);
+    if (nextCapacityChange !== undefined) step = Math.min(step, nextCapacityChange - clock);
     for (const state of active) {
       const rate = rates.get(state.task.id)!;
       if (rate > 0) step = Math.min(step, state.remaining / rate);
     }
     if (!Number.isFinite(step)) {
+      // Everyone active is away and nothing will ever change: a task assigned to
+      // a resource that is off forever would otherwise spin here.
       throw new Error('Scheduler stalled: no active task received capacity');
     }
 
