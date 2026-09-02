@@ -29,6 +29,9 @@ construction: the simulation loop contains no calendar logic at all.
 
 ### Consequences worth knowing
 
+- **A task with nobody assigned never contends.** It runs at full rate alongside
+  any number of other unassigned tasks, since there is no capacity to share. A new
+  project starts with no people at all, so this is the state everything begins in.
 - **Allocation varies within a single task.** A task can run alone at 100%, drop to
   50% when a second task starts, then to 33%, then climb back. Bars therefore show
   a per-regime profile rather than one flat rate.

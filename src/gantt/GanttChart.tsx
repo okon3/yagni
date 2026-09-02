@@ -148,6 +148,19 @@ function barBackground(
   return scheduled && isShared(scheduled) ? '' : color;
 }
 
+/**
+ * Options for the resource cell.
+ *
+ * The leading blank lets a task go back to having nobody assigned; without it an
+ * assignment could never be undone.
+ */
+function resourceSelectOptions(resources: Resource[]) {
+  return [
+    { key: '', label: '—' },
+    ...resources.map((resource) => ({ key: resource.id, label: resource.name })),
+  ];
+}
+
 function nextTaskId(project: Project): string {
   const highest = project.tasks.reduce((max, task) => {
     const numeric = Number(task.id);
@@ -225,12 +238,7 @@ export function GanttChart({
         // The select editor captured its options when the columns were configured,
         // so a new person stays invisible in the grid until they are replaced.
         const column = gantt.config.columns?.find((entry) => entry.name === 'resource_id');
-        if (column?.editor) {
-          column.editor.options = resources.map((resource) => ({
-            key: resource.id,
-            label: resource.name,
-          }));
-        }
+        if (column?.editor) column.editor.options = resourceSelectOptions(resources);
         applySolution();
       },
       getCalendar: () => projectRef.current.calendar,
@@ -290,8 +298,7 @@ export function GanttChart({
     const container = host.current;
     if (!container) return;
 
-    const resourceOptions = () =>
-      projectRef.current.resources.map((resource) => ({ key: resource.id, label: resource.name }));
+    const resourceOptions = () => resourceSelectOptions(projectRef.current.resources);
     // Partial staffing changes every duration on the row, so it belongs on the
     // face of the grid rather than hidden in the resources dialog.
     const resourceLabel = (id: string | undefined) => {

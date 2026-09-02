@@ -4,6 +4,7 @@ import {
   TaskCycleError,
   buildHierarchy,
   effectiveColorOf,
+  emptyProject,
   solve,
   type Project,
   type ProjectTask,
@@ -120,6 +121,27 @@ describe('rollup', () => {
     );
     expect(days(solved.schedule.tasks.get('c')!.elapsedWorkingMinutes)).toBe(2);
     expect(solved.schedule.tasks.get('c')!.segments[0].rate).toBe(1);
+  });
+});
+
+describe('empty project', () => {
+  it('starts with no people', () => {
+    expect(emptyProject().resources).toEqual([]);
+    expect(emptyProject().tasks).toEqual([]);
+  });
+
+  it('schedules unassigned tasks at full rate, contending with nobody', () => {
+    const solved = solve({
+      calendar: DEFAULT_CALENDAR,
+      resources: [],
+      tasks: [
+        { id: 'a', name: 'A', nominalDays: 2, start: at(0) },
+        { id: 'b', name: 'B', nominalDays: 2, start: at(0) },
+      ],
+    });
+    // Without a resource there is nothing to share, so neither stretches.
+    expect(days(solved.schedule.tasks.get('a')!.elapsedWorkingMinutes)).toBe(2);
+    expect(days(solved.schedule.tasks.get('b')!.elapsedWorkingMinutes)).toBe(2);
   });
 });
 

@@ -229,21 +229,19 @@ function rollUp(
   }
 }
 
+/** No people: inventing names the user has to delete is worse than starting bare. */
 export function emptyProject(): Project {
-  return { calendar: DEFAULT_CALENDAR, resources: defaultResources(), tasks: [] };
+  return { calendar: DEFAULT_CALENDAR, resources: [], tasks: [] };
 }
 
-function defaultResources(): Resource[] {
-  return [
+/** Fixture for the serialization tests, not something the app ever loads. */
+export const sampleProject: Project = {
+  calendar: DEFAULT_CALENDAR,
+  resources: [
     { id: 'alice', name: 'Alice' },
     { id: 'bob', name: 'Bob' },
     { id: 'carla', name: 'Carla' },
-  ];
-}
-
-export const sampleProject: Project = {
-  calendar: DEFAULT_CALENDAR,
-  resources: defaultResources(),
+  ],
   tasks: [
     { id: '1', name: 'Design API', nominalDays: 4, start: at(0), resourceId: 'alice', progress: 0.4 },
     { id: '2', name: 'Fix billing bug', nominalDays: 2, start: at(2), resourceId: 'alice' },
