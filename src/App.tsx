@@ -1,0 +1,193 @@
+import { useCallback, useRef, useState, type DragEvent } from 'react';
+import type { Resource } from './scheduler';
+import { GanttChart, type GanttHandle } from './gantt/GanttChart';
+import { EmptyState } from './gantt/EmptyState';
+import { ResourceDialog } from './gantt/ResourceDialog';
+import { Toolbar } from './gantt/Toolbar';
+import { PROJECT_EXTENSION, downloadText, pickTextFile } from './gantt/files';
+import { emptyProject } from './gantt/project';
+import { ProjectFileError, deserializeProject, serializeProject } from './gantt/serialization';
+import './App.css';
+
+const DEFAULT_FILENAME = `progetto${PROJECT_EXTENSION}`;
+const initialProject = emptyProject();
+
+export default function App() {
+  const chart = useRef<GanttHandle>(null);
+  const [filename, setFilename] = useState(DEFAULT_FILENAME);
+  const [dirty, setDirty] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [taskCount, setTaskCount] = useState(initialProject.tasks.length);
+  const [dragging, setDragging] = useState(false);
+  const [resourcesOpen, setResourcesOpen] = useState(false);
+  // Snapshotted when the dialog opens: the chart owns the live project, and
+  // reading it on every render would fight the imperative handle.
+  const [resourceSnapshot, setResourceSnapshot] = useState<{
+    resources: Resource[];
+    taskCounts: Map<string, number>;
+  }>({ resources: [], taskCounts: new Map() });
+
+  const syncCount = useCallback(() => {
+    setTaskCount(chart.current?.getProject().tasks.length ?? 0);
+  }, []);
+
+  const confirmDiscard = useCallback(
+    () => !dirty || window.confirm('Ci sono modifiche non salvate. Continuare?'),
+    [dirty],
+  );
+
+  const adopt = useCallback(
+    (text: string, name: string) => {
+      // Parse before loading: a malformed file must leave the open project alone.
+      const parsed = deserializeProject(text);
+      chart.current?.loadProject(parsed);
+      setFilename(name);
+      setDirty(false);
+      setError(null);
+      syncCount();
+    },
+    [syncCount],
+  );
+
+  const reportFailure = useCallback((cause: unknown) => {
+    setError(
+      cause instanceof ProjectFileError
+        ? cause.message
+        : `Impossibile leggere il file: ${String(cause)}`,
+    );
+  }, []);
+
+  const handleNew = useCallback(() => {
+    if (!confirmDiscard()) return;
+    chart.current?.loadProject(emptyProject());
+    setFilename(DEFAULT_FILENAME);
+    setDirty(false);
+    setError(null);
+    syncCount();
+  }, [confirmDiscard, syncCount]);
+
+  const handleOpen = useCallback(async () => {
+    if (!confirmDiscard()) return;
+    try {
+      const picked = await pickTextFile();
+      if (!picked) return;
+      adopt(picked.text, picked.name);
+    } catch (cause) {
+      reportFailure(cause);
+    }
+  }, [adopt, confirmDiscard, reportFailure]);
+
+  const handleSave = useCallback(() => {
+    const project = chart.current?.getProject();
+    if (!project) return;
+    downloadText(filename, serializeProject(project));
+    setDirty(false);
+  }, [filename]);
+
+  const handleAddTask = useCallback(() => {
+    chart.current?.addTask();
+    syncCount();
+  }, [syncCount]);
+
+  const openResources = useCallback(() => {
+    const handle = chart.current;
+    if (!handle) return;
+    setResourceSnapshot({
+      resources: handle.getResources(),
+      taskCounts: handle.countTasksByResource(),
+    });
+    setResourcesOpen(true);
+  }, []);
+
+  const saveResources = useCallback((resources: Resource[], releasedIds: string[]) => {
+    chart.current?.setResources(resources, releasedIds);
+    setResourcesOpen(false);
+    setDirty(true);
+  }, []);
+
+  const onDragOver = (event: DragEvent<HTMLElement>) => {
+    // Without preventDefault the browser refuses the drop and opens the file.
+    event.preventDefault();
+    setDragging(true);
+  };
+
+  const onDragLeave = (event: DragEvent<HTMLElement>) => {
+    // Moving over a child fires dragleave on the parent, so ignore anything that
+    // is still inside the drop area.
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    setDragging(false);
+  };
+
+  const onDrop = async (event: DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setDragging(false);
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!confirmDiscard()) return;
+    try {
+      adopt(await file.text(), file.name);
+    } catch (cause) {
+      reportFailure(cause);
+    }
+  };
+
+  return (
+    <main
+      className={`app${dragging ? ' app--dropping' : ''}`}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      <header className="app__bar">
+        <h1>Gantt con split dell&apos;effort</h1>
+        <Toolbar
+          filename={filename}
+          dirty={dirty}
+          onNew={handleNew}
+          onOpen={handleOpen}
+          onSave={handleSave}
+          onAddTask={handleAddTask}
+          onEditResources={openResources}
+          onToday={() => chart.current?.scrollToToday()}
+          onZoomIn={() => chart.current?.zoomIn()}
+          onZoomOut={() => chart.current?.zoomOut()}
+          onZoomToFit={() => chart.current?.zoomToFit()}
+        />
+      </header>
+
+      {error && (
+        <p className="app__error" role="alert">
+          {error}
+        </p>
+      )}
+
+      <div className="app__body">
+        <GanttChart
+          ref={chart}
+          project={initialProject}
+          onChange={() => {
+            setDirty(true);
+            syncCount();
+          }}
+        />
+        {taskCount === 0 && (
+          <EmptyState
+            onAddTask={handleAddTask}
+            onOpen={handleOpen}
+            onEditResources={openResources}
+          />
+        )}
+        {dragging && <div className="app__dropzone">Rilascia il file .gantt per aprirlo</div>}
+      </div>
+
+      {resourcesOpen && (
+        <ResourceDialog
+          resources={resourceSnapshot.resources}
+          usage={{ taskCounts: resourceSnapshot.taskCounts }}
+          onCancel={() => setResourcesOpen(false)}
+          onSave={saveResources}
+        />
+      )}
+    </main>
+  );
+}

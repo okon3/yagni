@@ -1,0 +1,17 @@
+:root {
+  color-scheme: light;
+}
+
+/* The chart fills the viewport, which needs an unbroken height chain from the
+   root element down to the gantt container. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #fff;
+  overflow: hidden;
+}

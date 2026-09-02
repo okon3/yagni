@@ -1,0 +1,110 @@
+.gantt-host {
+  position: absolute;
+  inset: 0;
+}
+
+/* A shared task keeps a single continuous outline — the bar is one task, and
+   the profile inside it is what varies.
+   dhtmlx v10 drives bar colours through custom properties and sets them inline
+   per task, so overriding `background` directly here would win over the task's
+   own colour. Setting the variables keeps the inline value in charge. */
+.gantt_task_line.gantt-bar--shared {
+  --dhx-gantt-task-background: #edf1f7;
+  --dhx-gantt-task-border: #aebdd2;
+}
+
+.gantt_task_line.gantt-bar--shared .gantt_task_progress {
+  --dhx-gantt-task-progress: #dae3ef;
+  background: #dae3ef;
+}
+
+.seg-track {
+  position: absolute;
+  inset: 0;
+  /* Clips the fill to the bar's rounded corners so the shape reads as one
+     object rather than a rectangle sitting inside another. */
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.seg-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The stroke traces the allocation profile, which keeps the shape readable as a
+   continuous line even where the band is only a few pixels tall.
+   `vector-effect: non-scaling-stroke` on the element stops the non-uniform
+   viewBox scaling from stretching the line thickness. */
+.seg-fill path {
+  /* No fill or stroke colour here on purpose: each bar carries its own inherited
+     colour as an inline style, and a rule here would outrank it. */
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.seg-pct {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Sits above the fill, on the pale part of the bar, so it needs dark ink. */
+.seg-pct--above {
+  transform: translate(-50%, -2px);
+  color: #3c4757;
+}
+
+.gantt-stretched {
+  color: #b4530a;
+  font-weight: 600;
+}
+
+/* A summary is a rollup, not work: flat and dark, so it reads as a bracket over
+   its children rather than as another assignable task. */
+/* Only a fallback: when the macro task has a colour of its own, dhtmlx sets the
+   variable inline and that shade wins. */
+.gantt_task_line.gantt-bar--summary {
+  --dhx-gantt-task-background: #55637a;
+  --dhx-gantt-task-border: #3c4757;
+  border-radius: 2px;
+  height: 12px !important;
+  margin-top: 7px;
+}
+
+.gantt_task_line.gantt-bar--summary .gantt_task_progress {
+  background: rgb(0 0 0 / 22%);
+}
+
+.gantt_task_line.gantt-bar--summary .gantt_task_content {
+  display: none;
+}
+
+/* Derived cells: shown for information, not editable. */
+.gantt-derived {
+  color: #7b8798;
+  font-style: italic;
+}
+
+.gantt-swatch {
+  display: inline-block;
+  width: 26px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgb(28 36 48 / 25%);
+  vertical-align: middle;
+}
+
+/* Inherited from the top-level task: shown, but not settable here. */
+.gantt-swatch--inherited {
+  opacity: 0.5;
+  border-style: dashed;
+}
