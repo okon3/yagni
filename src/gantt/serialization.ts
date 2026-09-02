@@ -189,7 +189,16 @@ export function deserializeProject(text: string): Project {
     if (record.progress !== undefined) {
       task.progress = requireNumber(record.progress, `tasks[${index}].progress`);
     }
-    if (typeof record.color === 'string') task.color = record.color;
+    if (record.color !== undefined) {
+      // Now that the colour comes from a free picker rather than a fixed list,
+      // the only guarantee left is the notation: anything else reaches the DOM
+      // as a style the browser drops without a word.
+      const color = requireString(record.color, `tasks[${index}].color`);
+      if (!/^#[0-9a-f]{6}$/i.test(color)) {
+        throw new ProjectFileError(`tasks[${index}]: colore non valido "${color}", atteso #rrggbb`);
+      }
+      task.color = color;
+    }
     if (typeof record.parentId === 'string' && record.parentId.length > 0) {
       task.parentId = record.parentId;
     }

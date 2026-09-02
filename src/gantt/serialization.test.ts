@@ -132,6 +132,22 @@ describe('rejects broken files', () => {
       }),
     ],
     [
+      'a colour that is not a hex triplet',
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 1,
+        tasks: [{ id: '1', nominalDays: 1, start: '2026-01-05T08:00', color: 'red' }],
+      }),
+    ],
+    [
+      'a shorthand colour',
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 1,
+        tasks: [{ id: '1', nominalDays: 1, start: '2026-01-05T08:00', color: '#f00' }],
+      }),
+    ],
+    [
       'a duplicate task id',
       JSON.stringify({
         format: 'gantt-effort-split',

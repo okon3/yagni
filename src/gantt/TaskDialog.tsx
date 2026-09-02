@@ -178,20 +178,39 @@ export function TaskDialog({
           </span>
         </label>
 
-        <label className="taskinfo__field">
+        <div className="taskinfo__field taskinfo__field--wide">
           <span>Colore</span>
           {task.ownsColor ? (
-            <select value={color} onChange={(event) => setColor(event.target.value)}>
+            <div className="taskinfo__colors">
+              <input
+                type="color"
+                className="taskinfo__picker"
+                value={color}
+                aria-label="Colore della barra"
+                onChange={(event) => setColor(event.target.value)}
+              />
               {colors.map((option) => (
-                <option key={option.key} value={option.key}>
-                  {option.label}
-                </option>
+                <button
+                  key={option.key}
+                  type="button"
+                  className={`taskinfo__swatch${
+                    option.key.toLowerCase() === color.toLowerCase()
+                      ? ' taskinfo__swatch--on'
+                      : ''
+                  }`}
+                  style={{ background: option.key }}
+                  title={option.label}
+                  onClick={() => setColor(option.key)}
+                />
               ))}
-            </select>
+              {/* The bar is the only place the colour is ever seen, so the
+                  preview is shaped like one. */}
+              <span className="taskinfo__preview" style={{ background: color }} />
+            </div>
           ) : (
             <span className="taskinfo__derived">ereditato dall&apos;attività principale</span>
           )}
-        </label>
+        </div>
       </div>
 
       <h3 className="taskinfo__subhead">Calcolato</h3>

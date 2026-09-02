@@ -47,7 +47,8 @@ construction: the simulation loop contains no calendar logic at all.
   its leaves, since finish-to-start against the latest of those is exactly
   finish-to-start against the summary.
 - **Bar colour is inherited.** It is set on the top-level task and applies to the
-  whole subtree, so moving a branch recolours it.
+  whole subtree, so moving a branch recolours it. Any colour goes: the details
+  dialog offers the browser's own picker, with the palette beside it as shortcuts.
 
 ### Time off and changing availability
 
@@ -140,8 +141,9 @@ premises. Dates are written as local wall-clock time; `toISOString` would shift 
 to UTC and move an 08:00 start to the previous day.
 
 Parsing is strict — unknown resources, duplicate ids, dangling predecessors, a
-circular hierarchy, an availability share outside 0..1 and future versions are all
-rejected, and the open project is left untouched when a file fails to load.
+circular hierarchy, an availability share outside 0..1, a colour that is not a
+`#rrggbb` triplet and future versions are all rejected, and the open project is
+left untouched when a file fails to load.
 
 The current version is **2**. Version 1 files still load: their `daysOff` are read
 as availability overrides at zero, which is what they always meant.
