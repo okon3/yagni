@@ -1,9 +1,11 @@
 import { useCallback, useRef, useState, type DragEvent } from 'react';
 import type { CalendarSpec, Resource } from './scheduler';
 import { GanttChart, type GanttHandle } from './gantt/GanttChart';
+import { COLOR_OPTIONS } from './gantt/colors';
 import { CalendarDialog } from './gantt/CalendarDialog';
 import { EmptyState } from './gantt/EmptyState';
 import { ResourceDialog } from './gantt/ResourceDialog';
+import { TaskDialog, type TaskDetails, type TaskPatch } from './gantt/TaskDialog';
 import { Toolbar } from './gantt/Toolbar';
 import { PROJECT_EXTENSION, downloadText, pickTextFile } from './gantt/files';
 import { DEFAULT_CALENDAR } from './scheduler';
@@ -23,6 +25,11 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  // Snapshotted on open, like the other dialogs: the chart owns the live task.
+  const [openTask, setOpenTask] = useState<{
+    details: TaskDetails;
+    resources: Resource[];
+  } | null>(null);
   const [calendarSnapshot, setCalendarSnapshot] = useState<CalendarSpec>(DEFAULT_CALENDAR);
   // Snapshotted when the dialog opens: the chart owns the live project, and
   // reading it on every render would fight the imperative handle.
@@ -92,6 +99,23 @@ export default function App() {
     chart.current?.addTask();
     syncCount();
   }, [syncCount]);
+
+  const openTaskDetails = useCallback((id: string) => {
+    const handle = chart.current;
+    const details = handle?.getTaskDetails(id);
+    if (!handle || !details) return;
+    setOpenTask({ details, resources: handle.getResources() });
+  }, []);
+
+  const saveTaskDetails = useCallback(
+    (patch: TaskPatch) => {
+      if (!openTask) return;
+      chart.current?.updateTask(openTask.details.id, patch);
+      setOpenTask(null);
+      setDirty(true);
+    },
+    [openTask],
+  );
 
   const openResources = useCallback(() => {
     const handle = chart.current;
@@ -188,6 +212,7 @@ export default function App() {
             setDirty(true);
             syncCount();
           }}
+          onOpenTask={openTaskDetails}
         />
         {taskCount === 0 && (
           <EmptyState
@@ -214,6 +239,16 @@ export default function App() {
           calendar={calendarSnapshot}
           onCancel={() => setCalendarOpen(false)}
           onSave={saveCalendar}
+        />
+      )}
+
+      {openTask && (
+        <TaskDialog
+          task={openTask.details}
+          resources={openTask.resources}
+          colors={COLOR_OPTIONS}
+          onCancel={() => setOpenTask(null)}
+          onSave={saveTaskDetails}
         />
       )}
     </main>

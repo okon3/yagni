@@ -114,6 +114,11 @@ working on it:
   wins over a task's own colour. When checking a colour, read `getComputedStyle`,
   not the attribute or the data field.
 
+The grid carries the **inputs** and nothing else: name, resource, effort and start.
+Duration and end date are derived, so they live in the per-row details dialog behind
+the button at the end of the row, together with progress and colour — a computed
+figure in an editable-looking cell only invites an edit the engine discards.
+
 The allocation profile is drawn as a single SVG path inside the bar — `addTaskLayer`,
 the natural mechanism for it, is a PRO feature.
 

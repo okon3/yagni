@@ -94,17 +94,32 @@
   font-style: italic;
 }
 
-.gantt-swatch {
+/* Carries the task's colour inside the name cell, where the colour column used
+   to be. */
+.gantt-dot {
   display: inline-block;
-  width: 26px;
-  height: 12px;
-  border-radius: 2px;
-  border: 1px solid rgb(28 36 48 / 25%);
-  vertical-align: middle;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 50%;
+  vertical-align: baseline;
 }
 
-/* Inherited from the top-level task: shown, but not settable here. */
-.gantt-swatch--inherited {
-  opacity: 0.5;
-  border-style: dashed;
+.gantt-rowinfo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9aa3b0;
+  cursor: pointer;
+}
+
+.gantt_row:hover .gantt-rowinfo {
+  color: #55637a;
+}
+
+.gantt-rowinfo:hover {
+  color: #24518f;
 }

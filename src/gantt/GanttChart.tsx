@@ -3,7 +3,9 @@ import { gantt, type ZoomLevel } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { isShared, renderSegments } from './segmentBar';
 import type { CalendarSpec, Resource, ScheduledTask } from '../scheduler';
+import { DEFAULT_BAR_COLOR } from './colors';
 import { effectiveColorOf, solve, type Project, type SolvedProject } from './project';
+import type { TaskDetails, TaskPatch } from './TaskDialog';
 import './gantt.css';
 
 /** dhtmlx link type for finish-to-start. */
@@ -16,21 +18,30 @@ const dayMonth = new Intl.DateTimeFormat('it-IT', {
 });
 const shortDate = (value: Date) => (value ? dayMonth.format(new Date(value)) : '');
 
-export const DEFAULT_BAR_COLOR = '#3b74d6';
-
 /** Columns whose value a summary derives from its children. */
 const DERIVED_ON_SUMMARY = new Set(['nominal_days', 'resource_id', 'start_date']);
 
-/** dhtmlx select editors carry plain text, so the hex is the option key. */
-const COLOR_OPTIONS = [
-  { key: DEFAULT_BAR_COLOR, label: 'Blu' },
-  { key: '#2f9e6e', label: 'Verde' },
-  { key: '#c9822b', label: 'Ambra' },
-  { key: '#c0533f', label: 'Rosso' },
-  { key: '#7a5bbd', label: 'Viola' },
-  { key: '#3f7d8c', label: 'Petrolio' },
-  { key: '#6b7280', label: 'Grigio' },
-];
+const INFO_ICON =
+  '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">' +
+  '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
+  '<circle cx="8" cy="4.6" r="0.95" fill="currentColor"/>' +
+  '<rect x="7.25" y="6.7" width="1.5" height="4.9" rx="0.75" fill="currentColor"/></svg>';
+
+/** dhtmlx inserts a column template as HTML, so a task name must be escaped. */
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"]/g, (character) => {
+    switch (character) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      default:
+        return '&quot;';
+    }
+  });
+}
 
 /** Darkens a hex colour for borders and outlines. */
 function shade(hex: string, factor = 0.72): string {
@@ -72,6 +83,9 @@ const ZOOM_LEVELS: ZoomLevel[] = [
 export interface GanttHandle {
   getProject(): Project;
   loadProject(project: Project): void;
+  /** Null when the row has meanwhile been deleted. */
+  getTaskDetails(id: string): TaskDetails | null;
+  updateTask(id: string, patch: TaskPatch): void;
   getResources(): Resource[];
   /** Tasks assigned to a removed resource are released to "no resource". */
   setResources(resources: Resource[], releasedResourceIds: string[]): void;
@@ -109,14 +123,9 @@ function toGanttData(project: Project, solved: SolvedProject) {
         is_summary: summary,
         // The colour actually shown, inherited from the top-level ancestor.
         bar_color: inherited ?? '',
-        // Only a top-level task may set it; subtasks show it read-only.
-        owns_color: task.parentId === undefined,
         // dhtmlx paints `color` straight onto the bar background, which must stay
         // pale on a shared task: there the colour belongs to the profile inside.
         color: barBackground(inherited, scheduled, summary),
-        elapsed_days: scheduled
-          ? solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes)
-          : task.nominalDays,
         shared: scheduled ? isShared(scheduled) : false,
       };
     }),
@@ -172,16 +181,25 @@ function nextTaskId(project: Project): string {
 export function GanttChart({
   project,
   onChange,
+  onOpenTask,
   ref,
 }: {
   project: Project;
   onChange?: () => void;
+  onOpenTask?: (id: string) => void;
   ref?: Ref<GanttHandle>;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  // Held in a ref because the dhtmlx handlers are registered once, in an effect
+  // that must not re-run when a callback identity changes.
+  const openTaskRef = useRef(onOpenTask);
   const projectRef = useRef(project);
   const solvedRef = useRef<SolvedProject>(solve(project));
   const applyingRef = useRef(false);
+
+  useEffect(() => {
+    openTaskRef.current = onOpenTask;
+  }, [onOpenTask]);
 
   const applySolution = useCallback(
     (notify = true) => {
@@ -200,9 +218,7 @@ export function GanttChart({
         const inherited = effectiveColorOf(projectRef.current.tasks, solved.hierarchy, task.id);
         ganttTask.is_summary = summary;
         ganttTask.bar_color = inherited ?? '';
-        ganttTask.owns_color = task.parentId === undefined;
         ganttTask.color = barBackground(inherited, scheduled, summary);
-        ganttTask.elapsed_days = solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes);
         ganttTask.shared = isShared(scheduled);
       }
       // refreshData redraws from the mutated task objects without firing the
@@ -228,6 +244,49 @@ export function GanttChart({
     () => ({
       getProject: () => projectRef.current,
       loadProject,
+      getTaskDetails: (id) => {
+        const task = projectRef.current.tasks.find((candidate) => candidate.id === id);
+        const scheduled = solvedRef.current.schedule.tasks.get(id);
+        if (!task || !scheduled) return null;
+        const solved = solvedRef.current;
+        return {
+          id,
+          name: task.name,
+          nominalDays: task.nominalDays,
+          start: scheduled.start,
+          end: scheduled.end,
+          resourceId: task.resourceId ?? '',
+          color:
+            effectiveColorOf(projectRef.current.tasks, solved.hierarchy, id) ?? DEFAULT_BAR_COLOR,
+          ownsColor: task.parentId === undefined,
+          progress: task.progress ?? 0,
+          isSummary: solved.summaryIds.has(id),
+          elapsedDays: solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes),
+          effortDays: solved.calendar.minutesToDays(scheduled.effortMinutes),
+          shared: isShared(scheduled),
+        };
+      },
+      updateTask: (id, patch) => {
+        const task = projectRef.current.tasks.find((candidate) => candidate.id === id);
+        if (!task || !gantt.isTaskExists(id)) return;
+        task.name = patch.name;
+        task.progress = patch.progress;
+        // Same rules the grid enforces: a summary derives its effort, start and
+        // resource from the leaves, and a subtask inherits its parent's colour.
+        if (task.parentId === undefined) task.color = patch.color;
+        if (!solvedRef.current.summaryIds.has(id)) {
+          task.nominalDays = patch.nominalDays;
+          task.start = patch.start;
+          task.resourceId = patch.resourceId;
+        }
+        applyingRef.current = true;
+        const ganttTask = gantt.getTask(id);
+        ganttTask.text = task.name;
+        ganttTask.progress = task.progress;
+        ganttTask.resource_id = task.resourceId ?? '';
+        applyingRef.current = false;
+        applySolution();
+      },
       getResources: () => projectRef.current.resources,
       setResources: (resources, releasedResourceIds) => {
         projectRef.current.resources = resources;
@@ -279,7 +338,6 @@ export function GanttChart({
           rolled_effort_days: 1,
           is_summary: false,
           bar_color: '',
-          elapsed_days: 1,
           shared: false,
         });
         applyingRef.current = false;
@@ -338,8 +396,12 @@ export function GanttChart({
         name: 'text',
         label: 'Attività',
         tree: true,
-        width: 190,
+        width: 230,
         resize: true,
+        // The colour no longer has a column of its own: it rides along with the
+        // name, and the details dialog is where it is picked.
+        template: (task) =>
+          `<span class="gantt-dot" style="background:${String(task.bar_color || DEFAULT_BAR_COLOR)}"></span>${escapeHtml(String(task.text ?? ''))}`,
         editor: { type: 'text', map_to: 'text' },
       },
       {
@@ -366,16 +428,6 @@ export function GanttChart({
         editor: { type: 'number', map_to: 'nominal_days', min: 0, max: 999 },
       },
       {
-        name: 'elapsed_days',
-        label: 'Durata',
-        width: 68,
-        align: 'center',
-        resize: true,
-        // Highlighted when sharing stretched the task beyond its effort.
-        template: (task) =>
-          `<span class="${task.is_summary ? 'gantt-derived' : task.shared ? 'gantt-stretched' : ''}">${Number(task.elapsed_days).toFixed(2)}g</span>`,
-      },
-      {
         name: 'start_date',
         label: 'Inizio',
         width: 84,
@@ -388,22 +440,14 @@ export function GanttChart({
         editor: { type: 'date', map_to: 'start_date' },
       },
       {
-        name: 'end_date',
-        label: 'Fine',
-        width: 84,
+        name: 'info',
+        label: '',
+        width: 34,
         align: 'center',
-        resize: true,
-        template: (task) => shortDate(task.end_date as Date),
-      },
-      {
-        name: 'color',
-        label: 'Colore',
-        width: 62,
-        align: 'center',
-        resize: true,
-        template: (task) =>
-          `<span class="gantt-swatch${task.owns_color ? '' : ' gantt-swatch--inherited'}" style="background:${String(task.bar_color || DEFAULT_BAR_COLOR)}"></span>`,
-        editor: { type: 'select', map_to: 'bar_color', options: COLOR_OPTIONS },
+        // Duration, end date, progress and colour live behind this button: they
+        // are either derived or rarely changed, and cost the grid its width.
+        template: () =>
+          `<button type="button" class="gantt-rowinfo" data-task-info="1" title="Dettaglio attività">${INFO_ICON}</button>`,
       },
       { name: 'add', width: 40 },
     ];
@@ -482,11 +526,6 @@ export function GanttChart({
       // would accept a value that the rollup then discards, so refuse instead of
       // silently ignoring what the user typed.
       if (solvedRef.current.summaryIds.has(taskId) && DERIVED_ON_SUMMARY.has(columnName)) return;
-      // Colour belongs to the top-level task; subtasks inherit it, so editing it
-      // there would set a value that is never read.
-      // Note: the column is named `color`; `bar_color` is only what its editor
-      // maps to, and `data-column-name` carries the former.
-      if (columnName === 'color' && !gantt.getTask(taskId).owns_color) return;
       gantt.ext.inlineEditors.startEdit(taskId, columnName);
       // startEdit renders the field but leaves focus on the body, and the click
       // that opened it settles focus only after this handler returns — so claim
@@ -505,6 +544,12 @@ export function GanttChart({
     container.addEventListener('dblclick', openEditor, true);
 
     const handlers = [
+      gantt.attachEvent('onTaskClick', (id, event) => {
+        if (!(event?.target as HTMLElement | null)?.closest?.('[data-task-info]')) return true;
+        openTaskRef.current?.(String(id));
+        // Selecting the row as well would leave it highlighted behind the modal.
+        return false;
+      }, undefined),
       // Rows created by dhtmlx itself — the grid's "+" button, which adds a
       // child — never passed through the model, so they rendered with an
       // undefined effort and a NaN duration.
