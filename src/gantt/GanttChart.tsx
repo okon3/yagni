@@ -3,7 +3,7 @@ import { gantt, type ZoomLevel } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { isShared, renderSegments } from './segmentBar';
 import type { CalendarSpec, Resource, ScheduledTask } from '../scheduler';
-import { DEFAULT_BAR_COLOR } from './colors';
+import { DEFAULT_BAR_COLOR, avatarColorOf } from './colors';
 import { effectiveColorOf, solve, type Project, type SolvedProject } from './project';
 import type { TaskDetails, TaskPatch } from './TaskDialog';
 import './gantt.css';
@@ -26,6 +26,23 @@ const INFO_ICON =
   '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
   '<circle cx="8" cy="4.6" r="0.95" fill="currentColor"/>' +
   '<rect x="7.25" y="6.7" width="1.5" height="4.9" rx="0.75" fill="currentColor"/></svg>';
+
+/** Up to two initials, so "Marta Rossi" reads as MR and "Marta" as M. */
+function initialsOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '?';
+  const first = words[0][0];
+  return (words.length > 1 ? first + words[words.length - 1][0] : first).toUpperCase();
+}
+
+function isToday(date: Date): boolean {
+  const now = new Date();
+  return (
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
+  );
+}
 
 /** dhtmlx inserts a column template as HTML, so a task name must be escaped. */
 function escapeHtml(value: string): string {
@@ -52,14 +69,26 @@ function shade(hex: string, factor = 0.72): string {
   return `#${((channel(16) << 16) | (channel(8) << 8) | channel(0)).toString(16).padStart(6, '0')}`;
 }
 
+/**
+ * Marks today's column in the scale header.
+ *
+ * `gantt.templates.scale_cell_class` was dropped in dhtmlx 6 and compiles to
+ * nothing: from there on the scale itself carries the hook.
+ */
+const dayCss = (date: Date) => (isToday(date) ? 'gantt-scale--today' : '');
+
 const ZOOM_LEVELS: ZoomLevel[] = [
-  { name: 'day', scale_height: 50, scales: [{ unit: 'day', step: 1, format: '%d %M' }] },
+  {
+    name: 'day',
+    scale_height: 50,
+    scales: [{ unit: 'day', step: 1, format: '%d %M', css: dayCss }],
+  },
   {
     name: 'week',
     scale_height: 50,
     scales: [
       { unit: 'week', step: 1, format: 'Sett. %W' },
-      { unit: 'day', step: 1, format: '%d %M' },
+      { unit: 'day', step: 1, format: '%d %M', css: dayCss },
     ],
   },
   {
@@ -357,15 +386,22 @@ export function GanttChart({
     if (!container) return;
 
     const resourceOptions = () => resourceSelectOptions(projectRef.current.resources);
-    // Partial staffing changes every duration on the row, so it belongs on the
-    // face of the grid rather than hidden in the resources dialog.
-    const resourceLabel = (id: string | undefined) => {
+    // An avatar rather than a name: the column shrinks to a third of its width
+    // and the full name moves into the tooltip. Partial staffing keeps its
+    // number on the face of the grid, because it changes every duration there.
+    const resourceAvatar = (id: string | undefined) => {
       const resource = projectRef.current.resources.find((entry) => entry.id === id);
-      if (!resource) return '';
+      if (!resource) {
+        return '<span class="gantt-avatar gantt-avatar--empty" title="Nessuna risorsa">&ndash;</span>';
+      }
       const availability = resource.availability ?? 1;
-      return availability < 1
-        ? `${resource.name} (${Math.round(availability * 100)}%)`
-        : resource.name;
+      const percentage = Math.round(availability * 100);
+      const title = availability < 1 ? `${resource.name} - ${percentage}%` : resource.name;
+      return (
+        `<span class="gantt-avatar" style="background:${avatarColorOf(resource.name)}"` +
+        ` title="${escapeHtml(title)}">${escapeHtml(initialsOf(resource.name))}</span>` +
+        (availability < 1 ? `<span class="gantt-avatar__pct">${percentage}%</span>` : '')
+      );
     };
 
     // Also localises month and weekday names in the timeline scales, and the
@@ -389,8 +425,8 @@ export function GanttChart({
     // without it the editable columns are silently read-only.
     gantt.config.keyboard_navigation = true;
     gantt.config.keyboard_navigation_cells = true;
-    gantt.config.row_height = 38;
-    gantt.config.bar_height = 26;
+    gantt.config.row_height = 36;
+    gantt.config.bar_height = 24;
     gantt.config.columns = [
       {
         name: 'text',
@@ -407,12 +443,14 @@ export function GanttChart({
       {
         name: 'resource_id',
         label: 'Risorsa',
-        width: 108,
+        width: 76,
         align: 'center',
         resize: true,
         // A summary aggregates whoever works on its children, so it names none.
         template: (task) =>
-          task.is_summary ? '<span class="gantt-derived">—</span>' : resourceLabel(task.resource_id as string | undefined),
+          task.is_summary
+            ? '<span class="gantt-derived">—</span>'
+            : resourceAvatar(task.resource_id as string | undefined),
         editor: { type: 'select', map_to: 'resource_id', options: resourceOptions() },
       },
       {
@@ -456,21 +494,30 @@ export function GanttChart({
       if (task.is_summary) return 'gantt-bar--summary';
       return task.shared ? 'gantt-bar--shared' : '';
     };
-    // On a shared task the segments fill the bar, so the name moves outside it
-    // rather than competing with the percentages for the same pixels.
+    // The bar holds the allocation profile and nothing else: the name lives
+    // beside it, where a one-day bar can still show it in full.
     gantt.templates.task_text = (_start, _end, task) => {
       const scheduled = solvedRef.current.schedule.tasks.get(String(task.id));
-      if (!scheduled) return String(task.text ?? '');
-      if (!isShared(scheduled)) return String(task.text ?? '');
+      if (!scheduled || !isShared(scheduled)) return '';
       // Which percentage labels fit depends on the zoom level, so ask dhtmlx for
       // the bar's actual pixel width rather than guessing from a percentage.
       const width = Number(gantt.getTaskPosition(task).width) || 0;
       const color = String(task.bar_color || DEFAULT_BAR_COLOR);
       return renderSegments(scheduled, width, color, shade(color));
     };
-    gantt.templates.rightside_text = (_start, _end, task) => {
-      const scheduled = solvedRef.current.schedule.tasks.get(String(task.id));
-      return scheduled && isShared(scheduled) ? String(task.text ?? '') : '';
+    gantt.templates.rightside_text = (_start, _end, task) => escapeHtml(String(task.text ?? ''));
+
+    // Weekends, shortened weeks and company shutdowns are all the calendar's
+    // business, so the shading asks it rather than re-deriving them here. Only
+    // meaningful while a cell is one day: at week or month scale a cell spans
+    // both working and non-working days.
+    const dayScale = () => gantt.getScale()?.unit === 'day';
+    gantt.templates.timeline_cell_class = (_task, date) => {
+      if (!dayScale()) return '';
+      const classes = [];
+      if (!solvedRef.current.calendar.isWorkingDate(date)) classes.push('gantt-cell--off');
+      if (isToday(date)) classes.push('gantt-cell--today');
+      return classes.join(' ');
     };
 
     gantt.ext.zoom.init({ levels: ZOOM_LEVELS, activeLevelIndex: 1, useKey: 'ctrlKey' });

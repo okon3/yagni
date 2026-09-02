@@ -316,3 +316,37 @@ describe('shutdowns and absences together', () => {
     expect(result.tasks.get('a')!.end).toEqual(day(3, 17));
   });
 });
+
+describe('isWorkingDate', () => {
+  const calendar = (spec: CalendarSpec = DEFAULT_CALENDAR) => new WorkingCalendar(MONDAY, spec);
+
+  it('accepts a working weekday and refuses the weekend', () => {
+    const subject = calendar();
+    expect(subject.isWorkingDate(day(0))).toBe(true);
+    // Saturday 12 and Sunday 13 September 2026.
+    expect(subject.isWorkingDate(day(5))).toBe(false);
+    expect(subject.isWorkingDate(day(6))).toBe(false);
+  });
+
+  it('refuses a company shutdown', () => {
+    const subject = calendar({
+      ...DEFAULT_CALENDAR,
+      holidays: [{ from: '2026-09-09', to: '2026-09-10' }],
+    });
+    expect(subject.isWorkingDate(day(1))).toBe(true);
+    expect(subject.isWorkingDate(day(2))).toBe(false);
+    expect(subject.isWorkingDate(day(3))).toBe(false);
+    expect(subject.isWorkingDate(day(4))).toBe(true);
+  });
+
+  it('follows a shortened working week', () => {
+    const subject = calendar({ ...DEFAULT_CALENDAR, workingDays: [1, 2, 3] });
+    expect(subject.isWorkingDate(day(2))).toBe(true);
+    expect(subject.isWorkingDate(day(3))).toBe(false);
+  });
+
+  // The time of day is irrelevant: a working day is a whole calendar day.
+  it('ignores the time of day', () => {
+    expect(calendar().isWorkingDate(day(0, 23))).toBe(true);
+  });
+});

@@ -41,7 +41,7 @@ export function Toolbar({
         </button>
       </div>
       <div className="toolbar__group">
-        <button type="button" onClick={onAddTask}>
+        <button type="button" className="toolbar__primary" onClick={onAddTask}>
           Aggiungi attività
         </button>
         <button type="button" onClick={onEditResources}>

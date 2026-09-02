@@ -181,7 +181,10 @@ export default function App() {
       onDrop={onDrop}
     >
       <header className="app__bar">
-        <h1>Gantt con split dell&apos;effort</h1>
+        <h1>
+          <span className="app__mark" aria-hidden="true" />
+          Gantt con split dell&apos;effort
+        </h1>
         <Toolbar
           filename={filename}
           dirty={dirty}

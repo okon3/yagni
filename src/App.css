@@ -1,13 +1,12 @@
 .app {
-  font-family: system-ui, sans-serif;
-  color: #1c2430;
+  color: var(--ink);
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
 .app--dropping {
-  outline: 2px dashed #3b74d6;
+  outline: 2px dashed var(--accent);
   outline-offset: -4px;
 }
 
@@ -15,18 +14,32 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 0 14px;
-  border-bottom: 1px solid #e2e5ea;
-  background: #f6f8fa;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
   flex: none;
 }
 
 .app__bar h1 {
-  font-size: 14px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   margin: 0;
   white-space: nowrap;
-  color: #3c4757;
+  color: var(--ink);
+}
+
+/* Stands in for a product mark, so the title has the same weight on the page as
+   the toolbar sitting next to it. */
+.app__mark {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: linear-gradient(150deg, var(--accent), var(--accent-strong));
 }
 
 /* Fills whatever is left below the bar; the chart is absolute inside it so its
@@ -44,8 +57,8 @@
   align-items: center;
   justify-content: center;
   background: rgb(240 245 252 / 92%);
-  border: 2px dashed #3b74d6;
-  color: #24518f;
+  border: 2px dashed var(--accent);
+  color: var(--accent-strong);
   font-size: 15px;
   font-weight: 600;
   z-index: 20;
@@ -56,45 +69,63 @@
   margin: 0;
   flex: none;
   padding: 8px 12px;
-  border: 1px solid #e8b4a0;
-  border-left: 3px solid #c0532a;
+  border: 1px solid var(--danger-line);
+  border-left: 3px solid var(--danger);
   border-radius: 4px;
-  background: #fdf4f1;
-  color: #8a3a17;
+  background: var(--danger-soft);
+  color: var(--danger);
   font-size: 13px;
 }
 
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px 0;
+  gap: 8px;
+  padding: 10px 0;
   flex: 1;
   font-size: 13px;
 }
 
+/* A hairline instead of a border on every button: the groups stay legible and
+   the bar stops looking like a row of boxes. */
 .toolbar__group {
   display: flex;
-  gap: 4px;
+  gap: 2px;
+  padding-right: 8px;
+  border-right: 1px solid var(--line);
+}
+
+.toolbar__group:last-of-type {
+  border-right: 0;
 }
 
 .toolbar button {
   font: inherit;
-  padding: 5px 11px;
-  border: 1px solid #ccd3dd;
-  border-radius: 4px;
-  background: #fff;
-  color: #1c2430;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink-muted);
   cursor: pointer;
 }
 
 .toolbar button:hover {
-  background: #eef2f7;
-  border-color: #a9b6c8;
+  background: var(--surface-hover);
+  color: var(--ink);
 }
 
 .toolbar button:active {
-  background: #e3e9f1;
+  background: var(--line);
+}
+
+.toolbar__primary {
+  background: var(--accent) !important;
+  color: #fff !important;
+  font-weight: 550;
+}
+
+.toolbar__primary:hover {
+  background: var(--accent-strong) !important;
 }
 
 .toolbar__file {
@@ -102,7 +133,11 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #5a6472;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -114,13 +149,12 @@
 }
 
 .resources {
-  border: 1px solid #ccd3dd;
-  border-radius: 8px;
-  padding: 20px 22px;
+  border: 0;
+  border-radius: 12px;
+  padding: 22px 24px;
   min-width: 480px;
-  font-family: system-ui, sans-serif;
-  color: #1c2430;
-  box-shadow: 0 10px 30px rgb(28 36 48 / 18%);
+  color: var(--ink);
+  box-shadow: var(--shadow-dialog);
 }
 
 .resources::backdrop {
@@ -129,13 +163,15 @@
 
 .resources h2 {
   font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   margin: 0 0 4px;
 }
 
 .resources__hint {
   margin: 0 0 14px;
   font-size: 12px;
-  color: #5a6472;
+  color: var(--ink-muted);
   max-width: 58ch;
 }
 
@@ -149,8 +185,8 @@
   text-align: left;
   font-weight: 600;
   padding: 0 6px 6px;
-  border-bottom: 1px solid #e2e5ea;
-  color: #5a6472;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-muted);
 }
 
 .resources__table td {
@@ -161,7 +197,7 @@
 .resources__table input {
   font: inherit;
   padding: 4px 7px;
-  border: 1px solid #ccd3dd;
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
   width: 100%;
   box-sizing: border-box;
@@ -174,25 +210,25 @@
 
 .resources__unit {
   margin-left: 4px;
-  color: #5a6472;
+  color: var(--ink-muted);
 }
 
 .resources__count {
   text-align: center;
-  color: #5a6472;
+  color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .resources__empty {
   padding: 14px 6px;
-  color: #5a6472;
+  color: var(--ink-muted);
   text-align: center;
 }
 
 .resources__error {
   margin: 12px 0 0;
   font-size: 12px;
-  color: #8a3a17;
+  color: var(--danger);
 }
 
 .resources__actions {
@@ -209,31 +245,32 @@
 .resources__actions button,
 .resources__table button {
   font: inherit;
-  padding: 5px 11px;
-  border: 1px solid #ccd3dd;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
   background: #fff;
   cursor: pointer;
 }
 
 .resources__table button {
   padding: 3px 8px;
-  color: #8a3a17;
+  color: var(--danger);
 }
 
 .resources__actions button:hover,
 .resources__table button:hover {
-  background: #eef2f7;
+  background: var(--surface-hover);
 }
 
 .resources__primary {
-  background: #3b74d6 !important;
-  border-color: #2b5aab !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
   color: #fff;
+  font-weight: 550;
 }
 
 .resources__primary:hover {
-  background: #3366c4 !important;
+  background: var(--accent-strong) !important;
 }
 
 /* Sits over the empty grid rather than replacing the chart: unmounting dhtmlx
@@ -252,7 +289,7 @@
 
 .empty__card {
   max-width: 620px;
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 24px 28px;
   background: #fff;
@@ -268,7 +305,7 @@
   margin: 0 0 18px;
   font-size: 13px;
   line-height: 1.55;
-  color: #4a5566;
+  color: var(--ink-muted);
 }
 
 .empty__steps {
@@ -276,7 +313,7 @@
   padding-left: 20px;
   font-size: 13px;
   line-height: 1.6;
-  color: #4a5566;
+  color: var(--ink-muted);
 }
 
 .empty__steps li {
@@ -293,16 +330,16 @@
   font-weight: 600;
   padding: 2px 8px;
   margin-right: 2px;
-  border: 1px solid #ccd3dd;
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
-  background: #f6f8fa;
-  color: #24518f;
+  background: var(--surface-sunken);
+  color: var(--accent-strong);
   cursor: pointer;
 }
 
 .empty__action:hover {
-  background: #e9eff7;
-  border-color: #a9b6c8;
+  background: var(--accent-soft);
+  border-color: var(--line-strong);
 }
 
 .empty__open {
@@ -310,25 +347,25 @@
   align-items: center;
   gap: 10px;
   padding-top: 16px;
-  border-top: 1px solid #eceff3;
+  border-top: 1px solid var(--line);
   font-size: 13px;
-  color: #5a6472;
+  color: var(--ink-muted);
 }
 
 .empty__primary {
   font: inherit;
   font-weight: 600;
   padding: 7px 14px;
-  border: 1px solid #2b5aab;
+  border: 1px solid var(--accent-strong);
   border-radius: 4px;
-  background: #3b74d6;
+  background: var(--accent);
   color: #fff;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .empty__primary:hover {
-  background: #3366c4;
+  background: var(--accent-strong);
 }
 
 .calendar {
@@ -340,12 +377,12 @@
   align-items: center;
   gap: 12px;
   padding-bottom: 14px;
-  border-bottom: 1px solid #eceff3;
+  border-bottom: 1px solid var(--line);
   font-size: 13px;
 }
 
 .calendar__weekLabel {
-  color: #5a6472;
+  color: var(--ink-muted);
   font-weight: 600;
 }
 
@@ -372,7 +409,7 @@
 
 .ranges__empty {
   margin: 0 0 8px;
-  color: #7b8798;
+  color: var(--ink-faint);
 }
 
 .ranges__row {
@@ -385,7 +422,7 @@
 .ranges__row input {
   font: inherit;
   padding: 4px 7px;
-  border: 1px solid #ccd3dd;
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
 }
 
@@ -395,59 +432,59 @@
 }
 
 .ranges__to {
-  color: #7b8798;
+  color: var(--ink-faint);
 }
 
 .ranges__count {
   min-width: 82px;
   text-align: right;
-  color: #5a6472;
+  color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
 
 /* A period that lands entirely on non-working days costs nothing, which is worth
    saying out loud rather than leaving the user to wonder. */
 .ranges__count--none {
-  color: #b4530a;
+  color: var(--warn);
 }
 
 .ranges__row button,
 .ranges__add {
   font: inherit;
   padding: 4px 9px;
-  border: 1px solid #ccd3dd;
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
   background: #fff;
   cursor: pointer;
 }
 
 .ranges__row button {
-  color: #8a3a17;
+  color: var(--danger);
 }
 
 .ranges__add:hover,
 .ranges__row button:hover {
-  background: #eef2f7;
+  background: var(--surface-hover);
 }
 
 .resources__absences {
   font: inherit;
   padding: 3px 9px;
-  border: 1px solid #ccd3dd;
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
   background: #fff;
-  color: #24518f;
+  color: var(--accent-strong);
   cursor: pointer;
 }
 
 .resources__absences--open {
-  background: #e9eff7;
-  border-color: #a9b6c8;
+  background: var(--accent-soft);
+  border-color: var(--line-strong);
 }
 
 .resources__offRow td {
   padding: 4px 6px 12px;
-  background: #f8fafc;
+  background: var(--surface-sunken);
 }
 
 .ranges__pct {
@@ -477,7 +514,7 @@
 }
 
 .taskinfo__field > span:first-child {
-  color: #5a6472;
+  color: var(--ink-muted);
   font-weight: 600;
   font-size: 12px;
 }
@@ -486,10 +523,10 @@
 .taskinfo__field select {
   font: inherit;
   padding: 5px 7px;
-  border: 1px solid #ccd3dd;
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
   background: #fff;
-  color: #1c2430;
+  color: var(--ink);
 }
 
 .taskinfo__inline {
@@ -507,7 +544,7 @@
    the user could mistake for editable. */
 .taskinfo__derived {
   padding: 6px 0;
-  color: #7b8798;
+  color: var(--ink-faint);
   font-style: italic;
 }
 
@@ -516,7 +553,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #7b8798;
+  color: var(--ink-faint);
   margin: 20px 0 8px;
 }
 
@@ -528,7 +565,7 @@
 }
 
 .taskinfo__readonly dt {
-  color: #5a6472;
+  color: var(--ink-muted);
   font-size: 12px;
   margin-bottom: 2px;
 }
@@ -542,5 +579,5 @@
 .taskinfo__note {
   margin: 12px 0 0;
   font-size: 12px;
-  color: #5a6472;
+  color: var(--ink-muted);
 }

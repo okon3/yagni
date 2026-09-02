@@ -119,6 +119,13 @@ Duration and end date are derived, so they live in the per-row details dialog be
 the button at the end of the row, together with progress and colour — a computed
 figure in an editable-looking cell only invites an edit the engine discards.
 
+Task names sit **beside** their bar, never inside it: the inside belongs to the
+allocation profile, and a one-day bar has no room for a name anyway. Non-working
+days are shaded and today's column is marked, both only while a timeline cell is
+one day wide — at week or month scale a single cell spans working and non-working
+days alike. The calendar answers which days those are, so a four-day week and a
+company shutdown shade the same way as a weekend.
+
 The allocation profile is drawn as a single SVG path inside the bar — `addTaskLayer`,
 the natural mechanism for it, is a PRO feature.
 

@@ -3,6 +3,129 @@
   inset: 0;
 }
 
+/* dhtmlx ships its own font stack and its own greys. Everything in this block
+   only re-skins the library to the app's palette: no layout, no geometry. */
+.gantt_container,
+.gantt_tooltip {
+  font-family: inherit;
+  color: var(--ink);
+}
+
+.gantt_grid_scale,
+.gantt_task_scale {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.gantt_grid_scale .gantt_grid_head_cell {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  border-right: 0;
+}
+
+.gantt_task_scale .gantt_scale_cell {
+  font-size: 11px;
+  color: var(--ink-faint);
+  border-right: 1px solid var(--line);
+}
+
+.gantt_grid_data .gantt_row,
+.gantt_task_row {
+  border-bottom: 1px solid var(--line);
+}
+
+/* No zebra: the screenshot-style grid separates rows with hairlines only, and
+   two competing backgrounds make the hover state invisible. */
+.gantt_grid_data .gantt_row.odd,
+.gantt_task_row.odd {
+  background: transparent;
+}
+
+.gantt_grid_data .gantt_row:hover,
+.gantt_grid_data .gantt_row.gantt_selected,
+.gantt_task_row.gantt_selected {
+  background: var(--surface-hover);
+}
+
+.gantt_grid_data .gantt_cell {
+  font-size: 13px;
+  color: var(--ink);
+  border-right: 0;
+}
+
+.gantt_grid_data .gantt_cell.gantt_last_cell,
+.gantt_task_cell.gantt_last_cell {
+  border-right: 0;
+}
+
+.gantt_layout_cell.gantt_grid,
+.gantt_layout_cell .gantt_grid {
+  border-right: 1px solid var(--line);
+}
+
+.gantt_task_cell {
+  border-right: 1px solid var(--line);
+}
+
+/* Non-working days: the calendar decides, so weekends, a four-day week and a
+   company shutdown all read the same way. */
+.gantt_task_cell.gantt-cell--off {
+  background: var(--surface-sunken);
+}
+
+.gantt_task_cell.gantt-cell--today {
+  background: rgb(59 111 224 / 5%);
+  box-shadow: inset 1px 0 0 var(--today);
+}
+
+/* The Community build has no marker extension — the package ships no
+   codebase/ext — so today is marked by styling its own scale cell. */
+.gantt_task_scale .gantt_scale_cell.gantt-scale--today {
+  background: var(--today);
+  border-radius: var(--radius-pill);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* A task with no colour of its own must match the dot in its name cell, and
+   dhtmlx would otherwise paint it its own shade of blue. Setting the variable in
+   a rule leaves a task that does carry a colour in charge: dhtmlx sets it inline,
+   which outranks this. */
+.gantt_task_line {
+  --dhx-gantt-task-background: #3b74d6;
+  --dhx-gantt-task-border: #2a539a;
+
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
+}
+
+.gantt_task_line .gantt_task_progress {
+  border-radius: var(--radius-pill);
+}
+
+/* The task name always sits outside the bar, which keeps a short bar readable
+   and leaves the inside of the bar to the allocation profile. */
+.gantt_side_content.gantt_right {
+  padding-left: 9px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.gantt_task_link .gantt_line_wrapper div {
+  background: var(--line-strong);
+}
+
+.gantt_task_link:hover .gantt_line_wrapper div {
+  background: var(--accent);
+}
+
+.gantt_link_arrow_right {
+  border-left-color: var(--line-strong);
+}
+
 /* A shared task keeps a single continuous outline — the bar is one task, and
    the profile inside it is what varies.
    dhtmlx v10 drives bar colours through custom properties and sets them inline
@@ -10,7 +133,7 @@
    own colour. Setting the variables keeps the inline value in charge. */
 .gantt_task_line.gantt-bar--shared {
   --dhx-gantt-task-background: #edf1f7;
-  --dhx-gantt-task-border: #aebdd2;
+  --dhx-gantt-task-border: #c3cddc;
 }
 
 .gantt_task_line.gantt-bar--shared .gantt_task_progress {
@@ -23,7 +146,7 @@
   inset: 0;
   /* Clips the fill to the bar's rounded corners so the shape reads as one
      object rather than a rectangle sitting inside another. */
-  border-radius: 2px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
 }
 
@@ -64,7 +187,7 @@
 }
 
 .gantt-stretched {
-  color: #b4530a;
+  color: var(--warn);
   font-weight: 600;
 }
 
@@ -75,9 +198,10 @@
 .gantt_task_line.gantt-bar--summary {
   --dhx-gantt-task-background: #55637a;
   --dhx-gantt-task-border: #3c4757;
-  border-radius: 2px;
-  height: 12px !important;
+  border-radius: 3px;
+  height: 10px !important;
   margin-top: 7px;
+  box-shadow: none;
 }
 
 .gantt_task_line.gantt-bar--summary .gantt_task_progress {
@@ -88,9 +212,22 @@
   display: none;
 }
 
+/* A section header, not a task: the name reads as a label above its children.
+   The side content inherits the bar's height, and the summary bar is 10px tall
+   with a line-height dhtmlx sets inline for a full-height bar — so the label has
+   to be re-centred on the thin bar or it renders clipped. */
+.gantt_task_line.gantt-bar--summary .gantt_side_content.gantt_right {
+  line-height: 10px;
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
 /* Derived cells: shown for information, not editable. */
 .gantt-derived {
-  color: #7b8798;
+  color: var(--ink-faint);
   font-style: italic;
 }
 
@@ -105,6 +242,37 @@
   vertical-align: baseline;
 }
 
+/* Initials instead of a name: the column costs a third of what it did, and the
+   full name with its availability stays in the tooltip. */
+.gantt-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.gantt-avatar--empty {
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-faint);
+}
+
+/* Part-time changes every duration on the row, so it stays on the face of the
+   grid rather than only in the tooltip. */
+.gantt-avatar__pct {
+  margin-left: 5px;
+  font-size: 11px;
+  color: var(--warn);
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+
 .gantt-rowinfo {
   display: inline-flex;
   align-items: center;
@@ -112,14 +280,17 @@
   padding: 0;
   border: 0;
   background: none;
-  color: #9aa3b0;
+  color: var(--ink-faint);
+  /* Faint until the row is hovered: one icon per row at full contrast is noise,
+     invisible until hover is undiscoverable. */
+  opacity: 0.4;
   cursor: pointer;
 }
 
 .gantt_row:hover .gantt-rowinfo {
-  color: #55637a;
+  opacity: 1;
 }
 
-.gantt-rowinfo:hover {
-  color: #24518f;
+.gantt_row .gantt-rowinfo:hover {
+  color: var(--accent);
 }

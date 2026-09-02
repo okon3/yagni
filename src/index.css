@@ -1,5 +1,34 @@
 :root {
   color-scheme: light;
+
+  /* One palette for the whole app. Task bars are the exception: they carry the
+     colour the user picked, so nothing here may override them. */
+  --accent: #6f5bd8;
+  --accent-strong: #5b47c4;
+  --accent-soft: #f1eefc;
+  --today: #3b6fe0;
+  --warn: #b4530a;
+  --danger: #8a3a17;
+  --danger-line: #e8b4a0;
+  --danger-soft: #fdf4f1;
+
+  --ink: #1f2430;
+  --ink-muted: #6b7280;
+  --ink-faint: #99a0ab;
+
+  --surface: #fff;
+  --surface-sunken: #fafbfc;
+  --surface-hover: #f5f6f9;
+  --line: #edeef1;
+  --line-strong: #dfe2e8;
+
+  --radius: 8px;
+  --radius-pill: 999px;
+  --shadow-raised: 0 1px 2px rgb(24 28 40 / 6%);
+  --shadow-dialog: 0 18px 48px rgb(24 28 40 / 16%);
+
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
 }
 
 /* The chart fills the viewport, which needs an unbroken height chain from the

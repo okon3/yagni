@@ -104,6 +104,14 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
 - **A CSS rule beats an SVG presentation attribute.** The allocation profile's
   colour is an inline `style` on the path for this reason; a `fill` attribute
   would be overridden by any stylesheet rule.
+- **`gantt.templates.scale_cell_class` no longer exists** — dropped in v6, and it
+  still compiles. A class on a scale cell goes through `css` on the scale itself
+  (`gantt.config.scales` / a zoom level's `scales`). `timeline_cell_class` is
+  still live.
+- **A bar with no colour falls back to dhtmlx's own blue, not ours.** Setting
+  `--dhx-gantt-task-background` in a rule fixes the default without breaking a
+  task that carries a colour: dhtmlx sets that variable inline, which outranks
+  the rule.
 - **When verifying anything visual, read `getComputedStyle`** — not the attribute,
   not the data field. Both of the bugs above were invisible from the code.
 - **Never call `gantt.destructor()`** in cleanup. It leaves the singleton unusable

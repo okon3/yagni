@@ -220,6 +220,17 @@ export class WorkingCalendar {
     return this.workingDaysBefore(Math.max(day, this.originDay)) * this.minutesPerDay;
   }
 
+  /**
+   * Whether any work happens on the calendar day this date falls on.
+   *
+   * The view shades non-working days on the timeline, and asking the calendar
+   * keeps weekends, working weeks and company shutdowns defined in exactly one
+   * place.
+   */
+  isWorkingDate(date: Date): boolean {
+    return this.isWorkingDay(dayIndexOf(date));
+  }
+
   /** Convenience for callers that think in days, such as duration columns. */
   daysToMinutes(days: number): number {
     return days * this.minutesPerDay;
