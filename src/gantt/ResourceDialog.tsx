@@ -38,12 +38,15 @@ export function ResourceDialog({
   resources,
   usage,
   workingWeekdays,
+  confirm,
   onCancel,
   onSave,
 }: {
   resources: Resource[];
   usage: ResourceUsage;
   workingWeekdays: number[];
+  /** Native dialogs are suppressed in embedded browsers; App owns the real one. */
+  confirm(message: string, confirmLabel: string): Promise<boolean>;
   onCancel(): void;
   onSave(resources: Resource[], releasedTaskIds: string[]): void;
 }) {
@@ -79,17 +82,16 @@ export function ResourceDialog({
     );
   };
 
-  const remove = (index: number) => {
+  const remove = async (index: number) => {
     const draft = drafts[index];
     const assigned = usage.taskCounts.get(draft.id) ?? 0;
-    if (
-      assigned > 0 &&
-      !window.confirm(
+    if (assigned > 0) {
+      const confirmed = await confirm(
         `${draft.name || 'Questa risorsa'} è assegnata a ${assigned} attività. ` +
           'Rimuovendola, quelle attività restano senza risorsa e non condivideranno più effort. Continuare?',
-      )
-    ) {
-      return;
+        'Rimuovi',
+      );
+      if (!confirmed) return;
     }
     setDrafts((current) => current.filter((_, position) => position !== index));
   };
@@ -194,7 +196,7 @@ export function ResourceDialog({
               </td>
               <td className="resources__count">{usage.taskCounts.get(draft.id) ?? 0}</td>
               <td>
-                <button type="button" onClick={() => remove(index)} title="Rimuovi">
+                <button type="button" onClick={() => void remove(index)} title="Rimuovi">
                   ✕
                 </button>
               </td>

@@ -146,6 +146,15 @@ The engine is the source of truth. The flow is: edit → pull into the model →
 last call redraws without firing the update events that would bounce straight back
 into the handler; an `applying` flag guards the rest.
 
+## Confirmations
+
+`window.confirm` is unusable here: the app runs inside an embedded browser that
+suppresses native dialogs — the call returns `false` in no time at all and shows
+nothing. Every guarded action then becomes a silent no-op: a deletion that never
+happens, a file that never opens. Ask through `ConfirmDialog` instead, which App
+owns and hands out as a promise; a nested `<dialog>` stacks correctly above the
+one that asked.
+
 ## File format
 
 `.gantt` is JSON, currently **version 2**, and stores **inputs only** — computed

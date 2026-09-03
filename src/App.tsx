@@ -3,6 +3,7 @@ import type { CalendarSpec, Resource } from './scheduler';
 import { GanttChart, INITIAL_SCALE_LABEL, type GanttHandle } from './gantt/GanttChart';
 import { COLOR_OPTIONS } from './gantt/colors';
 import { CalendarDialog } from './gantt/CalendarDialog';
+import { ConfirmDialog } from './gantt/ConfirmDialog';
 import { EmptyState } from './gantt/EmptyState';
 import { ResourceDialog } from './gantt/ResourceDialog';
 import { TaskDialog, type TaskDetails, type TaskPatch } from './gantt/TaskDialog';
@@ -26,6 +27,12 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(INITIAL_SCALE_LABEL);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  // One question at a time, held with the promise that is waiting on it.
+  const [question, setQuestion] = useState<{
+    message: string;
+    confirmLabel: string;
+    resolve: (confirmed: boolean) => void;
+  } | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   // Snapshotted on open, like the other dialogs: the chart owns the live task.
   const [openTask, setOpenTask] = useState<{
@@ -44,9 +51,23 @@ export default function App() {
     setTaskCount(chart.current?.getProject().tasks.length ?? 0);
   }, []);
 
+  const ask = useCallback(
+    (message: string, confirmLabel: string) =>
+      new Promise<boolean>((resolve) => setQuestion({ message, confirmLabel, resolve })),
+    [],
+  );
+
+  const answer = useCallback(
+    (confirmed: boolean) => {
+      question?.resolve(confirmed);
+      setQuestion(null);
+    },
+    [question],
+  );
+
   const confirmDiscard = useCallback(
-    () => !dirty || window.confirm('Ci sono modifiche non salvate. Continuare?'),
-    [dirty],
+    async () => !dirty || ask('Ci sono modifiche non salvate. Continuare?', 'Continua'),
+    [ask, dirty],
   );
 
   const adopt = useCallback(
@@ -70,8 +91,8 @@ export default function App() {
     );
   }, []);
 
-  const handleNew = useCallback(() => {
-    if (!confirmDiscard()) return;
+  const handleNew = useCallback(async () => {
+    if (!(await confirmDiscard())) return;
     chart.current?.loadProject(emptyProject());
     setFilename(DEFAULT_FILENAME);
     setDirty(false);
@@ -80,7 +101,7 @@ export default function App() {
   }, [confirmDiscard, syncCount]);
 
   const handleOpen = useCallback(async () => {
-    if (!confirmDiscard()) return;
+    if (!(await confirmDiscard())) return;
     try {
       const picked = await pickTextFile();
       if (!picked) return;
@@ -124,26 +145,23 @@ export default function App() {
    * a leaf goes without a question, a group announces what it takes with it.
    */
   const requestDelete = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const handle = chart.current;
       const details = handle?.getTaskDetails(id);
       if (!handle || !details) return;
-      const subtasks =
-        details.descendantCount === 1
-          ? 'la sua sottoattività'
-          : `le sue ${details.descendantCount} sottoattività`;
-      if (
-        details.descendantCount > 0 &&
-        !window.confirm(`Elimino "${details.name}" e ${subtasks}?`)
-      ) {
-        return;
+      if (details.descendantCount > 0) {
+        const subtasks =
+          details.descendantCount === 1
+            ? 'la sua sottoattività'
+            : `le sue ${details.descendantCount} sottoattività`;
+        if (!(await ask(`Elimino "${details.name}" e ${subtasks}?`, 'Elimina'))) return;
       }
       handle.deleteTask(id);
       setOpenTask(null);
       setDirty(true);
       syncCount();
     },
-    [syncCount],
+    [ask, syncCount],
   );
 
   const openResources = useCallback(() => {
@@ -194,7 +212,7 @@ export default function App() {
     setDragging(false);
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
-    if (!confirmDiscard()) return;
+    if (!(await confirmDiscard())) return;
     try {
       adopt(await file.text(), file.name);
     } catch (cause) {
@@ -221,8 +239,8 @@ export default function App() {
         <Toolbar
           filename={filename}
           dirty={dirty}
-          onNew={handleNew}
-          onOpen={handleOpen}
+          onNew={() => void handleNew()}
+          onOpen={() => void handleOpen()}
           onSave={handleSave}
           onAddTask={handleAddTask}
           onEditResources={openResources}
@@ -245,13 +263,13 @@ export default function App() {
             syncCount();
           }}
           onOpenTask={openTaskDetails}
-          onDeleteTask={requestDelete}
+          onDeleteTask={(id) => void requestDelete(id)}
           onScaleChange={setScale}
         />
         {taskCount === 0 && (
           <EmptyState
             onAddTask={handleAddTask}
-            onOpen={handleOpen}
+            onOpen={() => void handleOpen()}
             onEditResources={openResources}
           />
         )}
@@ -272,6 +290,7 @@ export default function App() {
           resources={resourceSnapshot.resources}
           usage={{ taskCounts: resourceSnapshot.taskCounts }}
           workingWeekdays={calendarSnapshot.workingDays}
+          confirm={ask}
           onCancel={() => setResourcesOpen(false)}
           onSave={saveResources}
         />
@@ -285,6 +304,14 @@ export default function App() {
         />
       )}
 
+      {question && (
+        <ConfirmDialog
+          message={question.message}
+          confirmLabel={question.confirmLabel}
+          onResolve={answer}
+        />
+      )}
+
       {openTask && (
         <TaskDialog
           task={openTask.details}
@@ -292,7 +319,7 @@ export default function App() {
           colors={COLOR_OPTIONS}
           onCancel={() => setOpenTask(null)}
           onSave={saveTaskDetails}
-          onDelete={() => requestDelete(openTask.details.id)}
+          onDelete={() => void requestDelete(openTask.details.id)}
         />
       )}
     </main>

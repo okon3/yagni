@@ -122,7 +122,9 @@ figure in an editable-looking cell only invites an edit the engine discards. Tha
 dialog is also where a task is deleted — as is <kbd>Del</kbd> on the selected row —
 which takes its subtree with it and clears any dependency on the tasks that go.
 Only a task with subtasks asks for confirmation, since that is the deletion whose
-extent is not on screen.
+extent is not on screen. Confirmations are dialogs of the app's own: an embedded
+browser suppresses `window.confirm`, which would turn every guarded action into a
+silent no-op.
 
 Task names sit **beside** their bar, never inside it: the inside belongs to the
 allocation profile, and a one-day bar has no room for a name anyway.
