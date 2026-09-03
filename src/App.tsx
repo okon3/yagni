@@ -188,7 +188,7 @@ export default function App() {
           <img className="app__mark" src="/favicon.svg" alt="" width={20} height={20} />
           <span className="app__brand">
             YAGNI
-            <span className="app__expansion">Yet Another Gantt, Nothing Innovative</span>
+            <span className="app__expansion">Yet Another Gantt, Now Improved</span>
           </span>
         </h1>
         <Toolbar
