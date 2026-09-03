@@ -143,14 +143,22 @@ zoom is showing, and only when it has to: a redraw of the whole chart on every
 edit is not worth it. It only ever grows — a plan that shrinks leaves the window
 where it was, and Adatta is what tightens it again.
 
-**An opened plan is fitted at once**, so a file no longer arrives as a chart of
-empty weeks: widening the window is enough to draw the bars, not to put them
-where they can be read, and a plan a year long opened at week scale shows its
-first fortnight. Every way in goes through the same call — the toolbar, a file
-dropped on the window, the unsaved draft, a script's `loadText` — and it is the
-same one Adatta makes, made once the load has finished. An undo is not an
-opening: it restores the plan through the same path and keeps the window the
-user was looking through.
+**An opened plan is collapsed and fitted at once**, so a file no longer arrives
+as a chart of empty weeks: widening the window is enough to draw the bars, not
+to put them where they can be read, and a plan a year long opened at week scale
+shows its first fortnight. Collapsed, because what one wants of a plan just
+opened is its shape — the top level, a handful of bars — and not every leaf of
+it at once; the branches are one click from open, and the count in the status bar
+is the plan's, not the screen's. Collapsing changes which rows are drawn and
+never which dates the plan spans, so the window fitted to is the same either
+way, and an open branch is a property of the view: none of this marks the file
+as changed.
+
+Every way in goes through the same call — the toolbar, a file dropped on the
+window, the unsaved draft, a script's `loadText` — and the fit is the one Adatta
+makes, made once the load has finished. An undo is not an opening: it restores
+the plan through the same path and keeps the window the user was looking
+through, closed branches included.
 
 The grid carries the **inputs** and nothing else: name, resource, effort and start.
 Duration and end date are derived, so they live in the per-row details dialog behind

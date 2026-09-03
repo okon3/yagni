@@ -162,7 +162,15 @@ export default function App() {
       // to keep the window the user was looking through — and because the zoom
       // extension only ends up consistent when the fit happens after the load
       // has finished, exactly as the toolbar's own button does it.
-      if (parsed.tasks.length > 0) chart.current?.zoomToFit();
+      //
+      // Collapsed first, and fitted after: what a plan opens on is its top
+      // level, which is the shape of the thing rather than every leaf of it.
+      // Collapsing changes which rows are drawn, never which dates the plan
+      // spans, so the window it is fitted to is the same either way.
+      if (parsed.tasks.length > 0) {
+        chart.current?.collapseAll();
+        chart.current?.zoomToFit();
+      }
       // Canonical rather than the file's own bytes: the history holds what the
       // project serialises to, so that comparing it against the present is
       // comparing like with like — a version 1 file is not written back as one.
