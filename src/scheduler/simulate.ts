@@ -15,6 +15,17 @@ import type {
 /** Man-minute tolerance below which a task counts as finished, absorbing float drift. */
 const EPSILON = 1e-9;
 
+/**
+ * Whether the task was stretched by sharing its resource with another task.
+ *
+ * Distinct from "ran below full rate", which part-time and a reduced period also
+ * produce: those two call for a change to the person, contention for a change to
+ * the tasks. A caller that cannot tell them apart cannot decide what to do.
+ */
+export function isContended(task: ScheduledTask): boolean {
+  return task.segments.some((segment) => segment.rate < segment.soloRate - EPSILON);
+}
+
 export interface ScheduleOptions {
   calendar?: CalendarSpec;
   /** Anchors the working-minute axis. Defaults to the earliest start constraint. */
@@ -30,7 +41,7 @@ interface SimTask {
   pendingPredecessors: number;
   startedAt: number | undefined;
   finishedAt: number | undefined;
-  segments: { start: number; end: number; rate: number }[];
+  segments: { start: number; end: number; rate: number; soloRate: number }[];
 }
 
 export function schedule(
@@ -213,15 +224,21 @@ export function schedule(
     }
 
     const rates = new Map<TaskId, number>();
+    const soloRates = new Map<TaskId, number>();
     for (const [key, group] of groups) {
       const resource = key === null ? undefined : resourceById.get(key);
+      // Unassigned tasks have no owner to share, so each one gets a full rate.
+      const capacity = key === null ? group.length : capacityAt(key, clock);
       const granted = allocate({
         resource,
-        // Unassigned tasks have no owner to share, so each one gets a full rate.
-        capacity: key === null ? group.length : capacityAt(key, clock),
+        capacity,
         candidates: group.map((state) => ({ id: state.task.id, remaining: state.remaining })),
       });
-      for (const state of group) rates.set(state.task.id, granted.get(state.task.id) ?? 0);
+      const solo = key === null ? 1 : capacity;
+      for (const state of group) {
+        rates.set(state.task.id, granted.get(state.task.id) ?? 0);
+        soloRates.set(state.task.id, solo);
+      }
     }
 
     let step = nextArrival === undefined ? Infinity : nextArrival - clock;
@@ -242,12 +259,16 @@ export function schedule(
     for (const state of active) {
       const rate = rates.get(state.task.id)!;
       if (rate <= 0) continue;
+      const soloRate = soloRates.get(state.task.id)!;
       state.startedAt ??= clock;
       const last = state.segments[state.segments.length - 1];
       // Events on other resources split the timeline without changing this rate;
       // merging keeps the rendered bar from fragmenting into meaningless slices.
-      if (last && last.end === clock && last.rate === rate) last.end = clock + step;
-      else state.segments.push({ start: clock, end: clock + step, rate });
+      if (last && last.end === clock && last.rate === rate && last.soloRate === soloRate) {
+        last.end = clock + step;
+      } else {
+        state.segments.push({ start: clock, end: clock + step, rate, soloRate });
+      }
       state.remaining -= rate * step;
     }
 
@@ -276,6 +297,7 @@ export function schedule(
         startWorkingMinutes: segment.start,
         endWorkingMinutes: segment.end,
         rate: segment.rate,
+        soloRate: segment.soloRate,
       })),
     });
   }

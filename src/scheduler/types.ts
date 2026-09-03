@@ -59,6 +59,16 @@ export interface AllocationSegment {
   endWorkingMinutes: number;
   /** Fraction of a full-time resource devoted to the task. 0.5 = two concurrent tasks. */
   rate: number;
+  /**
+   * The rate the task would have had with the resource to itself, so `rate`
+   * below it means contention and `rate` equal to it means the resource simply
+   * has less to give — part-time, or a reduced period.
+   *
+   * Recorded rather than re-derived: the capacity is the calendar's and the
+   * policy's business, and a caller reconstructing it would be a second copy of
+   * both. 1 for an unassigned task, which never contends.
+   */
+  soloRate: number;
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CALENDAR } from './calendar';
-import { schedule } from './simulate';
+import { isContended, schedule } from './simulate';
 import { CyclicDependencyError, UnknownPredecessorError, type Resource, type Task } from './types';
 
 const HOURS_PER_DAY = 8;
@@ -277,5 +277,66 @@ describe('edge cases', () => {
     for (const task of tasks) {
       expect(result.tasks.get(task.id)!.elapsedWorkingMinutes).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('isContended', () => {
+  it('is false for a task that had the resource to itself', () => {
+    const result = run([
+      { id: 'a', name: 'A', effort: days(4), startConstraint: MONDAY, resourceId: 'alice' },
+    ]);
+    expect(isContended(result.tasks.get('a')!)).toBe(false);
+  });
+
+  it('is true for two tasks splitting one resource', () => {
+    const result = run([
+      { id: 'a', name: 'A', effort: days(2), startConstraint: MONDAY, resourceId: 'alice' },
+      { id: 'b', name: 'B', effort: days(2), startConstraint: MONDAY, resourceId: 'alice' },
+    ]);
+    expect(isContended(result.tasks.get('a')!)).toBe(true);
+    expect(isContended(result.tasks.get('b')!)).toBe(true);
+  });
+
+  it('is false at part time, which stretches a task just as much', () => {
+    // The distinction the caller acts on: contention means move a task,
+    // part-time means change the person.
+    const result = run(
+      [{ id: 'a', name: 'A', effort: days(2), startConstraint: MONDAY, resourceId: 'alice' }],
+      [{ id: 'alice', name: 'Alice', availability: 0.5 }],
+    );
+    expect(elapsedDays(result, 'a')).toBe(4);
+    expect(isContended(result.tasks.get('a')!)).toBe(false);
+  });
+
+  it('is false for an absence, and true for contention around one', () => {
+    const away: Resource = {
+      id: 'alice',
+      name: 'Alice',
+      availabilityOverrides: [{ from: '2026-09-08', to: '2026-09-09', availability: 0 }],
+    };
+    const alone = run(
+      [{ id: 'a', name: 'A', effort: days(3), startConstraint: MONDAY, resourceId: 'alice' }],
+      [away],
+    );
+    expect(elapsedDays(alone, 'a')).toBeGreaterThan(3);
+    expect(isContended(alone.tasks.get('a')!)).toBe(false);
+
+    const together = run(
+      [
+        { id: 'a', name: 'A', effort: days(3), startConstraint: MONDAY, resourceId: 'alice' },
+        { id: 'b', name: 'B', effort: days(3), startConstraint: MONDAY, resourceId: 'alice' },
+      ],
+      [away],
+    );
+    expect(isContended(together.tasks.get('a')!)).toBe(true);
+  });
+
+  it('is false for an unassigned task, which never contends', () => {
+    const result = run([
+      { id: 'a', name: 'A', effort: days(2), startConstraint: MONDAY },
+      { id: 'b', name: 'B', effort: days(2), startConstraint: MONDAY },
+    ]);
+    expect(isContended(result.tasks.get('a')!)).toBe(false);
+    expect(elapsedDays(result, 'a')).toBe(2);
   });
 });

@@ -38,6 +38,10 @@ construction: the simulation loop contains no calendar logic at all.
 - **Partial staffing compounds with the split.** Somebody staffed at 50% who is
   running two tasks gives each of them 25%. The rates granted on a resource never
   exceed its availability.
+- **Contention is distinguishable from part-time.** Both stretch a task beyond its
+  effort, but they call for different moves — reassign a task, or change the
+  person. Each segment therefore records the rate the task *would* have had with
+  the resource to itself, and `isContended` compares the two.
 - **A summary task is never scheduled.** If it were, it would contend with its own
   children for the same person and halve their rate. Its effort and dates roll up
   from its leaves instead, and its elapsed time can exceed the sum of its
