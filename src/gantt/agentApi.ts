@@ -2,7 +2,7 @@ import helpMarkdown from './agentApi.help.md?raw';
 import { parseWallClock, serializeDate } from './dates';
 import type { GanttHandle } from './GanttChart';
 import { buildPlan, type Plan } from './plan';
-import { rejectionForLink, subtreeOf } from './project';
+import { rejectionForLink, slackByRow, subtreeOf } from './project';
 import {
   nextResourceId,
   releasedBy,
@@ -58,11 +58,23 @@ declare global {
   }
 }
 
+/** One row of the critical-chain analysis, in the order `getPlan()` uses. */
+export interface ChainTask {
+  id: string;
+  /** The plan's end moves if this task starts later, or if it grows. */
+  isCritical: boolean;
+  /** Working days it can start later before the plan's end moves. */
+  floatDays: number;
+  /** Whose split makes it critical, when contention is the reason. */
+  contendedOn: string | null;
+}
+
 export interface AgentApi {
   help(): string;
 
   getPlan(): Plan;
   getTask(id: string): TaskInfo;
+  getCriticalChain(): ChainTask[];
   getResources(): Resource[];
   getCalendar(): CalendarSpec;
   toText(): string;
@@ -181,6 +193,31 @@ export function createAgentApi(host: AgentHost): AgentApi {
     getTask: (id) => {
       const { start, end, ...rest } = details(id);
       return { ...rest, start: serializeDate(start), end: serializeDate(end) };
+    },
+
+    /**
+     * Deliberately not folded into `getPlan()`: that call is read after every
+     * write and this one costs a re-solve of the plan per probe. It also ignores
+     * the ceiling the chart's own marking respects — a script has no frame to
+     * miss, and asking for the figures is the whole point of the call.
+     */
+    getCriticalChain: () => {
+      const handle = chart();
+      const solved = handle.getSolved();
+      const rows = slackByRow(handle.getProject(), solved, { search: true });
+      // Tree order, like getPlan: two snapshots of a plan have to line up.
+      return buildPlan(solved).tasks.flatMap((task) => {
+        const slack = rows.get(task.id);
+        if (!slack) return [];
+        return [
+          {
+            id: task.id,
+            isCritical: slack.isCritical,
+            floatDays: slack.floatDays ?? 0,
+            contendedOn: slack.contendedResourceId ?? null,
+          },
+        ];
+      });
     },
 
     getResources: () => copy(chart().getResources()),

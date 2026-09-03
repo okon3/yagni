@@ -205,6 +205,18 @@
   background: #dae3ef;
 }
 
+/* The plan's end depends on this task.
+
+   An outline, never a fill: the bar's colour belongs to the user and dhtmlx sets
+   it inline through --dhx-gantt-task-background, so a background here would
+   silently beat it — and a task would lose its own colour for being critical.
+   The offset keeps the ring off the bar's own border, where it would read as a
+   thicker border instead of as a mark. */
+.gantt_task_line.gantt-bar--critical {
+  outline: 2px solid var(--critical);
+  outline-offset: 1px;
+}
+
 .seg-track {
   position: absolute;
   inset: 0;

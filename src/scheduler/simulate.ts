@@ -34,6 +34,25 @@ export interface ScheduleOptions {
   allocate?: AllocationPolicy;
 }
 
+/**
+ * Where the working-minute axis starts.
+ *
+ * Exported because two solves are only comparable when they share an axis, and
+ * the default reads off the tasks: it moves as soon as the earliest constraint
+ * does, so anything re-solving a modified plan has to pin the origin the first
+ * solve used.
+ */
+export function scheduleOrigin(tasks: Task[], explicit?: Date): Date {
+  if (explicit) return explicit;
+  return (
+    tasks.reduce<Date | undefined>((earliest, task) => {
+      const start = task.startConstraint;
+      if (!start) return earliest;
+      return !earliest || start < earliest ? start : earliest;
+    }, undefined) ?? new Date()
+  );
+}
+
 interface SimTask {
   task: Task;
   remaining: number;
@@ -52,14 +71,7 @@ export function schedule(
 ): Schedule {
   assertAcyclic(tasks);
 
-  const origin =
-    options.origin ??
-    tasks.reduce<Date | undefined>((earliest, task) => {
-      const start = task.startConstraint;
-      if (!start) return earliest;
-      return !earliest || start < earliest ? start : earliest;
-    }, undefined) ??
-    new Date();
+  const origin = scheduleOrigin(tasks, options.origin);
 
   const calendar = new WorkingCalendar(origin, options.calendar ?? DEFAULT_CALENDAR);
   const allocate = options.allocate ?? equalSplit;

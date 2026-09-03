@@ -2,11 +2,16 @@ import {
   CyclicDependencyError,
   DEFAULT_CALENDAR,
   WorkingCalendar,
+  criticalTasks,
   schedule,
+  totalFloat,
   type CalendarSpec,
+  type FloatOptions,
   type Resource,
   type Schedule,
   type ScheduledTask,
+  type Task,
+  type TaskCriticality,
 } from '../scheduler';
 
 /**
@@ -45,6 +50,15 @@ export interface SolvedProject {
   hierarchy: Hierarchy;
   /** Who works on each task, a summary included. Absent when nobody does. */
   resourcesByTask: Map<string, Set<string>>;
+  /**
+   * The leaves exactly as the engine received them — dependencies pushed down,
+   * effort in minutes.
+   *
+   * Kept because the critical chain re-solves this same plan a task at a time,
+   * and a second translation of the project would be a second set of rules to
+   * disagree with `solve`.
+   */
+  engineTasks: Task[];
 }
 
 export class TaskCycleError extends Error {
@@ -224,18 +238,16 @@ export function solve(project: Project): SolvedProject {
     return [...new Set(expanded)].filter((id) => id !== leaf.id && byId.has(id));
   };
 
-  const result = schedule(
-    leaves.map((task) => ({
-      id: task.id,
-      name: task.name,
-      effort: calendar.daysToMinutes(task.nominalDays),
-      startConstraint: task.start,
-      resourceId: task.resourceId,
-      predecessors: effectivePredecessors(task),
-    })),
-    project.resources,
-    { origin, calendar: project.calendar },
-  );
+  const engineTasks = leaves.map<Task>((task) => ({
+    id: task.id,
+    name: task.name,
+    effort: calendar.daysToMinutes(task.nominalDays),
+    startConstraint: task.start,
+    resourceId: task.resourceId,
+    predecessors: effectivePredecessors(task),
+  }));
+
+  const result = schedule(engineTasks, project.resources, { origin, calendar: project.calendar });
 
   rollUp(project, hierarchy, result, calendar);
   return {
@@ -244,7 +256,115 @@ export function solve(project: Project): SolvedProject {
     summaryIds,
     hierarchy,
     resourcesByTask: resourcesByTask(project.tasks, hierarchy),
+    engineTasks,
   };
+}
+
+/**
+ * Tasks above which the app stops measuring the critical chain.
+ *
+ * Measuring is a simulation per probe, and the simulation is itself quadratic in
+ * the tasks, so the cost climbs faster than the plan does: 7 ms at 20 tasks,
+ * 18 ms at 30, 41 ms at 40, 162 ms at 60. Forty keeps the price of an edit
+ * inside a couple of frames; past it the app says it is not measuring rather
+ * than letting every edit wait for an answer nobody asked for.
+ */
+export const CRITICAL_CHAIN_LIMIT = 40;
+
+/**
+ * Whether the plan is small enough to measure at all.
+ *
+ * Asked by the view too, which has to say so where the figures would have been
+ * instead of leaving them blank.
+ */
+export function isChainMeasurable(solved: SolvedProject): boolean {
+  return solved.engineTasks.length <= CRITICAL_CHAIN_LIMIT;
+}
+
+export interface TaskSlack {
+  /**
+   * Working days the task can start later before the plan's end moves.
+   *
+   * Null when only criticality was measured: the figure costs a search per
+   * task, the flag does not.
+   */
+  floatDays: number | null;
+  /** The plan's end moves if this task starts later, or if it grows. */
+  isCritical: boolean;
+  /** Whose split is the reason, when contention is the reason. */
+  contendedResourceId?: string;
+}
+
+/** Slack with the figure actually measured, which is what a caller can display. */
+export type MeasuredSlack = TaskSlack & { floatDays: number };
+
+/** What the engine answers with: criticality always, the figure only from a search. */
+type Measured = TaskCriticality & { floatMinutes?: number };
+
+export interface SlackOptions {
+  /** Measure the float figure too, not only criticality. Costs a search per leaf. */
+  search?: boolean;
+  /** Rows to measure, expanded to the leaves under them. Every row by default. */
+  ids?: string[];
+}
+
+/**
+ * How much room the rows have, measured against the schedule on screen.
+ *
+ * The engine only knows the leaves, so what it answers is spread back over the
+ * rows here. A summary is never scheduled and has no float of its own: what the
+ * branch can afford is what its tightest leaf can afford, and it is critical as
+ * soon as any leaf below it is. Contention is only named when every critical
+ * leaf under a row shares the same person — otherwise the reason would explain
+ * one leaf and hide the others.
+ *
+ * No cost ceiling of its own: the price is a re-solve per probe, and only the
+ * caller knows whether it is standing in front of a frame budget. `search` is
+ * the expensive half.
+ */
+export function slackByRow(
+  project: Project,
+  solved: SolvedProject,
+  options: SlackOptions = {},
+): Map<string, TaskSlack> {
+  const wanted = options.ids ?? project.tasks.map((task) => task.id);
+  const measure = options.search ? totalFloat : criticalTasks;
+  // The axis `solve` used, or the probes would not be comparable to the
+  // schedule they are measured against.
+  const floatOptions: FloatOptions = {
+    origin: solved.calendar.origin,
+    calendar: project.calendar,
+    ids: new Set(wanted.flatMap((id) => solved.hierarchy.leavesUnder(id))),
+  };
+  const measured: Map<string, Measured> = measure(
+    solved.engineTasks,
+    project.resources,
+    solved.schedule,
+    floatOptions,
+  );
+
+  const rows = new Map<string, TaskSlack>();
+  for (const id of wanted) {
+    const under = solved.hierarchy
+      .leavesUnder(id)
+      .map((leaf) => measured.get(leaf))
+      .filter((entry): entry is Measured => entry !== undefined);
+    if (under.length === 0) continue;
+
+    const critical = under.filter((entry) => entry.isCritical);
+    const reasons = new Set(critical.map((entry) => entry.contendedResourceId));
+    const floats = under.map((entry) => entry.floatMinutes);
+    rows.set(id, {
+      floatDays: floats.every((minutes): minutes is number => minutes !== undefined)
+        ? solved.calendar.minutesToDays(Math.min(...floats))
+        : null,
+      isCritical: critical.length > 0,
+      // A single reason across the critical leaves, or none: a set of one
+      // holding `undefined` is a leaf that contends with nobody.
+      contendedResourceId: reasons.size === 1 ? [...reasons][0] : undefined,
+    });
+  }
+  return rows;
 }
 
 /**

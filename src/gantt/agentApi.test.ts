@@ -21,6 +21,7 @@ const details = (overrides: Partial<TaskDetails> = {}): TaskDetails => ({
   elapsedDays: 2,
   effortDays: 2,
   shared: false,
+  contended: false,
   ...overrides,
 });
 

@@ -11,6 +11,9 @@
   --danger: #8a3a17;
   --danger-line: #e8b4a0;
   --danger-soft: #fdf4f1;
+  /* Its own colour rather than --danger: time off is already shaded in that
+     brick red, and "the end date depends on this" is not "nobody works here". */
+  --critical: #b3253c;
 
   --ink: #1f2430;
   --ink-muted: #6b7280;

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { CRITICAL_CHAIN_LIMIT } from './project';
 
 /**
  * The person both tasks in the diagram are assigned to.
@@ -255,6 +256,30 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
         <p>
           Un&apos;attività a cui non è assegnato nessuno avanza sempre al 100%: la sua durata è il
           suo effort, e nessun altro può rallentarla.
+        </p>
+      </section>
+
+      <section className="help__section">
+        <h3>Il bordo rosso è la catena critica</h3>
+        <p>
+          Le attività cerchiate di <strong>rosso</strong> sono quelle da cui dipende la data di
+          fine: farle partire più tardi, o dargli un giorno di lavoro in più, la sposta. Nel
+          dettaglio della riga il <strong>margine</strong> dice di quanti giorni un&apos;attività
+          può slittare prima di spostarla.
+        </p>
+        <p>
+          Non è il percorso critico dei manuali, che guarda solo le dipendenze. Qui una persona
+          divisa fra due attività le allunga entrambe, quindi un&apos;attività può essere critica
+          senza dipendere da niente, solo perché condivide una risorsa con la catena — e il
+          dettaglio dice quale dei due casi è. Una <strong>contesa</strong> si scioglie spostando o
+          riassegnando un&apos;altra attività di quella persona; una criticità di sequenza si
+          scioglie accorciando la catena.
+        </p>
+        <p>
+          Le due cose convivono: chi è occupato dal primo giorno lascia margine su ogni singola
+          attività — spostarne una la fa recuperare da sola — ma un giorno di lavoro in più su
+          qualunque di esse sposta la fine. Oltre {CRITICAL_CHAIN_LIMIT} attività il calcolo si
+          spegne e lo dice: misurarlo costa un ricalcolo del piano per ogni attività.
         </p>
       </section>
 

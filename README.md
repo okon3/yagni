@@ -54,6 +54,59 @@ construction: the simulation loop contains no calendar logic at all.
   whole subtree, so moving a branch recolours it. Any colour goes: the details
   dialog offers the browser's own picker, with the palette beside it as shortcuts.
 
+### Float, and why the critical path is not a path
+
+The first question anybody asks a plan is which tasks the end date hangs on. The
+textbook answer — a backward pass over the dependency graph — is **wrong here,
+not approximate**: a resource's capacity is divided between whatever overlaps on
+it, so a task can set the end date with no dependency on it at all, purely
+because it shares a person with something that does. A dependency-only float
+calls that task free, and it is precisely the task to move.
+
+So float is **measured, not derived**. `src/scheduler/float.ts` perturbs the plan
+and re-solves it, one task at a time, asking two questions:
+
+- **later** — push the task's start out by a working day. The largest number of
+  days that leaves the end where it was is its **float**.
+- **longer** — add a day of effort. If the end moves, the task's *size* sets the
+  date, and it is **critical** however freely it may slide.
+
+The probes start from where a task actually landed, not from the start it
+declared: one held back by a predecessor has already spent that difference.
+
+**A task can be critical and still have float**, and that is not a contradiction
+worth papering over. Somebody booked solid from the first day lets any one of
+their tasks start later and catch up alone — so each has float — while one more
+day of work on any of them pushes the end out. Both facts are true, and together
+they say what to do: the task can be moved, it cannot be grown. Which is why the
+figure and the flag are reported separately instead of being collapsed into "zero
+float means critical".
+
+The **reason** is `isContended`, the same notion the allocation profile draws:
+a critical task that had to share its person is one to take off that person, one
+that did not is one to cut out of its chain. Not a second definition of sharing
+that could disagree with the first.
+
+A summary is never scheduled, so it has no float of its own: it takes the
+tightest float under it, is critical as soon as any leaf is, and names a
+contention only when every critical leaf under it shares the same person —
+otherwise the reason would explain one leaf and hide the others.
+
+The doubling search assumes the end date is monotone in the delay. It is, except
+where a delay *unshares* a resource and brings the end in rather than out. Every
+figure reported is a delay that was actually simulated and found free, so such a
+plan understates the float rather than promising room that is not there.
+
+**The cost is honest and bounded.** Each probe is a full re-solve, and the
+simulation is itself quadratic in the tasks: measuring criticality across a plan
+costs 7 ms at 20 tasks, 41 ms at 40 and 162 ms at 60, and the exact figures cost
+a search per task on top. So the marking is measured on every edit only up to
+**forty tasks** — an edit costs about 40 ms there, against 13 ms with the marking
+off — and past that the app says it is not measuring, in the status bar and where
+the figure would have been. It never quietly stops. The figure itself is measured
+one row at a time, when its details are opened, because that is a click rather
+than a keystroke.
+
 ### Time off and changing availability
 
 **Company shutdowns** (`calendar.holidays`) apply to everyone, so they leave the
@@ -167,8 +220,8 @@ the plan through the same path and keeps the window the user was looking
 through, closed branches included.
 
 The grid carries the **inputs** and nothing else: name, resource, effort and start.
-Duration and end date are derived, so they live in the per-row details dialog behind
-the button at the end of the row, together with progress and colour — a computed
+Duration, end date and float are derived, so they live in the per-row details dialog
+behind the button at the end of the row, together with progress and colour — a computed
 figure in an editable-looking cell only invites an edit the engine discards. That
 dialog is also where a task is deleted — as is <kbd>Del</kbd> on the selected row —
 which takes its subtree with it and clears any dependency on the tasks that go.
@@ -195,6 +248,16 @@ someone injects a single rule that dims whatever does not carry theirs — so ch
 who is highlighted costs no redraw. Which matters twice over: dhtmlx rebuilds its
 rows on every redraw and would drop a class set by hand, and redrawing on hover
 would replace the very node the pointer is on.
+
+The critical chain is an **outline** around the bar, never a fill. The bar's
+colour belongs to the user and dhtmlx sets it inline through
+`--dhx-gantt-task-background`, so a background rule would silently beat it and a
+task would lose its own colour for being critical. It is on by default — which
+tasks the end date hangs on is the first thing anybody asks of a plan, and a ring
+costs the bar nothing it was already showing — and the toggle sits with the other
+view switches at the bottom, next to Comprimi and Espandi. Links are left alone:
+a dependency between two critical tasks need not be the reason either of them is
+critical, and drawing it as the chain would claim more than was measured.
 
 Task names sit **beside** their bar, never inside it: the inside belongs to the
 allocation profile, and a one-day bar has no room for a name anyway.
@@ -248,7 +311,9 @@ The one thing this Gantt shows that an ordinary one does not is a bar whose fill
 rises and falls, and nobody guesses what that means on their own. A help dialog says
 it, reachable from the `?` in the header and from the empty state — the two moments
 someone goes looking: in front of a plan they cannot read, and in front of nothing
-at all.
+at all. It also has to say why a task can be ringed as critical and still show a
+margin, since that reads as a contradiction until one knows the person underneath
+is the constraint rather than the task.
 
 Its diagram is **drawn rather than screenshotted**. A screenshot would be a binary
 in the repository that goes stale on the first change of a colour or a radius, and
@@ -336,6 +401,7 @@ yagni.help();                                    // the whole surface, as Markdo
 const before = yagni.toText();                   // a snapshot of its own
 const id = yagni.addTask({ name: 'Analisi', nominalDays: 5, resourceId: 'r1' });
 yagni.getPlan().tasks;                           // tree order, dates as text
+yagni.getCriticalChain();                        // float per row, the expensive call
 yagni.loadText(before);                          // changed my mind
 ```
 

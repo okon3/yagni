@@ -798,6 +798,12 @@
   color: var(--ink-muted);
 }
 
+/* The colour of the ring around a critical bar, so the figure here and the mark
+   on the chart read as one statement. */
+.taskinfo__critical {
+  color: var(--critical);
+}
+
 .taskinfo__colors {
   display: flex;
   align-items: center;
@@ -901,6 +907,46 @@
 .statusbar__zoom button {
   min-width: 26px;
   background: var(--surface-sunken);
+}
+
+/* A toggle, so it has to show its state: the dot is the same colour as the ring
+   the chart draws around a critical bar. */
+.statusbar__critical::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border: 1.5px solid var(--critical);
+  border-radius: 50%;
+  vertical-align: baseline;
+}
+
+.statusbar__critical--on {
+  color: var(--ink) !important;
+  background: var(--surface-hover);
+}
+
+.statusbar__critical--on::before {
+  background: var(--critical);
+}
+
+.statusbar__critical:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.statusbar__critical:disabled::before {
+  border-color: var(--line-strong);
+}
+
+.statusbar__critical:disabled:hover {
+  background: none;
+  color: var(--ink-muted);
+}
+
+.statusbar__off {
+  font-style: italic;
 }
 
 /* Set apart from the rest of the row: nothing else in a dialog is irreversible,

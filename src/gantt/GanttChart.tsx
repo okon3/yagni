@@ -2,16 +2,20 @@ import { useCallback, useEffect, useImperativeHandle, useRef, type Ref } from 'r
 import { gantt, type ZoomLevel } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { isShared, renderSegments } from './segmentBar';
-import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges } from '../scheduler';
+import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges, isContended } from '../scheduler';
 import type { CalendarSpec, DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
 import { DEFAULT_BAR_COLOR, avatarColorOf, initialsOf } from './colors';
 import {
   effectiveColorOf,
+  isChainMeasurable,
   rejectionForLink,
+  slackByRow,
   solve,
   subtreeOf,
+  type MeasuredSlack,
   type Project,
   type SolvedProject,
+  type TaskSlack,
 } from './project';
 import { keystrokeIsCaptured } from './shortcuts';
 import type { TaskDetails, TaskPatch } from './TaskDialog';
@@ -229,6 +233,12 @@ export interface GanttHandle {
   loadProject(project: Project, options?: LoadOptions): void;
   /** Null when the row has meanwhile been deleted. */
   getTaskDetails(id: string): TaskDetails | null;
+  /**
+   * How much room the row has, measured on the spot: the figure costs a search
+   * that a whole plan cannot afford on every edit. Null when the plan is past
+   * the limit for measuring at all.
+   */
+  getTaskSlack(id: string): MeasuredSlack | null;
   updateTask(id: string, patch: TaskPatch): void;
   /** Takes the task's subtree with it, and clears dependencies on any of them. */
   deleteTask(id: string): void;
@@ -257,7 +267,11 @@ export interface GanttHandle {
   scrollToToday(): void;
 }
 
-function toGanttData(project: Project, solved: SolvedProject) {
+function toGanttData(
+  project: Project,
+  solved: SolvedProject,
+  chain: Map<string, TaskSlack> | null,
+) {
   const formatDate = gantt.date.date_to_str(gantt.config.date_format);
   return {
     data: project.tasks.map((task) => {
@@ -285,6 +299,7 @@ function toGanttData(project: Project, solved: SolvedProject) {
         // pale on a shared task: there the colour belongs to the profile inside.
         color: barBackground(inherited, scheduled, summary),
         shared: scheduled ? isShared(scheduled) : false,
+        critical: chain?.get(task.id)?.isCritical ?? false,
         // Rendered on every row whether or not anyone is highlighted: the
         // highlight is then one stylesheet rule away, with no redraw.
         resource_classes: resourceClassesOf(solved, task.id),
@@ -425,6 +440,22 @@ function daysOf(ranges: DayRange[] | undefined): number[] {
 const daysBetween = (from: number, to: number): number[] =>
   Array.from({ length: Math.max(to - from + 1, 0) }, (_, offset) => from + offset);
 
+/**
+ * Which rows to outline, or null when nothing is outlined.
+ *
+ * Null covers both reasons — the marking is off, or the plan is past the size
+ * the app will measure — because the chart draws the same thing either way. The
+ * status bar is where the difference is said.
+ */
+function chainToMark(
+  project: Project,
+  solved: SolvedProject,
+  marking: boolean,
+): Map<string, TaskSlack> | null {
+  if (!marking || !isChainMeasurable(solved)) return null;
+  return slackByRow(project, solved);
+}
+
 function nextTaskId(project: Project): string {
   const highest = project.tasks.reduce((max, task) => {
     const numeric = Number(task.id);
@@ -436,6 +467,7 @@ function nextTaskId(project: Project): string {
 export function GanttChart({
   project,
   highlighted,
+  markCritical = true,
   onChange,
   onOpenTask,
   onDeleteTask,
@@ -446,6 +478,8 @@ export function GanttChart({
   project: Project;
   /** Whose work stays at full opacity while the rest of the plan fades. */
   highlighted?: string | null;
+  /** Outlines the tasks the plan's end depends on. Costs a measurement per edit. */
+  markCritical?: boolean;
   onChange?: () => void;
   onOpenTask?: (id: string) => void;
   /** Asked, not done: the confirmation belongs with the rest of the dialogs. */
@@ -466,6 +500,9 @@ export function GanttChart({
   const projectRef = useRef(project);
   const solvedRef = useRef<SolvedProject>(solve(project));
   const applyingRef = useRef(false);
+  // Also what the marking effect below compares against, so mounting does not
+  // re-apply what the first parse already drew.
+  const markCriticalRef = useRef(markCritical);
 
   useEffect(() => {
     openTaskRef.current = onOpenTask;
@@ -480,6 +517,9 @@ export function GanttChart({
       applyingRef.current = true;
       const solved = solve(projectRef.current);
       solvedRef.current = solved;
+      // Measured after the schedule and from it, so the two can never disagree
+      // about the plan they describe.
+      const chain = chainToMark(projectRef.current, solved, markCriticalRef.current);
       for (const task of projectRef.current.tasks) {
         const scheduled = solved.schedule.tasks.get(task.id);
         if (!scheduled || !gantt.isTaskExists(task.id)) continue;
@@ -494,6 +534,7 @@ export function GanttChart({
         ganttTask.bar_color = inherited ?? '';
         ganttTask.color = barBackground(inherited, scheduled, summary);
         ganttTask.shared = isShared(scheduled);
+        ganttTask.critical = chain?.get(task.id)?.isCritical ?? false;
         ganttTask.resource_classes = resourceClassesOf(solved, task.id);
       }
       // refreshData redraws from the mutated task objects without firing the
@@ -521,8 +562,9 @@ export function GanttChart({
     applyingRef.current = true;
     projectRef.current = next;
     solvedRef.current = solve(next);
+    const chain = chainToMark(next, solvedRef.current, markCriticalRef.current);
     gantt.clearAll();
-    const data = toGanttData(next, solvedRef.current);
+    const data = toGanttData(next, solvedRef.current, chain);
     // Written into the data rather than onto the tasks afterwards, which would
     // need a second render of the whole chart to show.
     for (const task of data.data) {
@@ -565,7 +607,17 @@ export function GanttChart({
           elapsedDays: solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes),
           effortDays: solved.calendar.minutesToDays(scheduled.effortMinutes),
           shared: isShared(scheduled),
+          contended: isContended(scheduled),
         };
+      },
+      getTaskSlack: (id) => {
+        const solved = solvedRef.current;
+        if (!isChainMeasurable(solved)) return null;
+        const slack = slackByRow(projectRef.current, solved, { search: true, ids: [id] }).get(id);
+        // The figure was asked for, so its absence means the row is gone rather
+        // than unmeasured — and either way there is nothing to show.
+        if (!slack || slack.floatDays === null) return null;
+        return { ...slack, floatDays: slack.floatDays };
       },
       deleteTask: (id) => {
         // gantt.deleteTask fires onAfterTaskDelete, where the model, the
@@ -808,6 +860,9 @@ export function GanttChart({
       const classes = [String(task.resource_classes ?? '')];
       if (task.is_summary) classes.push('gantt-bar--summary');
       else if (task.shared) classes.push('gantt-bar--shared');
+      // An outline, so it composes with whatever colour the bar carries: the
+      // colour belongs to the user, and dhtmlx sets it inline anyway.
+      if (task.critical) classes.push('gantt-bar--critical');
       return classes.filter(Boolean).join(' ');
     };
     // A link keeps both ends' people: what gates someone's work, and what their
@@ -1289,6 +1344,17 @@ export function GanttChart({
       gantt.clearAll();
     };
   }, [applySolution, loadProject]);
+
+  // Declared after the effect that inits the chart, so the first run has rows to
+  // write to — and it compares against the ref rather than firing on mount,
+  // since the first parse already drew whatever this asks for. Going through
+  // applySolution keeps one path onto the rows; `false` because turning the
+  // marking on is a view switch and must not mark the file dirty.
+  useEffect(() => {
+    if (markCriticalRef.current === markCritical) return;
+    markCriticalRef.current = markCritical;
+    applySolution(false);
+  }, [applySolution, markCritical]);
 
   // A stylesheet rule rather than a class written onto the rows: dhtmlx rebuilds
   // them on every redraw and would drop it, and redrawing on hover would replace

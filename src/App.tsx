@@ -13,7 +13,7 @@ import { StatusBar } from './gantt/StatusBar';
 import { Toolbar } from './gantt/Toolbar';
 import { PROJECT_EXTENSION, downloadText, pickTextFile } from './gantt/files';
 import { DEFAULT_CALENDAR } from './scheduler';
-import { emptyProject } from './gantt/project';
+import { emptyProject, isChainMeasurable, type MeasuredSlack } from './gantt/project';
 import { ProjectFileError, deserializeProject, serializeProject } from './gantt/serialization';
 import {
   historyOf,
@@ -58,6 +58,10 @@ export default function App() {
   const [taskCount, setTaskCount] = useState(initialProject.tasks.length);
   const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(INITIAL_SCALE_LABEL);
+  // On by default: which tasks the end date hangs on is the first thing anybody
+  // asks of a plan, and an outline costs the bars nothing they were showing.
+  const [markCritical, setMarkCritical] = useState(true);
+  const [canMarkCritical, setCanMarkCritical] = useState(true);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [people, setPeople] = useState<Resource[]>(initialProject.resources);
@@ -75,6 +79,8 @@ export default function App() {
   // Snapshotted on open, like the other dialogs: the chart owns the live task.
   const [openTask, setOpenTask] = useState<{
     details: TaskDetails;
+    /** Measured when the dialog opens, since the figure costs a search. */
+    slack: MeasuredSlack | null;
     resources: Resource[];
   } | null>(null);
   const [calendarSnapshot, setCalendarSnapshot] = useState<CalendarSpec>(DEFAULT_CALENDAR);
@@ -96,6 +102,8 @@ export default function App() {
   const syncFromChart = useCallback(() => {
     const project = chart.current?.getProject();
     setTaskCount(project?.tasks.length ?? 0);
+    const solved = chart.current?.getSolved();
+    setCanMarkCritical(!solved || isChainMeasurable(solved));
     const resources = project?.resources ?? [];
     setPeople([...resources]);
     setPinnedResource((pinned) =>
@@ -264,7 +272,11 @@ export default function App() {
     const handle = chart.current;
     const details = handle?.getTaskDetails(id);
     if (!handle || !details) return;
-    setOpenTask({ details, resources: handle.getResources() });
+    setOpenTask({
+      details,
+      slack: handle.getTaskSlack(id),
+      resources: handle.getResources(),
+    });
   }, []);
 
   const saveTaskDetails = useCallback(
@@ -541,6 +553,7 @@ export default function App() {
           ref={chart}
           project={initialProject}
           highlighted={hoveredResource ?? pinnedResource}
+          markCritical={markCritical}
           onChange={() => {
             syncFromChart();
             registerChange();
@@ -563,8 +576,11 @@ export default function App() {
       <StatusBar
         taskCount={taskCount}
         scale={scale}
+        markCritical={markCritical}
+        canMarkCritical={canMarkCritical}
         onCollapseAll={() => chart.current?.collapseAll()}
         onExpandAll={() => chart.current?.expandAll()}
+        onToggleCritical={() => setMarkCritical((on) => !on)}
         onToday={() => chart.current?.scrollToToday()}
         onZoomIn={() => chart.current?.zoomIn()}
         onZoomOut={() => chart.current?.zoomOut()}
@@ -603,6 +619,7 @@ export default function App() {
       {openTask && (
         <TaskDialog
           task={openTask.details}
+          slack={openTask.slack}
           resources={openTask.resources}
           colors={COLOR_OPTIONS}
           onCancel={() => setOpenTask(null)}

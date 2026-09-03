@@ -7,6 +7,7 @@ import {
   emptyProject,
   rejectionForLink,
   resourcesByTask,
+  slackByRow,
   solve,
   subtreeOf,
   type Project,
@@ -124,6 +125,66 @@ describe('rollup', () => {
     );
     expect(days(solved.schedule.tasks.get('c')!.elapsedWorkingMinutes)).toBe(2);
     expect(solved.schedule.tasks.get('c')!.segments[0].rate).toBe(1);
+  });
+});
+
+describe('slack by row', () => {
+  const branch = project([
+    { id: 'group', name: 'Gruppo', nominalDays: 0, start: at(0) },
+    { id: 'tight', name: 'Stretta', nominalDays: 5, start: at(0), parentId: 'group', resourceId: 'alice' },
+    { id: 'loose', name: 'Larga', nominalDays: 1, start: at(0), parentId: 'group', resourceId: 'bob' },
+  ]);
+
+  it('gives a summary the tightest float under it', () => {
+    const solved = solve(branch);
+    const rows = slackByRow(branch, solved, { search: true });
+    expect(rows.get('tight')!.floatDays).toBe(0);
+    expect(rows.get('loose')!.floatDays).toBe(4);
+    // Delaying the branch is delaying its children, and one of them cannot move.
+    expect(rows.get('group')!.floatDays).toBe(0);
+    expect(rows.get('group')!.isCritical).toBe(true);
+  });
+
+  it('is critical as soon as one leaf is', () => {
+    const solved = solve(branch);
+    const rows = slackByRow(branch, solved);
+    expect(rows.get('loose')!.isCritical).toBe(false);
+    expect(rows.get('group')!.isCritical).toBe(true);
+  });
+
+  it('leaves the figure out when only criticality was measured', () => {
+    const solved = solve(branch);
+    expect(slackByRow(branch, solved).get('tight')!.floatDays).toBeNull();
+  });
+
+  it('names the contention on a branch only when every critical leaf shares it', () => {
+    // Both leaves are on Alice and split her, so the branch is critical for one
+    // reason and can say which.
+    const shared = project([
+      { id: 'group', name: 'Gruppo', nominalDays: 0, start: at(0) },
+      { id: 'a', name: 'A', nominalDays: 2, start: at(0), parentId: 'group', resourceId: 'alice' },
+      { id: 'b', name: 'B', nominalDays: 2, start: at(0), parentId: 'group', resourceId: 'alice' },
+    ]);
+    const rows = slackByRow(shared, solve(shared), { search: true });
+    expect(rows.get('group')!.contendedResourceId).toBe('alice');
+
+    // Adding a critical leaf that contends with nobody leaves the branch with
+    // two reasons, and it names neither.
+    const mixed = project([
+      ...shared.tasks,
+      { id: 'c', name: 'C', nominalDays: 6, start: at(0), parentId: 'group', resourceId: 'bob' },
+    ]);
+    const mixedRows = slackByRow(mixed, solve(mixed), { search: true });
+    expect(mixedRows.get('c')!.isCritical).toBe(true);
+    expect(mixedRows.get('c')!.contendedResourceId).toBeUndefined();
+    expect(mixedRows.get('group')!.contendedResourceId).toBeUndefined();
+  });
+
+  it('measures only the rows asked for', () => {
+    const solved = solve(branch);
+    const rows = slackByRow(branch, solved, { search: true, ids: ['loose'] });
+    expect([...rows.keys()]).toEqual(['loose']);
+    expect(rows.get('loose')!.floatDays).toBe(4);
   });
 });
 

@@ -42,6 +42,7 @@ yagni.loadText(before); // changed my mind
 | --- | --- |
 | `getPlan()` | `{ projectStart, projectEnd, tasks[] }` — the solved schedule |
 | `getTask(id)` | one task in full, derived figures included |
+| `getCriticalChain()` | float and criticality per row. **Expensive** — see below |
 | `getResources()` | `Resource[]`, `availability` as a fraction `0..1` |
 | `getCalendar()` | `{ workingDays, windows, holidays? }` |
 | `toText()` | the project as `.gantt`, byte for byte what Save downloads |
@@ -76,6 +77,41 @@ A `getPlan()` task:
 Allocation segments are deliberately absent: they exist to draw a bar, and
 `shared` answers the same question. Groups are not a concept here — "one
 person's tasks" or "this subtree" is a filter over the flat list.
+
+## Why the end date is what it is
+
+```json
+{ "id": "t3", "isCritical": true, "floatDays": 1, "contendedOn": "r2" }
+```
+
+`getCriticalChain()` returns one of these per row, in `getPlan()`'s order.
+
+- `floatDays` — working days the task can **start later** before the plan
+  finishes later. Measured, not derived: the start is pushed out a day at a time
+  and the plan re-solved.
+- `isCritical` — the plan's end moves when the task starts a day later **or when
+  a day of work is added to it**. Both are asked, and they differ: somebody
+  booked solid from day one lets any one of their tasks start later and catch up
+  alone, so it has float, while a day more work on any of them pushes the end
+  out. Such a task is critical *and* has float — it can be moved, not grown.
+- `contendedOn` — the resource whose capacity this task had to share, when
+  sharing is what makes it critical, else null. That is the difference between
+  *take it off Marco* and *cut the chain it sits on*. Same notion as `shared` in
+  `getPlan()`.
+- A summary is never scheduled: it takes the tightest float under it, is
+  critical as soon as any leaf is, and names a contention only when every
+  critical leaf under it shares the same person.
+
+**This is the one expensive call.** Every probe is a re-solve of the whole plan,
+so the cost is a simulation per task plus a doubling search per task with float:
+milliseconds at ten tasks, a few hundred at fifty, seconds past a hundred. It is
+deliberately not folded into `getPlan()`, which is read after every write. The
+chart's own marking stops above forty tasks; this call does not — a script has
+no frame to miss.
+
+Classic CPM does not apply here and its answer would be wrong, not approximate:
+a dependency-only backward pass calls a task that merely shares a person free,
+which is exactly the task a planner has to move.
 
 ## Writing — tasks
 

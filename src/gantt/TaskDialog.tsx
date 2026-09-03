@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Resource } from '../scheduler';
+import { CRITICAL_CHAIN_LIMIT, type MeasuredSlack } from './project';
 
 /** Everything the dialog shows, resolved by the chart: inputs and derived alike. */
 export interface TaskDetails {
@@ -20,8 +21,10 @@ export interface TaskDetails {
   elapsedDays: number;
   /** Effort rolled up from the leaves; equals `nominalDays` on a leaf. */
   effortDays: number;
-  /** True when the resource was split with another task, stretching this one. */
+  /** Ran below full rate, for whatever reason: the duration then exceeds the effort. */
   shared: boolean;
+  /** Ran below full rate *because* the resource was split with another task. */
+  contended: boolean;
 }
 
 export interface TaskPatch {
@@ -46,6 +49,7 @@ const toDayInput = (date: Date) =>
 /** Mounted only while open, so the draft initialises from props without an effect. */
 export function TaskDialog({
   task,
+  slack,
   resources,
   colors,
   onCancel,
@@ -53,6 +57,8 @@ export function TaskDialog({
   onDelete,
 }: {
   task: TaskDetails;
+  /** Null when the plan is past the size the app will measure. */
+  slack: MeasuredSlack | null;
   resources: Resource[];
   colors: { key: string; label: string }[];
   onCancel(): void;
@@ -108,6 +114,9 @@ export function TaskDialog({
   };
 
   const fromChildren = <span className="taskinfo__derived">dalle sottoattività</span>;
+  const contendedWith = resources.find(
+    (resource) => resource.id === slack?.contendedResourceId,
+  )?.name;
 
   return (
     <dialog ref={dialog} className="resources taskinfo" onCancel={onCancel} onClose={onCancel}>
@@ -233,10 +242,52 @@ export function TaskDialog({
           <dt>Effort totale</dt>
           <dd>{task.effortDays.toFixed(2)} g</dd>
         </div>
+        <div>
+          <dt>Margine</dt>
+          <dd>
+            {slack === null ? (
+              <span className="taskinfo__derived">—</span>
+            ) : slack.isCritical ? (
+              <span className="taskinfo__critical">Critica</span>
+            ) : (
+              `${slack.floatDays} g`
+            )}
+          </dd>
+        </div>
       </dl>
-      {task.shared && (
+      {/* Two ways to run below full rate, and they call for different moves:
+          take a task off the person, or change the person. */}
+      {task.contended ? (
         <p className="taskinfo__note">
           La risorsa è divisa con altre attività in corso, quindi la durata supera l&apos;effort.
+        </p>
+      ) : (
+        task.shared && (
+          <p className="taskinfo__note">
+            La risorsa non lavora a tempo pieno in questo periodo, quindi la durata supera
+            l&apos;effort.
+          </p>
+        )
+      )}
+      {slack === null ? (
+        <p className="taskinfo__note">
+          Oltre {CRITICAL_CHAIN_LIMIT} attività il margine non viene calcolato: misurarlo costa un
+          ricalcolo del piano per ogni attività.
+        </p>
+      ) : slack.isCritical ? (
+        <p className="taskinfo__note">
+          <strong>
+            Critica{contendedWith ? ` — contesa su ${contendedWith}` : ''}.
+          </strong>{' '}
+          {slack.floatDays
+            ? `Può iniziare fino a ${slack.floatDays} g più tardi, ma un giorno di lavoro in più sposta la fine del progetto.`
+            : 'Ogni ritardo qui sposta la fine del progetto.'}
+          {contendedWith &&
+            ` Spostare o riassegnare un'altra attività di ${contendedWith} la libera.`}
+        </p>
+      ) : (
+        <p className="taskinfo__note">
+          Può slittare fino a {slack.floatDays} g senza spostare la fine del progetto.
         </p>
       )}
 

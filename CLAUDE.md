@@ -174,6 +174,11 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   the rule.
 - **When verifying anything visual, read `getComputedStyle`** — not the attribute,
   not the data field. Both of the bugs above were invisible from the code.
+- **Only the bars in view exist in the DOM.** Smart rendering leaves a bar out of
+  `$bars_area` until its row and its dates are on screen, so counting
+  `.gantt_task_line` nodes to check a class of ours undercounts in silence — the
+  mark is on the task, the element is not there to carry it. Read the field off
+  the task data, or `showTask(id)` first, then `getComputedStyle`.
 - **Nothing that `gantt.init()` depends on may change identity per render.** The
   init effect depends on `applySolution`, so a parent callback baked into it
   (`onChange`) tore the chart down and rebuilt it on every state change in `App`
