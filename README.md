@@ -133,6 +133,12 @@ fell outside, with no scrollbar to suggest anything was missing. A fifth level
 with quarter columns carries a multi-year plan; quarters are a custom scale unit,
 since dhtmlx ships none.
 
+The scale changes with <kbd>Ctrl</kbd> and the wheel as well as from the status
+bar — a trackpad pinch arrives as the same gesture, so it works too — and one
+flick is one step however many events it fires. The library offers this and binds
+it to `mousewheel`, which this browser no longer sends, so the app listens for
+`wheel` itself and stops the browser zooming the page instead.
+
 Not drawing what falls outside the range is also why **the timeline is widened
 whenever the plan no longer fits it**. dhtmlx works out the range when it renders,
 and Adatta pins it in the configuration, where it then outranks the data — so the

@@ -194,6 +194,9 @@ const SCALE_LABELS: Record<string, string> = {
 
 export const INITIAL_SCALE_LABEL = SCALE_LABELS.week;
 
+/** How long one ctrl+wheel gesture holds the scale still after a step. */
+const WHEEL_ZOOM_COOLDOWN = 200;
+
 /**
  * What a new row may carry. Everything is optional and falls back to the
  * defaults the toolbar's button uses.
@@ -833,7 +836,10 @@ export function GanttChart({
 
     // Before the zoom levels, two of which are declared in quarters.
     registerQuarterUnit();
-    gantt.ext.zoom.init({ levels: ZOOM_LEVELS, activeLevelIndex: 1, useKey: 'ctrlKey' });
+    // No useKey: the extension's own ctrl+wheel binds "mousewheel", which this
+    // browser no longer fires at all, and it would bind "wheel" in Firefox —
+    // where it would then zoom twice per notch alongside the listener below.
+    gantt.ext.zoom.init({ levels: ZOOM_LEVELS, activeLevelIndex: 1 });
     // Zooming also happens by ctrl+wheel, so the status bar cannot rely on its
     // own buttons to know which scale is showing.
     const zoomHandler = gantt.ext.zoom.attachEvent('onAfterZoom', (_level, config) => {
@@ -1224,6 +1230,31 @@ export function GanttChart({
 
     loadProject(projectRef.current);
 
+    /**
+     * Ctrl and the wheel change the scale, as they do in every other chart.
+     *
+     * `passive: false` and `preventDefault` are both load-bearing: without them
+     * the browser zooms the page instead, which is the one gesture a user is
+     * sure to try. A trackpad pinch arrives here as the same event with
+     * `ctrlKey` set, so pinching zooms the timeline for free.
+     *
+     * One step per gesture rather than per event: a flick of a wheel and a
+     * pinch both fire in bursts, and the levels are few enough that a burst
+     * would cross all of them and land on quarters.
+     */
+    let lastZoomStep = 0;
+    const zoomOnWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      if (event.deltaY === 0) return;
+      const now = event.timeStamp || Date.now();
+      if (now - lastZoomStep < WHEEL_ZOOM_COOLDOWN) return;
+      lastZoomStep = now;
+      if (event.deltaY < 0) gantt.ext.zoom.zoomIn();
+      else gantt.ext.zoom.zoomOut();
+    };
+    container.addEventListener('wheel', zoomOnWheel, { passive: false });
+
     // dhtmlx measures its container once at init. It listens for window resize,
     // but not for the container changing size on its own — a split pane, a
     // devtools panel opening, or the error banner appearing above the chart.
@@ -1237,6 +1268,7 @@ export function GanttChart({
       bandsBelow.remove();
       bandsAbove.remove();
       gantt.ext.zoom.detachEvent(zoomHandler);
+      container.removeEventListener('wheel', zoomOnWheel);
       container.removeEventListener('dblclick', openEditor, true);
       container.removeEventListener('click', selectRow);
       document.removeEventListener('keydown', deleteSelected);

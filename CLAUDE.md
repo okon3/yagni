@@ -135,6 +135,14 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   coarsest level must therefore be coarse enough for the longest plan expected;
   a column per month tops out around ten months. Quarters are a custom unit:
   dhtmlx builds one from `<unit>_start` and `add_<unit>`, and ships neither.
+- **The zoom extension's `useKey` is dead on arrival.** `zoom.init({ useKey:
+  'ctrlKey' })` binds `mousewheel` on anything that is not Firefox, and Chromium
+  no longer fires that event at all — a probe on `document` for both names sees
+  only `wheel`. It compiles, it configures, and nothing happens. The app binds
+  `wheel` itself, with `passive: false` so `preventDefault` can stop the browser
+  zooming the page, and `useKey` stays out of the config or Firefox would zoom
+  twice per notch. A wheel flick and a trackpad pinch both arrive as bursts, so
+  the handler takes one step per gesture, not per event.
 - **`zoomToFit` has to run after a load, not inside it.** Called from within
   `loadProject`, between the `parse` and the end of the load, it picks the right
   scale and draws the right range — and leaves the extension's own level index
