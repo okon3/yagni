@@ -87,8 +87,11 @@ person's tasks" or "this subtree" is a filter over the flat list.
 | `unlink(from, to)` | |
 
 `resourceId: null` unassigns, and an unassigned task never contends: it runs at
-full rate. `color` is `#rrggbb` and only a top-level task owns one — a subtask
-inherits its parent's, so the whole subtree stays one visual block.
+full rate. **An id no resource carries is refused before anything is written**,
+like a cyclic `link`: assigned to a person the project does not have, a task
+would be scheduled against no capacity at all. `color` is `#rrggbb` and only a
+top-level task owns one — a subtask inherits its parent's, so the whole subtree
+stays one visual block.
 
 ## Writing — people
 

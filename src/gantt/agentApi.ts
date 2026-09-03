@@ -148,6 +148,21 @@ export function createAgentApi(host: AgentHost): AgentApi {
     return found;
   };
 
+  /**
+   * The one place an incoming resource id is checked, for every write that
+   * carries one.
+   *
+   * An id nobody has would reach `schedule()` as a task assigned to a resource
+   * with no capacity, and it throws "Scheduler stalled" from inside the dhtmlx
+   * handler applying the change — the exception escapes, React unmounts, and the
+   * open plan is gone. So it is refused before anything is written, as a cyclic
+   * link is. The dialogs and the grid editor cannot get here: both pick from a
+   * fixed list of the project's own people.
+   */
+  const requireKnownResource = (id: string | null | undefined) => {
+    if (id) resource(id);
+  };
+
   /** Every resource write ends here, so the released list is never the caller's to build. */
   const commitResources = (next: Resource[]) => {
     const problem = validateResources(next);
@@ -172,15 +187,17 @@ export function createAgentApi(host: AgentHost): AgentApi {
     getFilename: host.filename,
     isDirty: host.dirty,
 
-    addTask: (patch) =>
-      chart().addTask({
+    addTask: (patch) => {
+      requireKnownResource(patch?.resourceId);
+      return chart().addTask({
         name: patch?.name,
         nominalDays: patch?.nominalDays,
         start: patch?.start ? asDate(patch.start, 'start') : undefined,
         resourceId: patch?.resourceId ?? undefined,
         color: patch?.color ?? undefined,
         parentId: patch?.parentId ?? undefined,
-      }),
+      });
+    },
 
     updateTask: (id, patch) => {
       const current = details(id);
@@ -197,6 +214,7 @@ export function createAgentApi(host: AgentHost): AgentApi {
           );
         }
       }
+      requireKnownResource(patch.resourceId);
       chart().updateTask(id, {
         name: patch.name ?? current.name,
         nominalDays: patch.nominalDays ?? current.nominalDays,
