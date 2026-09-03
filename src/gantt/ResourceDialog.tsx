@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { countWorkingDaysInRange, type AvailabilityOverride, type Resource } from '../scheduler';
 import { AvailabilityList } from './AvailabilityList';
+import { nextResourceId, releasedBy, validateResources } from './resources';
 
 export interface ResourceUsage {
   /** Number of tasks assigned to each resource id. */
@@ -24,13 +25,19 @@ function toDraft(resources: Resource[]): DraftResource[] {
   }));
 }
 
-function nextResourceId(drafts: DraftResource[]): string {
-  const highest = drafts.reduce((max, draft) => {
-    const match = /^r(\d+)$/.exec(draft.id);
-    const numeric = match ? Number(match[1]) : 0;
-    return numeric > max ? numeric : max;
-  }, 0);
-  return `r${highest + 1}`;
+/**
+ * The drafts as the model would hold them.
+ *
+ * The percentage is the form's own unit; everything downstream — the rules, the
+ * engine, the file — works in fractions of a working day.
+ */
+function toResources(drafts: DraftResource[]): Resource[] {
+  return drafts.map((draft) => ({
+    id: draft.id,
+    name: draft.name.trim(),
+    availability: Number(draft.availability) / 100,
+    ...(draft.periods.length > 0 ? { availabilityOverrides: draft.periods } : {}),
+  }));
 }
 
 /** Mounted only while open, so the drafts initialise from props without an effect. */
@@ -99,47 +106,18 @@ export function ResourceDialog({
   const add = () => {
     setDrafts((current) => [
       ...current,
-      { id: nextResourceId(current), name: '', availability: '100', periods: [] },
+      { id: nextResourceId(toResources(current)), name: '', availability: '100', periods: [] },
     ]);
   };
 
   const save = () => {
-    const cleaned: Resource[] = [];
-    const seenNames = new Set<string>();
-    for (const draft of drafts) {
-      const name = draft.name.trim();
-      if (!name) {
-        setError('Ogni persona deve avere un nome');
-        return;
-      }
-      if (seenNames.has(name.toLowerCase())) {
-        setError(`Nome duplicato: "${name}"`);
-        return;
-      }
-      seenNames.add(name.toLowerCase());
-      const percentage = Number(draft.availability);
-      if (!Number.isFinite(percentage) || percentage <= 0 || percentage > 100) {
-        setError(`Disponibilità non valida per "${name}": usa un valore tra 1 e 100`);
-        return;
-      }
-      const incomplete = draft.periods.find((period) => !period.from || !period.to);
-      if (incomplete) {
-        setError(`Un periodo di "${name}" non ha inizio o fine`);
-        return;
-      }
-      cleaned.push({
-        id: draft.id,
-        name,
-        availability: percentage / 100,
-        // Omitted rather than an empty array, to keep the saved file free of
-        // fields that say nothing.
-        ...(draft.periods.length > 0 ? { availabilityOverrides: draft.periods } : {}),
-      });
+    const next = toResources(drafts);
+    const problem = validateResources(next);
+    if (problem) {
+      setError(problem);
+      return;
     }
-
-    const survivingIds = new Set(cleaned.map((resource) => resource.id));
-    const released = [...usage.taskCounts.keys()].filter((id) => !survivingIds.has(id));
-    onSave(cleaned, released);
+    onSave(next, releasedBy(resources, next));
   };
 
   return (
