@@ -130,6 +130,10 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   (`cannot read tasksStore`). Use `clearAll()`.
 - **There is exactly one gantt instance per app.** Community has no
   `getGanttInstance()`, so a second chart is not possible without PRO.
+- **`select_task` does not select from the grid.** Clicking a bar selects the
+  row, clicking a grid cell does not — which leaves a keyboard action like Del
+  with nothing to act on. A capture-phase `click` listener calling
+  `gantt.selectTask` covers it.
 - **Inline editors have no mouse trigger of their own.** Opening them needs
   `keyboard_navigation_cells`, a listener in the **capture** phase (dhtmlx stops
   the dblclick before it bubbles), and taking focus **one frame later** — the

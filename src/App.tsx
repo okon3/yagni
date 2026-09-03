@@ -119,19 +119,32 @@ export default function App() {
     [openTask],
   );
 
-  const deleteTaskDetails = useCallback(() => {
-    if (!openTask) return;
-    const { id, name, descendantCount } = openTask.details;
-    const question =
-      descendantCount > 0
-        ? `Elimino "${name}" e le sue ${descendantCount} sottoattività?`
-        : `Elimino "${name}"?`;
-    if (!window.confirm(question)) return;
-    chart.current?.deleteTask(id);
-    setOpenTask(null);
-    setDirty(true);
-    syncCount();
-  }, [openTask, syncCount]);
+  /**
+   * Shared by the dialog's button and the Del key, so both ask the same thing:
+   * a leaf goes without a question, a group announces what it takes with it.
+   */
+  const requestDelete = useCallback(
+    (id: string) => {
+      const handle = chart.current;
+      const details = handle?.getTaskDetails(id);
+      if (!handle || !details) return;
+      const subtasks =
+        details.descendantCount === 1
+          ? 'la sua sottoattività'
+          : `le sue ${details.descendantCount} sottoattività`;
+      if (
+        details.descendantCount > 0 &&
+        !window.confirm(`Elimino "${details.name}" e ${subtasks}?`)
+      ) {
+        return;
+      }
+      handle.deleteTask(id);
+      setOpenTask(null);
+      setDirty(true);
+      syncCount();
+    },
+    [syncCount],
+  );
 
   const openResources = useCallback(() => {
     const handle = chart.current;
@@ -232,6 +245,7 @@ export default function App() {
             syncCount();
           }}
           onOpenTask={openTaskDetails}
+          onDeleteTask={requestDelete}
           onScaleChange={setScale}
         />
         {taskCount === 0 && (
@@ -278,7 +292,7 @@ export default function App() {
           colors={COLOR_OPTIONS}
           onCancel={() => setOpenTask(null)}
           onSave={saveTaskDetails}
-          onDelete={deleteTaskDetails}
+          onDelete={() => requestDelete(openTask.details.id)}
         />
       )}
     </main>

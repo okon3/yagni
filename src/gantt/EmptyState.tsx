@@ -48,6 +48,13 @@ export function EmptyState({
               <strong>dipendenza</strong>.
             </span>
           </li>
+          <li>
+            <span>
+              Il pulsante a fine riga apre il <strong>dettaglio</strong>: durata, fine, colore e
+              avanzamento. Da lì si elimina l&apos;attività, oppure con <kbd>Canc</kbd> sulla riga
+              selezionata.
+            </span>
+          </li>
         </ol>
 
         <div className="empty__open">

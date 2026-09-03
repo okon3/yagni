@@ -228,12 +228,15 @@ export function GanttChart({
   project,
   onChange,
   onOpenTask,
+  onDeleteTask,
   onScaleChange,
   ref,
 }: {
   project: Project;
   onChange?: () => void;
   onOpenTask?: (id: string) => void;
+  /** Asked, not done: the confirmation belongs with the rest of the dialogs. */
+  onDeleteTask?: (id: string) => void;
   onScaleChange?: (label: string) => void;
   ref?: Ref<GanttHandle>;
 }) {
@@ -241,6 +244,7 @@ export function GanttChart({
   // Held in a ref because the dhtmlx handlers are registered once, in an effect
   // that must not re-run when a callback identity changes.
   const openTaskRef = useRef(onOpenTask);
+  const deleteTaskRef = useRef(onDeleteTask);
   const scaleChangeRef = useRef(onScaleChange);
   const changeRef = useRef(onChange);
   const projectRef = useRef(project);
@@ -249,9 +253,10 @@ export function GanttChart({
 
   useEffect(() => {
     openTaskRef.current = onOpenTask;
+    deleteTaskRef.current = onDeleteTask;
     scaleChangeRef.current = onScaleChange;
     changeRef.current = onChange;
-  }, [onChange, onOpenTask, onScaleChange]);
+  }, [onChange, onDeleteTask, onOpenTask, onScaleChange]);
 
   const applySolution = useCallback(
     (notify = true) => {
@@ -649,6 +654,42 @@ export function GanttChart({
     // container, so a listener on the bubble phase never sees a real click.
     container.addEventListener('dblclick', openEditor, true);
 
+    // A click on a grid cell opens an inline editor but leaves the row
+    // unselected, so Del would have nothing to act on unless the user went to
+    // the timeline to click a bar first. The info button is excluded: it opens a
+    // modal, and a row highlighted behind it reads as a pending action.
+    const selectRow = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.('[data-task-info]')) return;
+      const id = target?.closest?.('.gantt_row')?.getAttribute('data-task-id');
+      if (id && gantt.isTaskExists(id)) gantt.selectTask(id);
+    };
+    container.addEventListener('click', selectRow, true);
+
+    // Del on the selected row. On the document rather than the container: with
+    // keyboard navigation dhtmlx moves focus around its own cells, and a key
+    // that only works when focus happens to sit inside the chart reads as
+    // broken. What the guards protect is the two cases where Del means
+    // something else — a field being edited, and a modal holding the focus.
+    const deleteSelected = (event: KeyboardEvent) => {
+      if (event.key !== 'Delete') return;
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement ||
+        active?.getAttribute('contenteditable') === 'true'
+      ) {
+        return;
+      }
+      if (document.querySelector('dialog[open]')) return;
+      const selected = gantt.getSelectedId();
+      if (!selected || !gantt.isTaskExists(selected)) return;
+      event.preventDefault();
+      deleteTaskRef.current?.(String(selected));
+    };
+    document.addEventListener('keydown', deleteSelected);
+
     const handlers = [
       gantt.attachEvent('onGanttRender', () => {
         placeTodayLine();
@@ -754,6 +795,8 @@ export function GanttChart({
       todayLine.remove();
       gantt.ext.zoom.detachEvent(zoomHandler);
       container.removeEventListener('dblclick', openEditor, true);
+      container.removeEventListener('click', selectRow, true);
+      document.removeEventListener('keydown', deleteSelected);
       handlers.forEach((handlerId) => gantt.detachEvent(handlerId));
       // Deliberately no destructor(): it leaves the singleton unusable, and
       // StrictMode's mount/unmount/mount would then re-init a dead instance

@@ -706,3 +706,13 @@
   border-color: var(--danger-line) !important;
   background: var(--danger-soft) !important;
 }
+
+.empty__steps kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface-sunken);
+  font-family: inherit;
+  font-size: 11px;
+}
