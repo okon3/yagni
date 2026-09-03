@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CALENDAR } from '../scheduler';
 import {
+  CRITICAL_CHAIN_LIMIT,
   TaskCycleError,
   buildHierarchy,
+  chainAfterEdit,
+  chainOnRequest,
+  chainStateOf,
   effectiveColorOf,
   emptyProject,
   rejectionForLink,
@@ -185,6 +189,72 @@ describe('slack by row', () => {
     const rows = slackByRow(branch, solved, { search: true, ids: ['loose'] });
     expect([...rows.keys()]).toEqual(['loose']);
     expect(rows.get('loose')!.floatDays).toBe(4);
+  });
+});
+
+describe('the chain across an edit', () => {
+  const small = project([
+    { id: 'a', name: 'A', nominalDays: 3, start: at(0), resourceId: 'alice' },
+    { id: 'b', name: 'B', nominalDays: 1, start: at(0), resourceId: 'bob' },
+  ]);
+  /** One past the limit, so nothing here measures itself along with the schedule. */
+  const big = project(
+    Array.from({ length: CRITICAL_CHAIN_LIMIT + 1 }, (_, index) => ({
+      id: `t${index}`,
+      name: `T${index}`,
+      nominalDays: 1 + (index % 3),
+      start: at(index % 5),
+      resourceId: index % 2 ? 'alice' : 'bob',
+    })),
+  );
+
+  it('measures with the schedule while the plan is small enough', () => {
+    const solved = solve(small);
+    const chain = chainAfterEdit(small, solved, true, null);
+    expect(chain?.fresh).toBe(true);
+    expect(chain?.rows.get('a')?.isCritical).toBe(true);
+    expect(chainStateOf(true, solved, chain)).toBe('live');
+  });
+
+  it('draws nothing, and offers nothing, while nobody is asking', () => {
+    const solved = solve(small);
+    expect(chainAfterEdit(small, solved, false, null)).toBeNull();
+    expect(chainStateOf(false, solved, null)).toBe('off');
+  });
+
+  it('waits to be asked on a plan too big to measure per edit', () => {
+    const solved = solve(big);
+    expect(chainAfterEdit(big, solved, true, null)).toBeNull();
+    expect(chainStateOf(true, solved, null)).toBe('asked');
+  });
+
+  it('keeps what was measured on request, and calls it old', () => {
+    const solved = solve(big);
+    const asked = chainOnRequest(big, solved);
+    expect(asked.fresh).toBe(true);
+    expect(chainStateOf(true, solved, asked)).toBe('fresh');
+
+    // The edit that follows does not pay to measure it again — and seeing
+    // nothing while working is worse than seeing an answer that says it is old.
+    const after = chainAfterEdit(big, solved, true, asked);
+    expect(after?.rows).toBe(asked.rows);
+    expect(after?.fresh).toBe(false);
+    expect(chainStateOf(true, solved, after)).toBe('stale');
+  });
+
+  it('drops an old answer as soon as nobody is asking for it', () => {
+    const solved = solve(big);
+    const stale = { rows: chainOnRequest(big, solved).rows, fresh: false };
+    expect(chainAfterEdit(big, solved, false, stale)).toBeNull();
+  });
+
+  it('measures itself again once the plan is back under the limit', () => {
+    const stale = { rows: chainOnRequest(big, solve(big)).rows, fresh: false };
+    const solved = solve(small);
+    const chain = chainAfterEdit(small, solved, true, stale);
+    expect(chain?.fresh).toBe(true);
+    expect(chain?.rows).not.toBe(stale.rows);
+    expect(chainStateOf(true, solved, chain)).toBe('live');
   });
 });
 

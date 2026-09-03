@@ -97,15 +97,36 @@ where a delay *unshares* a resource and brings the end in rather than out. Every
 figure reported is a delay that was actually simulated and found free, so such a
 plan understates the float rather than promising room that is not there.
 
-**The cost is honest and bounded.** Each probe is a full re-solve, and the
-simulation is itself quadratic in the tasks: measuring criticality across a plan
-costs 7 ms at 20 tasks, 41 ms at 40 and 162 ms at 60, and the exact figures cost
-a search per task on top. So the marking is measured on every edit only up to
-**forty tasks** — an edit costs about 40 ms there, against 13 ms with the marking
-off — and past that the app says it is not measuring, in the status bar and where
-the figure would have been. It never quietly stops. The figure itself is measured
-one row at a time, when its details are opened, because that is a click rather
-than a keystroke.
+**The cost is honest, and what an edit pays for it changes with the plan.** Each
+probe is a full re-solve, and the simulation is itself quadratic in the tasks:
+measuring criticality across a plan costs 7 ms at 20 tasks, 41 ms at 40, 162 ms
+at 60 and 267 ms at 100, and the exact figures cost a search per task on top.
+Unacceptable per keystroke, entirely acceptable per click — which is the shape
+the feature takes:
+
+- **Up to forty tasks** the marking is measured with every edit and is therefore
+  never out of date. An edit costs about 40 ms there, against 13 ms with the
+  marking off.
+- **Past forty** nothing measures itself. The control in the status bar asks for
+  it — *Calcola catena critica* — and one click measures and redraws.
+- **Past forty, after an edit**, what was measured stays on screen **dashed**
+  rather than vanishing, and the control offers to do it again. Clearing it on
+  every keystroke would mean seeing nothing precisely while working on the plan,
+  whereas a marking that declares itself old, with one click to refresh it,
+  still answers the question it was asked. What it must never do is look
+  measured while it is not — hence a change of register, not a fade.
+
+An undo counts as an edit here: inside the limit the marking is measured again
+from the plan it restores, past the limit it keeps the one it had, dashed.
+Undoing steps back through the same plan rather than bringing a different one,
+and dropping the marking there would leave a big plan with nothing marked after
+every <kbd>Ctrl</kbd>+<kbd>Z</kbd>. Opening a file, taking back a draft or
+starting a new project does drop it: a marking measured against the plan that
+was open says nothing about the one that just arrived.
+
+The float *figure* is measured one row at a time, when its details are opened,
+and only while the plan is inside the limit: unlike criticality it costs a search
+per row, and a summary costs one per leaf under it.
 
 ### Time off and changing availability
 

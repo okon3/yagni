@@ -6,16 +6,20 @@ import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges, isContended } f
 import type { CalendarSpec, DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
 import { DEFAULT_BAR_COLOR, avatarColorOf, initialsOf } from './colors';
 import {
+  chainAfterEdit,
+  chainOnRequest,
+  chainStateOf,
   effectiveColorOf,
   isChainMeasurable,
   rejectionForLink,
   slackByRow,
   solve,
   subtreeOf,
+  type ChainState,
+  type MarkedChain,
   type MeasuredSlack,
   type Project,
   type SolvedProject,
-  type TaskSlack,
 } from './project';
 import { keystrokeIsCaptured } from './shortcuts';
 import type { TaskDetails, TaskPatch } from './TaskDialog';
@@ -239,6 +243,14 @@ export interface GanttHandle {
    * the limit for measuring at all.
    */
   getTaskSlack(id: string): MeasuredSlack | null;
+  /**
+   * Measures the critical chain now and redraws, whatever the plan's size.
+   *
+   * The path an explicit request takes: past the limit nothing measures on its
+   * own, and this is what a click on the control runs. It also turns the marking
+   * on, since asking to see it is asking for it to be shown.
+   */
+  measureCriticalChain(): void;
   updateTask(id: string, patch: TaskPatch): void;
   /** Takes the task's subtree with it, and clears dependencies on any of them. */
   deleteTask(id: string): void;
@@ -267,11 +279,7 @@ export interface GanttHandle {
   scrollToToday(): void;
 }
 
-function toGanttData(
-  project: Project,
-  solved: SolvedProject,
-  chain: Map<string, TaskSlack> | null,
-) {
+function toGanttData(project: Project, solved: SolvedProject, chain: MarkedChain | null) {
   const formatDate = gantt.date.date_to_str(gantt.config.date_format);
   return {
     data: project.tasks.map((task) => {
@@ -299,7 +307,8 @@ function toGanttData(
         // pale on a shared task: there the colour belongs to the profile inside.
         color: barBackground(inherited, scheduled, summary),
         shared: scheduled ? isShared(scheduled) : false,
-        critical: chain?.get(task.id)?.isCritical ?? false,
+        critical: chain?.rows.get(task.id)?.isCritical ?? false,
+        critical_stale: chain !== null && !chain.fresh,
         // Rendered on every row whether or not anyone is highlighted: the
         // highlight is then one stylesheet rule away, with no redraw.
         resource_classes: resourceClassesOf(solved, task.id),
@@ -441,19 +450,18 @@ const daysBetween = (from: number, to: number): number[] =>
   Array.from({ length: Math.max(to - from + 1, 0) }, (_, offset) => from + offset);
 
 /**
- * Which rows to outline, or null when nothing is outlined.
- *
- * Null covers both reasons — the marking is off, or the plan is past the size
- * the app will measure — because the chart draws the same thing either way. The
- * status bar is where the difference is said.
+ * Puts the chain onto the rows dhtmlx will redraw, leaving the redraw to the
+ * caller — an edit already has one coming, a measurement asked for does not.
  */
-function chainToMark(
-  project: Project,
-  solved: SolvedProject,
-  marking: boolean,
-): Map<string, TaskSlack> | null {
-  if (!marking || !isChainMeasurable(solved)) return null;
-  return slackByRow(project, solved);
+function writeChainOntoRows(project: Project, chain: MarkedChain | null): void {
+  for (const task of project.tasks) {
+    if (!gantt.isTaskExists(task.id)) continue;
+    const ganttTask = gantt.getTask(task.id);
+    ganttTask.critical = chain?.rows.get(task.id)?.isCritical ?? false;
+    // Plan-wide, but carried per row: a class of ours can only come from a
+    // template, and the template is only given the task.
+    ganttTask.critical_stale = chain !== null && !chain.fresh;
+  }
 }
 
 function nextTaskId(project: Project): string {
@@ -472,6 +480,7 @@ export function GanttChart({
   onOpenTask,
   onDeleteTask,
   onScaleChange,
+  onChainState,
   onReject,
   ref,
 }: {
@@ -485,6 +494,8 @@ export function GanttChart({
   /** Asked, not done: the confirmation belongs with the rest of the dialogs. */
   onDeleteTask?: (id: string) => void;
   onScaleChange?: (label: string) => void;
+  /** Whether the marking is live, has to be asked for, or is showing an old answer. */
+  onChainState?: (state: ChainState) => void;
   /** Why an edit made in the chart was refused, for the caller to surface. */
   onReject?: (message: string) => void;
   ref?: Ref<GanttHandle>;
@@ -503,6 +514,10 @@ export function GanttChart({
   // Also what the marking effect below compares against, so mounting does not
   // re-apply what the first parse already drew.
   const markCriticalRef = useRef(markCritical);
+  // The chain outlives an edit: over the limit it is not re-measured, and what
+  // was measured before stays on the rows marked as old.
+  const chainRef = useRef<MarkedChain | null>(null);
+  const chainStateRef = useRef(onChainState);
 
   useEffect(() => {
     openTaskRef.current = onOpenTask;
@@ -510,7 +525,15 @@ export function GanttChart({
     scaleChangeRef.current = onScaleChange;
     changeRef.current = onChange;
     rejectRef.current = onReject;
-  }, [onChange, onDeleteTask, onOpenTask, onReject, onScaleChange]);
+    chainStateRef.current = onChainState;
+  }, [onChainState, onChange, onDeleteTask, onOpenTask, onReject, onScaleChange]);
+
+  /** Says which of the three the control has to offer, after every write to the chain. */
+  const reportChainState = useCallback(() => {
+    chainStateRef.current?.(
+      chainStateOf(markCriticalRef.current, solvedRef.current, chainRef.current),
+    );
+  }, []);
 
   const applySolution = useCallback(
     (notify = true) => {
@@ -518,8 +541,13 @@ export function GanttChart({
       const solved = solve(projectRef.current);
       solvedRef.current = solved;
       // Measured after the schedule and from it, so the two can never disagree
-      // about the plan they describe.
-      const chain = chainToMark(projectRef.current, solved, markCriticalRef.current);
+      // about the plan they describe — or, over the limit, kept and called old.
+      chainRef.current = chainAfterEdit(
+        projectRef.current,
+        solved,
+        markCriticalRef.current,
+        chainRef.current,
+      );
       for (const task of projectRef.current.tasks) {
         const scheduled = solved.schedule.tasks.get(task.id);
         if (!scheduled || !gantt.isTaskExists(task.id)) continue;
@@ -534,51 +562,67 @@ export function GanttChart({
         ganttTask.bar_color = inherited ?? '';
         ganttTask.color = barBackground(inherited, scheduled, summary);
         ganttTask.shared = isShared(scheduled);
-        ganttTask.critical = chain?.get(task.id)?.isCritical ?? false;
         ganttTask.resource_classes = resourceClassesOf(solved, task.id);
       }
+      writeChainOntoRows(projectRef.current, chainRef.current);
       // refreshData redraws from the mutated task objects without firing the
       // update events that would bounce straight back into this function.
       gantt.refreshData();
       fitRangeToPlan(solved.schedule);
       applyingRef.current = false;
+      reportChainState();
       if (notify) changeRef.current?.();
     },
-    // Deliberately no dependencies. This function is a dependency of the effect
-    // that calls gantt.init(), so an identity that changed with every render of
-    // the parent would tear the chart down and rebuild it on every keystroke —
-    // and gantt.ext.zoom.init() would reset the zoom level while doing so.
-    [],
+    // Nothing that changes identity per render. This function is a dependency of
+    // the effect that calls gantt.init(), so an identity that changed with every
+    // render of the parent would tear the chart down and rebuild it on every
+    // keystroke — and gantt.ext.zoom.init() would reset the zoom level while
+    // doing so. `reportChainState` has no dependencies of its own either.
+    [reportChainState],
   );
 
-  const loadProject = useCallback((next: Project, options?: LoadOptions) => {
-    // clearAll drops the selection and sends the timeline back to where the
-    // plan starts, which for an undo would mean losing the row and the week the
-    // user was looking at. The zoom level survives on its own: it lives in the
-    // extension rather than in the data.
-    const scroll = options?.keepViewport ? gantt.getScrollState() : undefined;
-    const selected = options?.keepViewport ? gantt.getSelectedId() : undefined;
-    const collapsed = options?.keepViewport ? collapsedBranches() : undefined;
-    applyingRef.current = true;
-    projectRef.current = next;
-    solvedRef.current = solve(next);
-    const chain = chainToMark(next, solvedRef.current, markCriticalRef.current);
-    gantt.clearAll();
-    const data = toGanttData(next, solvedRef.current, chain);
-    // Written into the data rather than onto the tasks afterwards, which would
-    // need a second render of the whole chart to show.
-    for (const task of data.data) {
-      if (collapsed?.has(String(task.id))) task.open = false;
-    }
-    gantt.parse(data);
-    refreshResourceOptions(next.resources);
-    fitRangeToPlan(solvedRef.current.schedule);
-    applyingRef.current = false;
-    // After the render, or fitRangeToPlan would scroll back over it.
-    if (scroll) gantt.scrollTo(scroll.x, scroll.y);
-    // The row may be one of those the undone change had created.
-    if (selected && gantt.isTaskExists(selected)) gantt.selectTask(selected);
-  }, []);
+  const loadProject = useCallback(
+    (next: Project, options?: LoadOptions) => {
+      // clearAll drops the selection and sends the timeline back to where the
+      // plan starts, which for an undo would mean losing the row and the week
+      // the user was looking at. The zoom level survives on its own: it lives
+      // in the extension rather than in the data.
+      const scroll = options?.keepViewport ? gantt.getScrollState() : undefined;
+      const selected = options?.keepViewport ? gantt.getSelectedId() : undefined;
+      const collapsed = options?.keepViewport ? collapsedBranches() : undefined;
+      applyingRef.current = true;
+      projectRef.current = next;
+      solvedRef.current = solve(next);
+      // An undo keeps the marking it had — over the limit as a stale one — since
+      // it is the same plan a step back, and dropping it would leave a big plan
+      // with nothing marked after every Ctrl+Z. A file, a draft or a new project
+      // is a different plan, and a marking measured against the one that was
+      // open says nothing about it.
+      chainRef.current = chainAfterEdit(
+        next,
+        solvedRef.current,
+        markCriticalRef.current,
+        options?.keepViewport ? chainRef.current : null,
+      );
+      gantt.clearAll();
+      const data = toGanttData(next, solvedRef.current, chainRef.current);
+      // Written into the data rather than onto the tasks afterwards, which would
+      // need a second render of the whole chart to show.
+      for (const task of data.data) {
+        if (collapsed?.has(String(task.id))) task.open = false;
+      }
+      gantt.parse(data);
+      refreshResourceOptions(next.resources);
+      fitRangeToPlan(solvedRef.current.schedule);
+      applyingRef.current = false;
+      // After the render, or fitRangeToPlan would scroll back over it.
+      if (scroll) gantt.scrollTo(scroll.x, scroll.y);
+      // The row may be one of those the undone change had created.
+      if (selected && gantt.isTaskExists(selected)) gantt.selectTask(selected);
+      reportChainState();
+    },
+    [reportChainState],
+  );
 
   useImperativeHandle(
     ref,
@@ -618,6 +662,18 @@ export function GanttChart({
         // than unmeasured — and either way there is nothing to show.
         if (!slack || slack.floatDays === null) return null;
         return { ...slack, floatDays: slack.floatDays };
+      },
+      measureCriticalChain: () => {
+        applyingRef.current = true;
+        chainRef.current = chainOnRequest(projectRef.current, solvedRef.current);
+        // The ref is what the rows were drawn from, so putting the marking on
+        // here is also what keeps the toggle effect from firing a second time
+        // and calling this very measurement old.
+        markCriticalRef.current = true;
+        writeChainOntoRows(projectRef.current, chainRef.current);
+        gantt.refreshData();
+        applyingRef.current = false;
+        reportChainState();
       },
       deleteTask: (id) => {
         // gantt.deleteTask fires onAfterTaskDelete, where the model, the
@@ -737,7 +793,7 @@ export function GanttChart({
       expandAll: () => setEveryBranchOpen(true),
       scrollToToday: () => gantt.showDate(new Date()),
     }),
-    [applySolution, loadProject],
+    [applySolution, loadProject, reportChainState],
   );
 
   useEffect(() => {
@@ -862,7 +918,12 @@ export function GanttChart({
       else if (task.shared) classes.push('gantt-bar--shared');
       // An outline, so it composes with whatever colour the bar carries: the
       // colour belongs to the user, and dhtmlx sets it inline anyway.
-      if (task.critical) classes.push('gantt-bar--critical');
+      if (task.critical) {
+        classes.push('gantt-bar--critical');
+        // Dashed where the answer predates the last edit. An outline that looks
+        // measured while it is not is worse than none at all.
+        if (task.critical_stale) classes.push('gantt-bar--critical-old');
+      }
       return classes.filter(Boolean).join(' ');
     };
     // A link keeps both ends' people: what gates someone's work, and what their

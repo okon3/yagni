@@ -931,22 +931,10 @@
   background: var(--critical);
 }
 
-.statusbar__critical:disabled {
-  cursor: default;
-  opacity: 0.7;
-}
-
-.statusbar__critical:disabled::before {
-  border-color: var(--line-strong);
-}
-
-.statusbar__critical:disabled:hover {
+/* Same dashed register as the outline it is describing. */
+.statusbar__critical--old::before {
   background: none;
-  color: var(--ink-muted);
-}
-
-.statusbar__off {
-  font-style: italic;
+  border-style: dashed;
 }
 
 /* Set apart from the rest of the row: nothing else in a dialog is irreversible,

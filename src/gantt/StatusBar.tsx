@@ -1,30 +1,60 @@
-import { CRITICAL_CHAIN_LIMIT } from './project';
+import { CRITICAL_CHAIN_LIMIT, type ChainState } from './project';
 
 export interface StatusBarProps {
   taskCount: number;
   /** Label of the active zoom level, already localised by the chart. */
   scale: string;
-  /** Whether the tasks the end date depends on are outlined on the chart. */
-  markCritical: boolean;
-  /** False on a plan too big to measure, where the toggle has nothing to show. */
-  canMarkCritical: boolean;
+  /** What the chart is showing of the critical chain, which decides what the control offers. */
+  chainState: ChainState;
   onCollapseAll(): void;
   onExpandAll(): void;
-  onToggleCritical(): void;
+  onCriticalChain(): void;
   onToday(): void;
   onZoomIn(): void;
   onZoomOut(): void;
   onZoomToFit(): void;
 }
 
+/**
+ * One control, and the label always says what the click does.
+ *
+ * A current answer is there to be hidden; anything else is there to be asked
+ * for. Past the limit nothing measures on its own, so the wording changes from
+ * a switch to a request — and once an edit has outdated the answer, to a
+ * request to do it again.
+ */
+const CHAIN_LABEL: Record<ChainState, string> = {
+  off: 'Catena critica',
+  live: 'Catena critica',
+  fresh: 'Catena critica',
+  asked: 'Calcola catena critica',
+  stale: 'Ricalcola catena critica',
+};
+
+const CHAIN_TITLE: Record<ChainState, string> = {
+  off: 'Evidenzia le attività da cui dipende la data di fine',
+  live: 'Non evidenziare più le attività critiche',
+  fresh: `Calcolata su richiesta: oltre ${CRITICAL_CHAIN_LIMIT} attività non si aggiorna da sola`,
+  asked: `Oltre ${CRITICAL_CHAIN_LIMIT} attività si calcola su richiesta: costa un ricalcolo del piano per ogni attività`,
+  stale: 'Il piano è cambiato dopo il calcolo: il tratteggio è la marcatura di prima',
+};
+
+/** Drawn on the chart, so the control shows itself as pressed. */
+const CHAIN_SHOWN: Record<ChainState, boolean> = {
+  off: false,
+  live: true,
+  fresh: true,
+  asked: false,
+  stale: true,
+};
+
 export function StatusBar({
   taskCount,
   scale,
-  markCritical,
-  canMarkCritical,
+  chainState,
   onCollapseAll,
   onExpandAll,
-  onToggleCritical,
+  onCriticalChain,
   onToday,
   onZoomIn,
   onZoomOut,
@@ -41,22 +71,20 @@ export function StatusBar({
           Espandi
         </button>
       </div>
-      {/* The reason is on the face of the bar, not only in the tooltip: a
-          control that is simply dead is read as broken. */}
+      {/* Never disabled: a control that is dead reads as broken, and past the
+          limit there is something to offer — the measurement itself. */}
       <button
         type="button"
-        className={`statusbar__critical${markCritical && canMarkCritical ? ' statusbar__critical--on' : ''}`}
-        disabled={!canMarkCritical}
-        aria-pressed={markCritical && canMarkCritical}
-        title={
-          canMarkCritical
-            ? 'Evidenzia le attività da cui dipende la data di fine'
-            : `Oltre ${CRITICAL_CHAIN_LIMIT} attività il calcolo non viene eseguito: costa un ricalcolo del piano per ogni attività`
+        className={
+          'statusbar__critical' +
+          (CHAIN_SHOWN[chainState] ? ' statusbar__critical--on' : '') +
+          (chainState === 'stale' ? ' statusbar__critical--old' : '')
         }
-        onClick={onToggleCritical}
+        aria-pressed={CHAIN_SHOWN[chainState]}
+        title={CHAIN_TITLE[chainState]}
+        onClick={onCriticalChain}
       >
-        Catena critica
-        {!canMarkCritical && <span className="statusbar__off"> non calcolata</span>}
+        {CHAIN_LABEL[chainState]}
       </button>
       {/* An agent reads the page text and the accessibility tree before it reads
           anything else, so the scripting surface has to be named there. */}

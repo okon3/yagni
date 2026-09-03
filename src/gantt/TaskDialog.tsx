@@ -117,6 +117,12 @@ export function TaskDialog({
   const contendedWith = resources.find(
     (resource) => resource.id === slack?.contendedResourceId,
   )?.name;
+  /** Contention explains the criticality, so it is that note's to say. */
+  const namesContention = Boolean(slack?.isCritical && contendedWith);
+  /** Reads on from either opening, so it starts lower case. */
+  const whatCostsWhat = slack?.floatDays
+    ? `può iniziare fino a ${slack.floatDays} g più tardi, ma un giorno di lavoro in più sposta la fine del progetto`
+    : 'ogni ritardo qui sposta la fine del progetto';
 
   return (
     <dialog ref={dialog} className="resources taskinfo" onCancel={onCancel} onClose={onCancel}>
@@ -243,47 +249,45 @@ export function TaskDialog({
           <dd>{task.effortDays.toFixed(2)} g</dd>
         </div>
         <div>
+          {/* The figure, whatever else is true of the task: criticality is a
+              different fact and it is stated below, in words. */}
           <dt>Margine</dt>
-          <dd>
+          <dd className={slack?.isCritical ? 'taskinfo__critical' : undefined}>
             {slack === null ? (
-              <span className="taskinfo__derived">—</span>
-            ) : slack.isCritical ? (
-              <span className="taskinfo__critical">Critica</span>
+              <span className="taskinfo__derived">&mdash;</span>
             ) : (
               `${slack.floatDays} g`
             )}
           </dd>
         </div>
       </dl>
-      {/* Two ways to run below full rate, and they call for different moves:
-          take a task off the person, or change the person. */}
-      {task.contended ? (
-        <p className="taskinfo__note">
-          La risorsa è divisa con altre attività in corso, quindi la durata supera l&apos;effort.
-        </p>
-      ) : (
-        task.shared && (
-          <p className="taskinfo__note">
-            La risorsa non lavora a tempo pieno in questo periodo, quindi la durata supera
-            l&apos;effort.
-          </p>
-        )
-      )}
+      {/* Contention is said once. Where the criticality note below already names
+          the person it is contended with, this would be the second sentence
+          about the same fact. */}
+      {task.contended
+        ? !namesContention && (
+            <p className="taskinfo__note">
+              La risorsa è divisa con altre attività in corso, quindi la durata supera
+              l&apos;effort.
+            </p>
+          )
+        : task.shared && (
+            <p className="taskinfo__note">
+              La risorsa non lavora a tempo pieno in questo periodo, quindi la durata supera
+              l&apos;effort.
+            </p>
+          )}
       {slack === null ? (
         <p className="taskinfo__note">
-          Oltre {CRITICAL_CHAIN_LIMIT} attività il margine non viene calcolato: misurarlo costa un
-          ricalcolo del piano per ogni attività.
+          Oltre {CRITICAL_CHAIN_LIMIT} attività il margine non viene misurato: costa un ricalcolo
+          del piano per ogni giorno provato. La catena critica si chiede dalla barra di stato.
         </p>
       ) : slack.isCritical ? (
         <p className="taskinfo__note">
-          <strong>
-            Critica{contendedWith ? ` — contesa su ${contendedWith}` : ''}.
-          </strong>{' '}
-          {slack.floatDays
-            ? `Può iniziare fino a ${slack.floatDays} g più tardi, ma un giorno di lavoro in più sposta la fine del progetto.`
-            : 'Ogni ritardo qui sposta la fine del progetto.'}
-          {contendedWith &&
-            ` Spostare o riassegnare un'altra attività di ${contendedWith} la libera.`}
+          <strong>Critica{namesContention ? ` — contesa su ${contendedWith}` : ''}.</strong>{' '}
+          {namesContention
+            ? `La sua quota è divisa con altre attività in corso: ${whatCostsWhat}.`
+            : `${whatCostsWhat[0].toUpperCase()}${whatCostsWhat.slice(1)}.`}
         </p>
       ) : (
         <p className="taskinfo__note">

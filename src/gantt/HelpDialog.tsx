@@ -278,8 +278,13 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
         <p>
           Le due cose convivono: chi è occupato dal primo giorno lascia margine su ogni singola
           attività — spostarne una la fa recuperare da sola — ma un giorno di lavoro in più su
-          qualunque di esse sposta la fine. Oltre {CRITICAL_CHAIN_LIMIT} attività il calcolo si
-          spegne e lo dice: misurarlo costa un ricalcolo del piano per ogni attività.
+          qualunque di esse sposta la fine.
+        </p>
+        <p>
+          Misurare costa un ricalcolo del piano per ogni attività: fino a {CRITICAL_CHAIN_LIMIT}{' '}
+          attività la marcatura si rifà a ogni modifica, oltre si chiede dalla barra di stato. In
+          quel caso, dopo una modifica, resta a schermo il calcolo di prima:{' '}
+          <strong>tratteggiato</strong> per dirlo, e lo stesso pulsante lo rifà.
         </p>
       </section>
 

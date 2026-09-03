@@ -105,9 +105,12 @@ person's tasks" or "this subtree" is a filter over the flat list.
 **This is the one expensive call.** Every probe is a re-solve of the whole plan,
 so the cost is a simulation per task plus a doubling search per task with float:
 milliseconds at ten tasks, a few hundred at fifty, seconds past a hundred. It is
-deliberately not folded into `getPlan()`, which is read after every write. The
-chart's own marking stops above forty tasks; this call does not — a script has
-no frame to miss.
+deliberately not folded into `getPlan()`, which is read after every write.
+
+Past forty tasks the chart stops measuring its marking with every edit and waits
+to be asked from the status bar, keeping the last answer dashed in the meantime.
+This call has no such threshold and always measures: a script has no frame to
+miss, and the figures are the point of it.
 
 Classic CPM does not apply here and its answer would be wrong, not approximate:
 a dependency-only backward pass calls a task that merely shares a person free,

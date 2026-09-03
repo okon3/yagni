@@ -13,7 +13,7 @@ import { StatusBar } from './gantt/StatusBar';
 import { Toolbar } from './gantt/Toolbar';
 import { PROJECT_EXTENSION, downloadText, pickTextFile } from './gantt/files';
 import { DEFAULT_CALENDAR } from './scheduler';
-import { emptyProject, isChainMeasurable, type MeasuredSlack } from './gantt/project';
+import { emptyProject, type ChainState, type MeasuredSlack } from './gantt/project';
 import { ProjectFileError, deserializeProject, serializeProject } from './gantt/serialization';
 import {
   historyOf,
@@ -61,7 +61,9 @@ export default function App() {
   // On by default: which tasks the end date hangs on is the first thing anybody
   // asks of a plan, and an outline costs the bars nothing they were showing.
   const [markCritical, setMarkCritical] = useState(true);
-  const [canMarkCritical, setCanMarkCritical] = useState(true);
+  // What the chart is actually able to show, which past the limit is not the
+  // same as what is wanted: the chart reports it after every write.
+  const [chainState, setChainState] = useState<ChainState>('live');
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [people, setPeople] = useState<Resource[]>(initialProject.resources);
@@ -102,8 +104,6 @@ export default function App() {
   const syncFromChart = useCallback(() => {
     const project = chart.current?.getProject();
     setTaskCount(project?.tasks.length ?? 0);
-    const solved = chart.current?.getSolved();
-    setCanMarkCritical(!solved || isChainMeasurable(solved));
     const resources = project?.resources ?? [];
     setPeople([...resources]);
     setPinnedResource((pinned) =>
@@ -267,6 +267,24 @@ export default function App() {
     chart.current?.addTask();
     syncFromChart();
   }, [syncFromChart]);
+
+  /**
+   * What the one control does, which depends on what it is showing.
+   *
+   * Showing a current answer, it hides it. Showing nothing or an old answer, it
+   * measures now — past the limit that is the only way the marking gets there,
+   * and a click can afford what a keystroke cannot. Turning the marking on is
+   * the chart's own job below the limit, so this only has to ask for the state
+   * it wants.
+   */
+  const handleCriticalChain = useCallback(() => {
+    if (chainState === 'live' || chainState === 'fresh') {
+      setMarkCritical(false);
+      return;
+    }
+    setMarkCritical(true);
+    chart.current?.measureCriticalChain();
+  }, [chainState]);
 
   const openTaskDetails = useCallback((id: string) => {
     const handle = chart.current;
@@ -554,6 +572,7 @@ export default function App() {
           project={initialProject}
           highlighted={hoveredResource ?? pinnedResource}
           markCritical={markCritical}
+          onChainState={setChainState}
           onChange={() => {
             syncFromChart();
             registerChange();
@@ -576,11 +595,10 @@ export default function App() {
       <StatusBar
         taskCount={taskCount}
         scale={scale}
-        markCritical={markCritical}
-        canMarkCritical={canMarkCritical}
+        chainState={chainState}
         onCollapseAll={() => chart.current?.collapseAll()}
         onExpandAll={() => chart.current?.expandAll()}
-        onToggleCritical={() => setMarkCritical((on) => !on)}
+        onCriticalChain={handleCriticalChain}
         onToday={() => chart.current?.scrollToToday()}
         onZoomIn={() => chart.current?.zoomIn()}
         onZoomOut={() => chart.current?.zoomOut()}

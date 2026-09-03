@@ -217,6 +217,15 @@
   outline-offset: 1px;
 }
 
+/* Measured before the last edit. Dashed and drawn back, because a marking that
+   looks measured while it is not is worse than no marking at all — and the same
+   colour, because it is the same statement, only out of date rather than a
+   second kind of criticality. */
+.gantt_task_line.gantt-bar--critical-old {
+  outline-style: dashed;
+  outline-color: color-mix(in srgb, var(--critical) 55%, transparent);
+}
+
 .seg-track {
   position: absolute;
   inset: 0;

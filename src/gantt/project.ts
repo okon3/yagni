@@ -261,21 +261,23 @@ export function solve(project: Project): SolvedProject {
 }
 
 /**
- * Tasks above which the app stops measuring the critical chain.
+ * Tasks above which the critical chain is no longer measured on every edit.
  *
  * Measuring is a simulation per probe, and the simulation is itself quadratic in
  * the tasks, so the cost climbs faster than the plan does: 7 ms at 20 tasks,
  * 18 ms at 30, 41 ms at 40, 162 ms at 60. Forty keeps the price of an edit
- * inside a couple of frames; past it the app says it is not measuring rather
- * than letting every edit wait for an answer nobody asked for.
+ * inside a couple of frames.
+ *
+ * It is not a ceiling on the answer, only on what an edit pays for it: past it
+ * the measurement is asked for, and a click can afford what a keystroke cannot.
  */
 export const CRITICAL_CHAIN_LIMIT = 40;
 
 /**
- * Whether the plan is small enough to measure at all.
+ * Whether the plan is small enough to measure along with its schedule.
  *
- * Asked by the view too, which has to say so where the figures would have been
- * instead of leaving them blank.
+ * Asked by the view too, which has to say whether what it draws keeps itself
+ * current or has to be asked for again.
  */
 export function isChainMeasurable(solved: SolvedProject): boolean {
   return solved.engineTasks.length <= CRITICAL_CHAIN_LIMIT;
@@ -365,6 +367,63 @@ export function slackByRow(
     });
   }
   return rows;
+}
+
+/** What the chart is drawing, and whether it still describes the plan on screen. */
+export interface MarkedChain {
+  rows: Map<string, TaskSlack>;
+  /** False once an edit has landed that this was not measured against. */
+  fresh: boolean;
+}
+
+export type ChainState =
+  /** Nobody is asking for it, and nothing is drawn. */
+  | 'off'
+  /** Small enough to be measured with the schedule, so it is never out of date. */
+  | 'live'
+  /** Too big for that, and nothing measured yet: a click asks for it. */
+  | 'asked'
+  /** Too big for that, measured on request, and still current. */
+  | 'fresh'
+  /** Too big for that, and what is drawn predates the last edit. */
+  | 'stale';
+
+/**
+ * The chain to draw once the plan has changed.
+ *
+ * Under the limit it is measured again along with the schedule. Over it the
+ * measurement is not chained to the edit — but what was measured before is kept
+ * and flagged old rather than thrown away: clearing it would leave the chart
+ * blank exactly while somebody is working on the plan, whereas a marking that
+ * declares itself old, with one click to refresh it, still answers the question
+ * it was asked.
+ */
+export function chainAfterEdit(
+  project: Project,
+  solved: SolvedProject,
+  wanted: boolean,
+  previous: MarkedChain | null,
+): MarkedChain | null {
+  if (!wanted) return null;
+  if (isChainMeasurable(solved)) return { rows: slackByRow(project, solved), fresh: true };
+  return previous ? { rows: previous.rows, fresh: false } : null;
+}
+
+/** Measured now whatever the plan's size, because asking is a click. */
+export function chainOnRequest(project: Project, solved: SolvedProject): MarkedChain {
+  return { rows: slackByRow(project, solved), fresh: true };
+}
+
+/** What the control has to offer, which is not the same as what is drawn. */
+export function chainStateOf(
+  wanted: boolean,
+  solved: SolvedProject,
+  chain: MarkedChain | null,
+): ChainState {
+  if (!wanted) return 'off';
+  if (isChainMeasurable(solved)) return 'live';
+  if (!chain) return 'asked';
+  return chain.fresh ? 'fresh' : 'stale';
 }
 
 /**
