@@ -135,6 +135,15 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   coarsest level must therefore be coarse enough for the longest plan expected;
   a column per month tops out around ten months. Quarters are a custom unit:
   dhtmlx builds one from `<unit>_start` and `add_<unit>`, and ships neither.
+- **`zoomToFit` has to run after a load, not inside it.** Called from within
+  `loadProject`, between the `parse` and the end of the load, it picks the right
+  scale and draws the right range — and leaves the extension's own level index
+  at `-1`, from which `zoomIn`/`zoomOut` do nothing at all: the `+` and `−`
+  buttons are dead until something sets a level again. The configuration is
+  identical either way, so this is invisible in the config and only shows in
+  `gantt.ext.zoom.getCurrentLevel()`. Fitting on open therefore sits in `App`,
+  after `loadProject` returns, which is also where it belongs — an undo shares
+  `loadProject` and must keep its viewport.
 - **`gantt.templates.scale_cell_class` no longer exists** — dropped in v6, and it
   still compiles. A class on a scale cell goes through `css` on the scale itself
   (`gantt.config.scales` / a zoom level's `scales`). `timeline_cell_class` is

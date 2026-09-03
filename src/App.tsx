@@ -153,6 +153,16 @@ export default function App() {
       // Parse before loading: a malformed file must leave the open project alone.
       const parsed = deserializeProject(text);
       chart.current?.loadProject(parsed);
+      // A plan arrives shown whole, at the coarsest scale that holds it. The
+      // range is three days around today until something widens it, so a file
+      // whose plan starts next month opened as a chart of empty weeks with
+      // every row sitting in the grid.
+      //
+      // Here rather than inside loadProject, which an undo shares and which has
+      // to keep the window the user was looking through — and because the zoom
+      // extension only ends up consistent when the fit happens after the load
+      // has finished, exactly as the toolbar's own button does it.
+      if (parsed.tasks.length > 0) chart.current?.zoomToFit();
       // Canonical rather than the file's own bytes: the history holds what the
       // project serialises to, so that comparing it against the present is
       // comparing like with like — a version 1 file is not written back as one.
