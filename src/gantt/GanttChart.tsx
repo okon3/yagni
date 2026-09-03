@@ -370,6 +370,18 @@ function fitRangeToPlan(schedule: Schedule): void {
 }
 
 /**
+ * Which branches the user has closed, so that reloading the project does not
+ * open them all again — `toGanttData` renders every row open.
+ */
+function collapsedBranches(): Set<string> {
+  const closed = new Set<string>();
+  gantt.eachTask((task) => {
+    if (!task.$open) closed.add(String(task.id));
+  });
+  return closed;
+}
+
+/**
  * Opens or closes every branch in one go.
  *
  * The whole tree is rewritten before a single redraw: `gantt.open` and
@@ -502,11 +514,18 @@ export function GanttChart({
     // extension rather than in the data.
     const scroll = options?.keepViewport ? gantt.getScrollState() : undefined;
     const selected = options?.keepViewport ? gantt.getSelectedId() : undefined;
+    const collapsed = options?.keepViewport ? collapsedBranches() : undefined;
     applyingRef.current = true;
     projectRef.current = next;
     solvedRef.current = solve(next);
     gantt.clearAll();
-    gantt.parse(toGanttData(next, solvedRef.current));
+    const data = toGanttData(next, solvedRef.current);
+    // Written into the data rather than onto the tasks afterwards, which would
+    // need a second render of the whole chart to show.
+    for (const task of data.data) {
+      if (collapsed?.has(String(task.id))) task.open = false;
+    }
+    gantt.parse(data);
     refreshResourceOptions(next.resources);
     fitRangeToPlan(solvedRef.current.schedule);
     applyingRef.current = false;
