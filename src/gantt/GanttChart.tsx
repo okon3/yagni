@@ -968,7 +968,13 @@ export function GanttChart({
       const id = target?.closest?.('.gantt_row')?.getAttribute('data-task-id');
       if (id && gantt.isTaskExists(id)) gantt.selectTask(id);
     };
-    container.addEventListener('click', selectRow, true);
+    // Bubble phase, unlike the editor above: selecting re-renders the row, and
+    // dhtmlx dispatches its own delegated click handlers only while the clicked
+    // node is still a descendant of the grid. Selecting on the capture phase
+    // detaches it first, which swallows the click on the expand/collapse icon
+    // and on the "+" button of any row that is not already selected. dhtmlx
+    // delegates on $grid, inside this container, so bubble gets there second.
+    container.addEventListener('click', selectRow);
 
     // Del on the selected row. On the document rather than the container: with
     // keyboard navigation dhtmlx moves focus around its own cells, and a key
@@ -1123,7 +1129,7 @@ export function GanttChart({
       bandsAbove.remove();
       gantt.ext.zoom.detachEvent(zoomHandler);
       container.removeEventListener('dblclick', openEditor, true);
-      container.removeEventListener('click', selectRow, true);
+      container.removeEventListener('click', selectRow);
       document.removeEventListener('keydown', deleteSelected);
       handlers.forEach((handlerId) => gantt.detachEvent(handlerId));
       // Deliberately no destructor(): it leaves the singleton unusable, and

@@ -153,8 +153,12 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   `getGanttInstance()`, so a second chart is not possible without PRO.
 - **`select_task` does not select from the grid.** Clicking a bar selects the
   row, clicking a grid cell does not — which leaves a keyboard action like Del
-  with nothing to act on. A capture-phase `click` listener calling
-  `gantt.selectTask` covers it.
+  with nothing to act on. A `click` listener calling `gantt.selectTask` covers
+  it, but it has to sit on the **bubble** phase: selecting re-renders the row,
+  and dhtmlx dispatches its own delegated handlers only while the clicked node
+  is still a descendant of `$grid`. Selecting first detaches it and the click is
+  swallowed, and the expand/collapse arrow and the `+` button of a row that is
+  not already selected then need a second click.
 - **Inline editors have no mouse trigger of their own.** Opening them needs
   `keyboard_navigation_cells`, a listener in the **capture** phase (dhtmlx stops
   the dblclick before it bubbles), and taking focus **one frame later** — the
