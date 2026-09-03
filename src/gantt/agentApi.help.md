@@ -24,8 +24,10 @@ Three differences from clicking the buttons:
 - **Errors throw**, naming the id, rather than returning silently.
 - **Patches are partial**; the fields you leave out keep their current value.
 
-**Undo is `toText()` + `loadText()`.** Snapshot before a move, restore if it made
-things worse. Nothing else undoes anything.
+**Your rollback is `toText()` + `loadText()`.** Snapshot before a move, restore
+if it made things worse. The app has an undo of its own — Ctrl+Z, and your writes
+land on the same stack as the user's edits — but it is not on this surface: a
+snapshot you chose beats whichever step happens to be on top of that stack.
 
 ```js
 const before = yagni.toText();
@@ -117,8 +119,8 @@ absence; there is no separate concept.
 | Call | Notes |
 | --- | --- |
 | `setCalendar(spec)` | The whole `CalendarSpec`. Holidays are company-wide shutdowns, removed from the axis like weekends. |
-| `newProject()` | No discard question. |
-| `loadText(text, filename?)` | Parses first: a malformed file leaves the open project untouched and throws `ProjectFileError`. |
+| `newProject()` | No discard question. Clears the undo history, as the button does. |
+| `loadText(text, filename?)` | Parses first: a malformed file leaves the open project untouched and throws `ProjectFileError`. Replaces the document, so the undo history goes with it. |
 | `setFilename(name)` | |
 
 Parsing refuses rather than repairs — unknown resources, duplicate ids, dangling
@@ -142,5 +144,6 @@ tree either way, and nothing here marks the file dirty.
 `isDirty()`, `getFilename()` and the status bar are React state and settle one
 frame after a write. `getPlan()` does not — it is read straight from the engine.
 
-There is no undo but `toText()` + `loadText()`, and no batching: you already have
-a script, and a loop is cheaper than an API for it.
+Undo is the user's, not yours: `toText()` + `loadText()` is the rollback you can
+reason about. And there is no batching — you already have a script, and a loop is
+cheaper than an API for it.

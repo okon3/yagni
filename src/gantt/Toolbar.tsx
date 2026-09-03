@@ -7,9 +7,14 @@ export interface ToolbarProps {
   people: Resource[];
   /** Whose highlight is pinned, as opposed to borrowed by a hover. */
   pinned: string | null;
+  /** What the next undo would take back, or null when there is nothing to undo. */
+  undoing: string | null;
+  redoing: string | null;
   onNew(): void;
   onOpen(): void;
   onSave(): void;
+  onUndo(): void;
+  onRedo(): void;
   onAddTask(): void;
   onEditResources(): void;
   onEditCalendar(): void;
@@ -21,9 +26,13 @@ export function Toolbar({
   dirty,
   people,
   pinned,
+  undoing,
+  redoing,
   onNew,
   onOpen,
   onSave,
+  onUndo,
+  onRedo,
   onAddTask,
   onEditResources,
   onEditCalendar,
@@ -40,6 +49,32 @@ export function Toolbar({
         </button>
         <button type="button" onClick={onSave}>
           Salva
+        </button>
+      </div>
+      <div className="toolbar__group">
+        {/* The title names the step rather than only saying there is one: a
+            plan is edited from the grid, the bars, the dialogs and a script
+            alike, and a bare "Annulla" leaves the user guessing which of them
+            is about to be taken back. */}
+        <button
+          type="button"
+          className="toolbar__icon"
+          onClick={onUndo}
+          disabled={undoing === null}
+          aria-label={undoing ? `Annulla: ${undoing}` : 'Annulla modifica'}
+          title={undoing ? `Annulla: ${undoing} (Ctrl+Z)` : 'Niente da annullare'}
+        >
+          ↶
+        </button>
+        <button
+          type="button"
+          className="toolbar__icon"
+          onClick={onRedo}
+          disabled={redoing === null}
+          aria-label={redoing ? `Ripeti: ${redoing}` : 'Ripeti modifica'}
+          title={redoing ? `Ripeti: ${redoing} (Ctrl+Shift+Z)` : 'Niente da ripetere'}
+        >
+          ↷
         </button>
       </div>
       <div className="toolbar__group">

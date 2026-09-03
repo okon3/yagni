@@ -178,6 +178,13 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   created or moved under it is invisible. Set `$open` on the parent first.
 - **`gantt.addTask` returns the id it actually used**, which is not always the one
   supplied — the grid's `+` hands out a timestamp. Use the return value.
+- **One drag is reported twice**, as `onAfterTaskDrag` and `onAfterTaskUpdate`,
+  and by the time the second one arrives `applySolution` has already written the
+  *solved* start onto the row. Pulling `start_date` back in unconditionally
+  therefore turns a derived value into an input — the constraint creeps forward
+  to the scheduled date on its own, and the drag lands in the undo history twice,
+  the first Ctrl+Z appearing to do nothing. `pullFromView` accepts the row's
+  start only while it differs from the solved one.
 - **A link has to be refused in `onBeforeLinkAdd`.** By `onAfterLinkAdd`,
   `syncLinks()` has already written the predecessors into the model, so `solve()`
   throws inside the handler and leaves the project holding a schedule it cannot
@@ -218,6 +225,27 @@ nothing. Every guarded action then becomes a silent no-op: a deletion that never
 happens, a file that never opens. Ask through `ConfirmDialog` instead, which App
 owns and hands out as a promise; a nested `<dialog>` stacks correctly above the
 one that asked.
+
+## Undo and the draft
+
+`history.ts` holds whole-project snapshots (`serializeProject` text), and `App`
+records one **in the chart's `onChange`** — the single funnel every model change
+already goes through, from a dialog to a script. An edit path that does not end
+in `applySolution` is an edit outside the undo history: route it there rather
+than pushing a snapshot of its own.
+
+`dirty` is **derived**: the present snapshot against the text last saved. Do not
+reintroduce a `setDirty` — an edit that changes nothing then stops claiming it
+did, and undoing back to the saved state clears the marker.
+
+Restoring goes through `loadProject`, which is also how a file is opened; only
+the viewport handling differs, and the zoom survives because it lives in the
+extension rather than in the data.
+
+The autosaved draft is read at the **first render**, not in an effect: the effect
+that keeps storage in step clears it as soon as nothing is unsaved, which on
+mount is the case. And it must not clear while the question about it is on
+screen — until it is answered, storage holds the only copy of that work.
 
 ## File format
 

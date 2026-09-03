@@ -261,6 +261,47 @@ left untouched when a file fails to load.
 The current version is **2**. Version 1 files still load: their `daysOff` are read
 as availability overrides at zero, which is what they always meant.
 
+## Not losing work
+
+Every change to the model is undoable: <kbd>Ctrl</kbd>+<kbd>Z</kbd>, and
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> or <kbd>Ctrl</kbd>+<kbd>Y</kbd>
+forward again, plus the two arrows in the toolbar — greyed when there is nothing
+to take back, and each naming the step it would take: *Annulla: eliminazione di
+«Requisiti»*. The shortcuts stay out of the way of a field being edited and of an
+open dialog, where those keys belong to whatever holds the focus.
+
+A step is a **whole-project snapshot** — the same text a file holds, restored
+through the same path a file takes. A log of commands with an inverse each would
+have to describe every way the project can change, a drag, an inline edit, a
+dialog and a script alike, and would silently miss the next one added; an undo
+that skips an edit is worse than no undo. A plan is a few kilobytes of JSON, so
+fifty of them cost nothing, and coverage becomes a property of the code rather
+than a list to keep up to date: the chart reports every model change through one
+callback, and the snapshot is taken there.
+
+Opening a file or starting a new project **clears the history**, and keeps the
+discard question it already asked. A Ctrl+Z that resurrected the previous project
+over the one just opened would not be an undo but a different file appearing in
+the window.
+
+What is restored is the same plan seen from the same place: the zoom level, the
+scroll position and the selected row survive it. The filename, the unsaved marker
+and the task count are read back out of the restored project rather than assumed,
+and *unsaved* is the difference between what is on screen and what was last
+saved — so undoing back to the saved state clears the marker instead of leaving
+it on for the rest of the session.
+
+Unsaved work also survives the tab. The plan is written to `localStorage` a
+second after it stops changing, and a reload **asks** before taking it back —
+*Riprendo la bozza non salvata di «progetto.gantt» (ieri 18:42)?* Never
+silently: a file opened from disk would otherwise come back as something that is
+neither the file nor what was last on screen. Only the current project is kept,
+never the stack, which would spend the origin's whole quota on states nobody
+asked to survive a reload; a storage that refuses the write drops what is in
+there instead, since a draft older than the plan on screen is worse than none.
+The draft goes on save and on a new project, and while anything is unsaved the
+browser's own question guards a reload.
+
 ## Driving it from a script
 
 `window.yagni` reads the solved plan and edits it without going through the grid
@@ -269,7 +310,7 @@ in production too: there is no backend and no secret in the page.
 
 ```js
 yagni.help();                                    // the whole surface, as Markdown
-const before = yagni.toText();                   // the only undo there is
+const before = yagni.toText();                   // a snapshot of its own
 const id = yagni.addTask({ name: 'Analisi', nominalDays: 5, resourceId: 'r1' });
 yagni.getPlan().tasks;                           // tree order, dates as text
 yagni.loadText(before);                          // changed my mind
@@ -280,6 +321,12 @@ two places, and it departs from them in exactly three ways: nothing is confirmed
 (a `<dialog>` awaiting a click would hang a script, so `removeResource` takes
 `{ releaseTasks: true }` instead of asking), errors throw rather than returning
 silently, and patches are partial.
+
+`undo` and `redo` are deliberately not on it. A script's writes land on the same
+stack as anybody else's, so Ctrl+Z steps back through them without an API for
+it, and a script that wants to roll back its own move already has `toText()` and
+`loadText()` — which is the more useful primitive anyway, being a snapshot the
+script chose rather than whatever step happens to be on top.
 
 `yagni.help()` and `/llms.txt` are the same file served two ways:
 [`src/gantt/agentApi.help.md`](src/gantt/agentApi.help.md), which a Vite plugin
@@ -303,6 +350,6 @@ they document the semantics above, including the invariant that the sum of
 
 ## Not implemented
 
-Resource View with a load histogram, undo/redo, CSV/Excel import-export, several
-resources on one task, and per-task fixed or capped allocation — the extension point
-for the last one is `src/scheduler/allocation.ts`.
+Resource View with a load histogram, CSV/Excel import-export, several resources on
+one task, and per-task fixed or capped allocation — the extension point for the
+last one is `src/scheduler/allocation.ts`.

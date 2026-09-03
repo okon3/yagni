@@ -15,15 +15,45 @@ import { PROJECT_EXTENSION, downloadText, pickTextFile } from './gantt/files';
 import { DEFAULT_CALENDAR } from './scheduler';
 import { emptyProject } from './gantt/project';
 import { ProjectFileError, deserializeProject, serializeProject } from './gantt/serialization';
+import {
+  historyOf,
+  recordedChange,
+  redoLabel,
+  redone,
+  undoLabel,
+  undone,
+  type History,
+} from './gantt/history';
+import {
+  DRAFT_DELAY,
+  clearDraft,
+  draftQuestion,
+  localDraftStorage,
+  readDraft,
+  writeDraft,
+  type Draft,
+} from './gantt/draft';
+import { keystrokeIsCaptured } from './gantt/shortcuts';
 import './App.css';
 
 const DEFAULT_FILENAME = `progetto${PROJECT_EXTENSION}`;
 const initialProject = emptyProject();
+const initialText = serializeProject(initialProject);
+const draftStore = localDraftStorage();
 
 export default function App() {
   const chart = useRef<GanttHandle>(null);
   const [filename, setFilename] = useState(DEFAULT_FILENAME);
-  const [dirty, setDirty] = useState(false);
+  const [history, setHistory] = useState<History>(() => historyOf(initialText));
+  // The project as it was last written to a file, or null when it never was.
+  // Dirty is the difference between that and the present, so undoing back to
+  // the saved state clears the dot instead of leaving it on for good.
+  const [savedText, setSavedText] = useState<string | null>(initialText);
+  const dirty = history.present.text !== savedText;
+  // Read at the first render rather than in an effect: the effect that keeps
+  // the draft in step with the plan clears it as soon as nothing is unsaved,
+  // which on mount is the case.
+  const [pendingDraft, setPendingDraft] = useState<Draft | null>(() => readDraft(draftStore));
   const [error, setError] = useState<string | null>(null);
   const [taskCount, setTaskCount] = useState(initialProject.tasks.length);
   const [dragging, setDragging] = useState(false);
@@ -92,19 +122,6 @@ export default function App() {
     [ask, dirty],
   );
 
-  const adopt = useCallback(
-    (text: string, name: string) => {
-      // Parse before loading: a malformed file must leave the open project alone.
-      const parsed = deserializeProject(text);
-      chart.current?.loadProject(parsed);
-      setFilename(name);
-      setDirty(false);
-      setError(null);
-      syncFromChart();
-    },
-    [syncFromChart],
-  );
-
   const reportFailure = useCallback((cause: unknown) => {
     setError(
       cause instanceof ProjectFileError
@@ -113,14 +130,88 @@ export default function App() {
     );
   }, []);
 
+  // Mirrored in a ref because two changes can land before React re-renders, and
+  // the second one would then record on top of a history it cannot see.
+  const historyRef = useRef(history);
+  const commitHistory = useCallback((next: History) => {
+    historyRef.current = next;
+    setHistory(next);
+  }, []);
+
+  /**
+   * Takes a project on, from a file or from the draft, as the state to undo
+   * back to.
+   *
+   * Opening a document resets the history rather than stacking onto it: a
+   * Ctrl+Z that resurrected the previous project over the one just opened would
+   * be a different file appearing in the window, and the discard question has
+   * already drawn that boundary. `neverSaved` is the draft's case: work that
+   * has never been written anywhere cannot arrive clean.
+   */
+  const adopt = useCallback(
+    (text: string, name: string, options?: { neverSaved?: boolean }) => {
+      // Parse before loading: a malformed file must leave the open project alone.
+      const parsed = deserializeProject(text);
+      chart.current?.loadProject(parsed);
+      // Canonical rather than the file's own bytes: the history holds what the
+      // project serialises to, so that comparing it against the present is
+      // comparing like with like — a version 1 file is not written back as one.
+      const canonical = serializeProject(parsed);
+      commitHistory(historyOf(canonical));
+      setSavedText(options?.neverSaved ? null : canonical);
+      setFilename(name);
+      setError(null);
+      syncFromChart();
+    },
+    [commitHistory, syncFromChart],
+  );
+
   /** Everything the New button does except ask. The agent API takes it as is. */
   const reset = useCallback(() => {
-    chart.current?.loadProject(emptyProject());
+    const fresh = emptyProject();
+    chart.current?.loadProject(fresh);
+    const text = serializeProject(fresh);
+    commitHistory(historyOf(text));
+    setSavedText(text);
     setFilename(DEFAULT_FILENAME);
-    setDirty(false);
     setError(null);
     syncFromChart();
-  }, [syncFromChart]);
+  }, [commitHistory, syncFromChart]);
+
+  /**
+   * One snapshot per change, taken wherever the chart says the model moved.
+   *
+   * `onChange` is the single funnel: a dialog save, a bar dragged, an inline
+   * edit, a link drawn and every write on `window.yagni` all reach it through
+   * `applySolution`. Recording here rather than at each call site is what makes
+   * the coverage a property of the code instead of a list to keep up to date.
+   */
+  const registerChange = useCallback(() => {
+    const project = chart.current?.getProject();
+    if (!project) return;
+    commitHistory(recordedChange(historyRef.current, project));
+  }, [commitHistory]);
+
+  const travel = useCallback(
+    (step: (from: History) => History) => {
+      const next = step(historyRef.current);
+      if (next === historyRef.current) return;
+      try {
+        // The same path a file takes, so a restored state can only be one the
+        // app could have loaded in the first place.
+        chart.current?.loadProject(deserializeProject(next.present.text), {
+          keepViewport: true,
+        });
+      } catch (cause) {
+        reportFailure(cause);
+        return;
+      }
+      commitHistory(next);
+      setError(null);
+      syncFromChart();
+    },
+    [commitHistory, reportFailure, syncFromChart],
+  );
 
   const handleNew = useCallback(async () => {
     if (!(await confirmDiscard())) return;
@@ -141,8 +232,9 @@ export default function App() {
   const handleSave = useCallback(() => {
     const project = chart.current?.getProject();
     if (!project) return;
-    downloadText(filename, serializeProject(project));
-    setDirty(false);
+    const text = serializeProject(project);
+    downloadText(filename, text);
+    setSavedText(text);
   }, [filename]);
 
   const handleAddTask = useCallback(() => {
@@ -162,7 +254,6 @@ export default function App() {
       if (!openTask) return;
       chart.current?.updateTask(openTask.details.id, patch);
       setOpenTask(null);
-      setDirty(true);
     },
     [openTask],
   );
@@ -185,7 +276,6 @@ export default function App() {
       }
       handle.deleteTask(id);
       setOpenTask(null);
-      setDirty(true);
       syncFromChart();
     },
     [ask, syncFromChart],
@@ -212,14 +302,90 @@ export default function App() {
   const saveCalendar = useCallback((calendar: CalendarSpec) => {
     chart.current?.setCalendar(calendar);
     setCalendarOpen(false);
-    setDirty(true);
   }, []);
 
   const saveResources = useCallback((resources: Resource[], releasedIds: string[]) => {
     chart.current?.setResources(resources, releasedIds);
     setResourcesOpen(false);
-    setDirty(true);
   }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      const key = event.key.toLowerCase();
+      const redoing = key === 'y' || (key === 'z' && event.shiftKey);
+      if (key !== 'z' && !redoing) return;
+      // Inside a grid editor or a dialog field, Ctrl+Z is the field's own.
+      if (keystrokeIsCaptured()) return;
+      event.preventDefault();
+      travel(redoing ? redone : undone);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [travel]);
+
+  // The browser's own question, which is the only one that can still be asked
+  // once the page is going away.
+  useEffect(() => {
+    if (!dirty) return;
+    const guard = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      // Safari and older Chrome still need the legacy property to show it.
+      event.returnValue = true;
+    };
+    window.addEventListener('beforeunload', guard);
+    return () => window.removeEventListener('beforeunload', guard);
+  }, [dirty]);
+
+  /**
+   * The unsaved plan, kept in local storage a moment after it stops moving.
+   *
+   * `history.present.text` is the project as it is now, so nothing is
+   * serialised again here — and the debounce is what keeps a drag from writing
+   * a hundred times. Only the present is persisted, never the stack: fifty
+   * copies of a project would spend the origin's whole quota on states nobody
+   * asked to keep across a reload.
+   *
+   * A clean project needs no draft, which covers Save, Open and New in one
+   * rule rather than three call sites.
+   */
+  useEffect(() => {
+    // While the question is still on screen, what is in storage is the only
+    // copy of that work — clearing it there and then would lose it to a reload,
+    // which is the very thing this exists to prevent.
+    if (pendingDraft) return;
+    if (!dirty) {
+      clearDraft(draftStore);
+      return;
+    }
+    const timer = setTimeout(
+      () => writeDraft(draftStore, { filename, text: history.present.text, savedAt: Date.now() }),
+      DRAFT_DELAY,
+    );
+    return () => clearTimeout(timer);
+  }, [dirty, filename, history, pendingDraft]);
+
+  // Asked once, and never in StrictMode's second pass: the question is a
+  // promise, and a second one would leave the first waiting for an answer that
+  // now belongs to the dialog on screen.
+  const draftAsked = useRef(false);
+  useEffect(() => {
+    if (!pendingDraft || draftAsked.current) return;
+    draftAsked.current = true;
+    void (async () => {
+      const resume = await ask(draftQuestion(pendingDraft, new Date()), 'Riprendi');
+      try {
+        if (resume) adopt(pendingDraft.text, pendingDraft.filename, { neverSaved: true });
+        else clearDraft(draftStore);
+      } catch (cause) {
+        reportFailure(cause);
+        clearDraft(draftStore);
+      } finally {
+        // Releases the autosave, which holds off until the draft is settled.
+        setPendingDraft(null);
+      }
+    })();
+  }, [adopt, ask, pendingDraft, reportFailure]);
 
   // The scripting surface mounts here rather than in the chart: filename, dirty
   // and the task count are this component's state, and every write has to leave
@@ -322,9 +488,13 @@ export default function App() {
           dirty={dirty}
           people={people}
           pinned={pinnedResource}
+          undoing={undoLabel(history)}
+          redoing={redoLabel(history)}
           onNew={() => void handleNew()}
           onOpen={() => void handleOpen()}
           onSave={handleSave}
+          onUndo={() => travel(undone)}
+          onRedo={() => travel(redone)}
           onAddTask={handleAddTask}
           onEditResources={openResources}
           onEditCalendar={openCalendar}
@@ -354,8 +524,8 @@ export default function App() {
           project={initialProject}
           highlighted={hoveredResource ?? pinnedResource}
           onChange={() => {
-            setDirty(true);
             syncFromChart();
+            registerChange();
           }}
           onOpenTask={openTaskDetails}
           onDeleteTask={(id) => void requestDelete(id)}

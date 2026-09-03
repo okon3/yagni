@@ -149,6 +149,27 @@
   background: var(--line);
 }
 
+/* Kept in place and greyed rather than hidden: a control that comes and goes
+   moves everything beside it, and the toolbar wraps. */
+.toolbar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.toolbar button:disabled:hover {
+  background: none;
+  color: var(--ink-muted);
+}
+
+/* The arrows carry no text, so they need the width a label would have given
+   them to stay a comfortable target. Two classes deep, or `font: inherit` on
+   every toolbar button outranks the size. */
+.toolbar .toolbar__icon {
+  min-width: 30px;
+  font-size: 15px;
+  line-height: 1;
+}
+
 .toolbar__primary {
   background: var(--accent) !important;
   color: #fff !important;

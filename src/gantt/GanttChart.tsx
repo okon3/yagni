@@ -13,6 +13,7 @@ import {
   type Project,
   type SolvedProject,
 } from './project';
+import { keystrokeIsCaptured } from './shortcuts';
 import type { TaskDetails, TaskPatch } from './TaskDialog';
 import './gantt.css';
 
@@ -207,11 +208,22 @@ export interface NewTask {
   parentId?: string;
 }
 
+export interface LoadOptions {
+  /**
+   * Keeps the scroll position and the selected row.
+   *
+   * What undo restores is the same project seen from the same place. Opening a
+   * file is the opposite case: there the viewport belongs to the plan that was
+   * on screen a moment ago and means nothing for the one arriving.
+   */
+  keepViewport?: boolean;
+}
+
 export interface GanttHandle {
   getProject(): Project;
   /** The solved schedule behind what is on screen. */
   getSolved(): SolvedProject;
-  loadProject(project: Project): void;
+  loadProject(project: Project, options?: LoadOptions): void;
   /** Null when the row has meanwhile been deleted. */
   getTaskDetails(id: string): TaskDetails | null;
   updateTask(id: string, patch: TaskPatch): void;
@@ -314,6 +326,18 @@ function resourceSelectOptions(resources: Resource[]) {
     { key: '', label: '—' },
     ...resources.map((resource) => ({ key: resource.id, label: resource.name })),
   ];
+}
+
+/**
+ * Re-arms the resource cell's editor with the people the project now has.
+ *
+ * The select captured its options when the columns were configured, so anyone
+ * who arrives later — through the dialog, a script, or an undo that brings them
+ * back — is missing from the grid's dropdown until this runs.
+ */
+function refreshResourceOptions(resources: Resource[]): void {
+  const column = gantt.config.columns?.find((entry) => entry.name === 'resource_id');
+  if (column?.editor) column.editor.options = resourceSelectOptions(resources);
 }
 
 /**
@@ -471,14 +495,25 @@ export function GanttChart({
     [],
   );
 
-  const loadProject = useCallback((next: Project) => {
+  const loadProject = useCallback((next: Project, options?: LoadOptions) => {
+    // clearAll drops the selection and sends the timeline back to where the
+    // plan starts, which for an undo would mean losing the row and the week the
+    // user was looking at. The zoom level survives on its own: it lives in the
+    // extension rather than in the data.
+    const scroll = options?.keepViewport ? gantt.getScrollState() : undefined;
+    const selected = options?.keepViewport ? gantt.getSelectedId() : undefined;
     applyingRef.current = true;
     projectRef.current = next;
     solvedRef.current = solve(next);
     gantt.clearAll();
     gantt.parse(toGanttData(next, solvedRef.current));
+    refreshResourceOptions(next.resources);
     fitRangeToPlan(solvedRef.current.schedule);
     applyingRef.current = false;
+    // After the render, or fitRangeToPlan would scroll back over it.
+    if (scroll) gantt.scrollTo(scroll.x, scroll.y);
+    // The row may be one of those the undone change had created.
+    if (selected && gantt.isTaskExists(selected)) gantt.selectTask(selected);
   }, []);
 
   useImperativeHandle(
@@ -543,10 +578,7 @@ export function GanttChart({
         for (const task of projectRef.current.tasks) {
           if (task.resourceId && released.has(task.resourceId)) task.resourceId = undefined;
         }
-        // The select editor captured its options when the columns were configured,
-        // so a new person stays invisible in the grid until they are replaced.
-        const column = gantt.config.columns?.find((entry) => entry.name === 'resource_id');
-        if (column?.editor) column.editor.options = resourceSelectOptions(resources);
+        refreshResourceOptions(resources);
         applySolution();
       },
       getCalendar: () => projectRef.current.calendar,
@@ -966,7 +998,15 @@ export function GanttChart({
       // so writing them back would overwrite the user's leaf data with derived
       // figures the moment dhtmlx refreshes the parent row.
       if (solvedRef.current.summaryIds.has(task.id)) return;
-      task.start = new Date(ganttTask.start_date as Date);
+      // The row is drawn at the start the engine computed, which can be later
+      // than the constraint the user set — a bar dropped on a Sunday is drawn
+      // on the Monday. Reading that back would turn a derived value into an
+      // input, and dhtmlx reports one drag twice: the second report arrives
+      // after the solved start has been written onto the row, so it would move
+      // the constraint on its own and cost a second, invisible undo step.
+      const shown = new Date(ganttTask.start_date as Date);
+      const scheduled = solvedRef.current.schedule.tasks.get(task.id);
+      if (!scheduled || shown.getTime() !== scheduled.start.getTime()) task.start = shown;
       task.resourceId = (ganttTask.resource_id as string | undefined) || undefined;
       const nominal = Number(ganttTask.nominal_days);
       if (Number.isFinite(nominal) && nominal >= 0) task.nominalDays = nominal;
@@ -1036,23 +1076,13 @@ export function GanttChart({
     // delegates on $grid, inside this container, so bubble gets there second.
     container.addEventListener('click', selectRow);
 
-    // Del on the selected row. On the document rather than the container: with
+    // Del on the selected row, on the document rather than the container: with
     // keyboard navigation dhtmlx moves focus around its own cells, and a key
     // that only works when focus happens to sit inside the chart reads as
-    // broken. What the guards protect is the two cases where Del means
-    // something else — a field being edited, and a modal holding the focus.
+    // broken.
     const deleteSelected = (event: KeyboardEvent) => {
       if (event.key !== 'Delete') return;
-      const active = document.activeElement;
-      if (
-        active instanceof HTMLInputElement ||
-        active instanceof HTMLTextAreaElement ||
-        active instanceof HTMLSelectElement ||
-        active?.getAttribute('contenteditable') === 'true'
-      ) {
-        return;
-      }
-      if (document.querySelector('dialog[open]')) return;
+      if (keystrokeIsCaptured()) return;
       const selected = gantt.getSelectedId();
       if (!selected || !gantt.isTaskExists(selected)) return;
       event.preventDefault();
