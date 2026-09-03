@@ -231,6 +231,17 @@ export class WorkingCalendar {
     return this.isWorkingDay(dayIndexOf(date));
   }
 
+  /**
+   * Whether this date falls inside a company shutdown.
+   *
+   * Only the closures that actually cost a working day: one landing on a weekend
+   * was dropped from the axis, and the view shades it as the weekend it is.
+   */
+  isShutdownDate(date: Date): boolean {
+    const day = dayIndexOf(date);
+    return countBelow(this.holidays, day + 1) !== countBelow(this.holidays, day);
+  }
+
   /** Convenience for callers that think in days, such as duration columns. */
   daysToMinutes(days: number): number {
     return days * this.minutesPerDay;

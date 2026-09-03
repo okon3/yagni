@@ -29,6 +29,12 @@ export function dayIndexOfString(day: string): number {
   return Math.floor(Date.UTC(year, month - 1, date) / MS_PER_DAY);
 }
 
+/** Local midnight of the day an index denotes: the inverse of `dayIndexOf`. */
+export function dateOfDay(index: number): Date {
+  const utc = new Date(index * MS_PER_DAY);
+  return new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate());
+}
+
 export function dayStringOf(index: number): string {
   const utc = new Date(index * MS_PER_DAY);
   const pad = (value: number) => String(value).padStart(2, '0');

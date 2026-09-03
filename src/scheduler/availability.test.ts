@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { availabilityOnDay } from './availability';
 import { DEFAULT_CALENDAR, WorkingCalendar } from './calendar';
+import { dayIndexOfString } from './dayRange';
 import { schedule } from './simulate';
 import type { CalendarSpec } from './calendar';
 import type { Resource, Task } from './types';
@@ -348,5 +350,69 @@ describe('isWorkingDate', () => {
   // The time of day is irrelevant: a working day is a whole calendar day.
   it('ignores the time of day', () => {
     expect(calendar().isWorkingDate(day(0, 23))).toBe(true);
+  });
+});
+
+describe('isShutdownDate', () => {
+  const calendar = (spec: CalendarSpec = DEFAULT_CALENDAR) => new WorkingCalendar(MONDAY, spec);
+
+  it('tells a shutdown apart from an ordinary working day', () => {
+    const subject = calendar({
+      ...DEFAULT_CALENDAR,
+      holidays: [{ from: '2026-09-09', to: '2026-09-10' }],
+    });
+    expect(subject.isShutdownDate(day(1))).toBe(false);
+    expect(subject.isShutdownDate(day(2))).toBe(true);
+    expect(subject.isShutdownDate(day(3))).toBe(true);
+  });
+
+  // The weekend already costs the day, so the closure over it is not a second
+  // reason: the timeline shades it as the weekend it is.
+  it('ignores a closure that falls on a weekend', () => {
+    const subject = calendar({
+      ...DEFAULT_CALENDAR,
+      holidays: [{ from: '2026-09-12', to: '2026-09-13' }],
+    });
+    expect(subject.isShutdownDate(day(5))).toBe(false);
+  });
+});
+
+describe('availabilityOnDay', () => {
+  const on = (resource: Resource, isoDay: string) =>
+    availabilityOnDay(resource, dayIndexOfString(isoDay));
+
+  it('falls back to the default outside every period', () => {
+    expect(on({ ...alice, availability: 0.5 }, '2026-09-07')).toBe(0.5);
+    expect(on(alice, '2026-09-07')).toBe(1);
+  });
+
+  it('replaces the default rather than scaling it', () => {
+    const resource: Resource = {
+      ...alice,
+      availability: 0.5,
+      availabilityOverrides: [{ from: '2026-09-08', to: '2026-09-09', availability: 0.25 }],
+    };
+    expect(on(resource, '2026-09-08')).toBe(0.25);
+    expect(on(resource, '2026-09-10')).toBe(0.5);
+  });
+
+  it('lets the last declared period win over an earlier one', () => {
+    const resource: Resource = {
+      ...alice,
+      availabilityOverrides: [
+        { from: '2026-09-07', to: '2026-09-11', availability: 0 },
+        { from: '2026-09-09', to: '2026-09-09', availability: 1 },
+      ],
+    };
+    expect(on(resource, '2026-09-08')).toBe(0);
+    expect(on(resource, '2026-09-09')).toBe(1);
+  });
+
+  it('tolerates a reversed period', () => {
+    const resource: Resource = {
+      ...alice,
+      availabilityOverrides: [{ from: '2026-09-11', to: '2026-09-09', availability: 0 }],
+    };
+    expect(on(resource, '2026-09-10')).toBe(0);
   });
 });

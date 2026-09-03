@@ -109,7 +109,19 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   after the rows are in the DOM; the today line listens to both.
 - **The data area is only as tall as the viewport** and scrolls its contents, so
   an overlay stretched to its edges stops at the first screenful.
-  `gantt.$task_bg` is the layer sized to hold every row.
+  `gantt.$task_bg` is the layer sized to hold every row — its *height*, not its
+  contents: dhtmlx rewrites the innards of `$task_bg` and `$bars_area` on every
+  render, so an element of ours put inside either one is gone by the next one.
+  `$task_data` is the stable parent, and its children paint in DOM order: before
+  `$bars_area` is under the bars, after it is over them.
+- **The timeline range is computed at render time, and nowhere else.**
+  `refreshData` redraws the bars from the model but never the scales, so a task
+  whose dates fall outside the current range is simply not drawn — an empty chart
+  with the row present in the grid. On top of that `zoomToFit` pins the range in
+  `config.start_date` / `config.end_date`, and from then on the pin outranks the
+  data: clearing both is part of widening the window. `fitRangeToPlan` does this,
+  and is deliberately not `fit_tasks`, which honours the same pin and so misses
+  exactly the case that matters.
 - **A zoom level too fine for the project silently crops it.** `zoomToFit` picks
   the coarsest level that fits and then clamps the range, anchored at the end,
   and smart rendering does not draw a row whose bar falls outside that range —
@@ -120,7 +132,9 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
 - **`gantt.templates.scale_cell_class` no longer exists** — dropped in v6, and it
   still compiles. A class on a scale cell goes through `css` on the scale itself
   (`gantt.config.scales` / a zoom level's `scales`). `timeline_cell_class` is
-  still live.
+  still live, but it can only shade a whole cell: above day scale one cell spans
+  working and non-working days alike, which is why non-working time is drawn as
+  bands positioned with `posFromDate` instead.
 - **A bar with no colour falls back to dhtmlx's own blue, not ours.** Setting
   `--dhx-gantt-task-background` in a rule fixes the default without breaking a
   task that carries a colour: dhtmlx sets that variable inline, which outranks

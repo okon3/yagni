@@ -70,14 +70,50 @@
   border-right: 1px solid var(--line);
 }
 
-/* Non-working days: the calendar decides, so weekends, a four-day week and a
-   company shutdown all read the same way. */
-.gantt_task_cell.gantt-cell--off {
-  background: var(--surface-sunken);
+/* Bands over the timeline for the time nobody works, positioned in pixels so
+   they survive above day scale, where one cell spans working and non-working
+   days alike.
+
+   Grey for a non-working day, the calendar's business, so a weekend and a
+   four-day week read the same way. Red for time off: a company shutdown across
+   every row, a person's absence only on the rows assigned to them — the same
+   shading for both, because the reason the bar cannot progress is the same one,
+   and which row it is on says whose. */
+.gantt-bands {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
-/* Sits above the bars on purpose — a line hidden behind them would disappear
-   exactly where the chart is busiest — so it stays thin and semi-transparent. */
+.gantt-bands__nonworking,
+.gantt-bands__timeoff,
+.gantt-bands__hatch {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Translucent, so the column lines it covers still show through: a weekend is
+   background, and background does not hide the grid. */
+.gantt-bands__nonworking {
+  background: color-mix(in srgb, var(--line-strong) 55%, transparent);
+}
+
+.gantt-bands__timeoff {
+  background: var(--danger-soft);
+}
+
+/* Time off is painted twice, the tint above under the bars and the hatch here
+   over them: a bar crossing an absence has to show both its own colour and the
+   reason it is stretched, and one opaque band above it could only show one of
+   the two. The bars carry no z-index of their own, so 1 is enough. */
+.gantt-bands__hatch {
+  z-index: 1;
+  background: repeating-linear-gradient(45deg, transparent 0 4px, var(--danger-line) 4px 6px);
+}
+
+/* Sits above the bars and the time-off hatch on purpose — a line hidden behind
+   them would disappear exactly where the chart is busiest — so it stays thin and
+   semi-transparent. */
 .gantt-today {
   position: absolute;
   top: 0;
@@ -86,6 +122,7 @@
   background: var(--today);
   opacity: 0.55;
   pointer-events: none;
+  z-index: 2;
 }
 
 /* Marks the cell holding today at every zoom level: the day at day scale, the

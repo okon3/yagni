@@ -2,7 +2,8 @@ import { useCallback, useEffect, useImperativeHandle, useRef, type Ref } from 'r
 import { gantt, type ZoomLevel } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { isShared, renderSegments } from './segmentBar';
-import type { CalendarSpec, Resource, ScheduledTask } from '../scheduler';
+import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges } from '../scheduler';
+import type { CalendarSpec, DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
 import { DEFAULT_BAR_COLOR, avatarColorOf } from './colors';
 import {
   effectiveColorOf,
@@ -17,6 +18,25 @@ import './gantt.css';
 
 /** dhtmlx link type for finish-to-start. */
 const FINISH_TO_START = '0';
+
+/**
+ * Pixels below which a run of non-working days is left unshaded.
+ *
+ * A weekend is 7px wide once a column is a month, and a chart striped with
+ * hairlines on every column is noise rather than information — while a weekend
+ * is ambient regularity nobody zooms out to hunt for. The threshold is on the
+ * width rather than on the zoom level, so it follows the calendar: a three-day
+ * working week measures 13px at the same scale, where half the chart being
+ * unworked is exactly what one wants to see, and comes back on its own.
+ *
+ * It is compared against one pixels-per-day for the whole timeline, never
+ * against a band's own width, or bands of the same length would disagree from
+ * one column to the next.
+ *
+ * Time off has no such floor. A shutdown or an absence is a span the plan turns
+ * on, so it must survive any zoom, however few pixels it gets.
+ */
+const MIN_NONWORKING_BAND = 10;
 
 const dayMonth = new Intl.DateTimeFormat('it-IT', {
   day: '2-digit',
@@ -279,6 +299,58 @@ function resourceSelectOptions(resources: Resource[]) {
   ];
 }
 
+/**
+ * Widens the timeline until it holds the whole plan, and does nothing when it
+ * already does.
+ *
+ * dhtmlx computes the range at render time only, and `zoomToFit` pins it in
+ * `config.start_date` / `config.end_date`, where it outranks the data from then
+ * on. A plan that grows past the range is then not drawn at all — smart
+ * rendering skips a row whose bar falls outside it — which showed as an empty
+ * chart twice over: after the first task added to a fresh project, whose range
+ * is three days around today, and after opening a file while the range was
+ * pinned by Adatta. `refreshData` redraws the bars but never the scales, hence
+ * the render, and only when the plan no longer fits: `render()` is the whole
+ * chart, on every edit.
+ */
+function fitRangeToPlan(schedule: Schedule): void {
+  // An empty project has nothing to fit, and its start still resolves to a date.
+  if (schedule.tasks.size === 0) return;
+  const { min_date: from, max_date: to } = gantt.getState();
+  const covered =
+    from instanceof Date &&
+    to instanceof Date &&
+    schedule.projectStart >= from &&
+    schedule.projectEnd <= to;
+  if (covered) return;
+  gantt.config.start_date = undefined;
+  gantt.config.end_date = undefined;
+  gantt.render();
+}
+
+/**
+ * The days that `matches` accepts, as merged inclusive runs of day indices —
+ * one band to draw per run rather than one per day.
+ */
+function runsOf(days: number[], matches: (day: number) => boolean): [number, number][] {
+  const runs: [number, number][] = [];
+  for (const day of days) {
+    if (!matches(day)) continue;
+    const last = runs[runs.length - 1];
+    if (last && last[1] === day - 1) last[1] = day;
+    else runs.push([day, day]);
+  }
+  return runs;
+}
+
+/** Ascending day indices of `ranges`, which may overlap and need not be sorted. */
+function daysOf(ranges: DayRange[] | undefined): number[] {
+  return [...expandRanges(ranges)].sort((a, b) => a - b);
+}
+
+const daysBetween = (from: number, to: number): number[] =>
+  Array.from({ length: Math.max(to - from + 1, 0) }, (_, offset) => from + offset);
+
 function nextTaskId(project: Project): string {
   const highest = project.tasks.reduce((max, task) => {
     const numeric = Number(task.id);
@@ -349,6 +421,7 @@ export function GanttChart({
       // refreshData redraws from the mutated task objects without firing the
       // update events that would bounce straight back into this function.
       gantt.refreshData();
+      fitRangeToPlan(solved.schedule);
       applyingRef.current = false;
       if (notify) changeRef.current?.();
     },
@@ -365,6 +438,7 @@ export function GanttChart({
     solvedRef.current = solve(next);
     gantt.clearAll();
     gantt.parse(toGanttData(next, solvedRef.current));
+    fitRangeToPlan(solvedRef.current.schedule);
     applyingRef.current = false;
   }, []);
 
@@ -646,15 +720,6 @@ export function GanttChart({
     };
     gantt.templates.rightside_text = (_start, _end, task) => escapeHtml(String(task.text ?? ''));
 
-    // Weekends, shortened weeks and company shutdowns are all the calendar's
-    // business, so the shading asks it rather than re-deriving them here. Only
-    // meaningful while a cell is one day: at week or month scale a cell spans
-    // both working and non-working days, so nothing is shaded there.
-    gantt.templates.timeline_cell_class = (_task, date) => {
-      if (gantt.getScale()?.unit !== 'day') return '';
-      return solvedRef.current.calendar.isWorkingDate(date) ? '' : 'gantt-cell--off';
-    };
-
     // Before the zoom levels, two of which are declared in quarters.
     registerQuarterUnit();
     gantt.ext.zoom.init({ levels: ZOOM_LEVELS, activeLevelIndex: 1, useKey: 'ctrlKey' });
@@ -688,6 +753,143 @@ export function GanttChart({
       todayLine.style.height = `${gantt.$task_bg.offsetHeight}px`;
     };
     placeTodayLine();
+
+    // Non-working time is drawn as bands positioned in pixels rather than as
+    // shaded timeline cells: above day scale a cell spans a whole week or month,
+    // so colouring it would claim days that are worked.
+    //
+    // Two layers, because time off needs a tint under the bars and a hatch over
+    // them - the day an absence is worth looking at is exactly the day a bar
+    // crosses it, and the bar must still show its own colour there. Both live
+    // in $task_data: dhtmlx rewrites the contents of $task_bg and $bars_area on
+    // every render, so nothing of ours may sit inside them.
+    const bandsBelow = document.createElement('div');
+    bandsBelow.className = 'gantt-bands';
+    gantt.$task_data.insertBefore(bandsBelow, gantt.$task_bg.nextSibling);
+    const bandsAbove = document.createElement('div');
+    bandsAbove.className = 'gantt-bands';
+    gantt.$task_data.appendChild(bandsAbove);
+
+    const paintBands = () => {
+      const { calendar } = solvedRef.current;
+      const { min_date: from, max_date: to } = gantt.getState();
+      if (!(from instanceof Date) || !(to instanceof Date)) return;
+      const firstDay = dayIndexOf(from);
+      // max_date is the far edge of the last column, so the last day drawn is
+      // the one before it.
+      const lastDay = dayIndexOf(to) - 1;
+      type Band = {
+        left: number;
+        width: number;
+        top: number;
+        height: number;
+        kind: 'nonworking' | 'timeoff';
+      };
+      const bands: Band[] = [];
+      const addBands = (
+        runs: [number, number][],
+        top: number,
+        height: number,
+        kind: Band['kind'],
+        minDays = 0,
+      ) => {
+        for (const [runFrom, runTo] of runs) {
+          // Measured before clipping, so a weekend the range cuts in half is
+          // still judged as the weekend it is rather than as the sliver drawn.
+          if (runTo - runFrom + 1 < minDays) continue;
+          // Outside the rendered range posFromDate extrapolates, which would
+          // stretch the scrollable area, so a run is clipped to it instead.
+          const start = Math.max(runFrom, firstDay);
+          const end = Math.min(runTo, lastDay);
+          if (end < start) continue;
+          const left = gantt.posFromDate(dateOfDay(start));
+          bands.push({
+            left,
+            width: gantt.posFromDate(dateOfDay(end + 1)) - left,
+            top,
+            height,
+            kind,
+          });
+        }
+      };
+
+      // The data area is only as tall as the viewport and scrolls its contents;
+      // the background layer is the one dhtmlx sizes to hold every row.
+      const fullHeight = gantt.$task_bg.offsetHeight;
+
+      // The threshold becomes a number of days once, off a single
+      // pixels-per-day for the whole range. Measuring each band on its own put
+      // the same weekend on either side of the threshold from one month to the
+      // next — a month column is one width but holds 28 to 31 days — and the
+      // chart showed bands blinking in and out along its length.
+      const spanDays = lastDay - firstDay + 1;
+      const dayWidth =
+        spanDays > 0
+          ? (gantt.posFromDate(dateOfDay(lastDay + 1)) - gantt.posFromDate(dateOfDay(firstDay))) /
+            spanDays
+          : 0;
+      addBands(
+        runsOf(daysBetween(firstDay, lastDay), (day) => {
+          const date = dateOfDay(day);
+          // A shutdown is not a working day either, and gets the louder band.
+          return !calendar.isWorkingDate(date) && !calendar.isShutdownDate(date);
+        }),
+        0,
+        fullHeight,
+        'nonworking',
+        dayWidth > 0 ? MIN_NONWORKING_BAND / dayWidth : Infinity,
+      );
+
+      addBands(
+        runsOf(daysOf(projectRef.current.calendar.holidays), (day) =>
+          calendar.isShutdownDate(dateOfDay(day)),
+        ),
+        0,
+        fullHeight,
+        'timeoff',
+      );
+
+      const awayByResource = new Map<string, [number, number][]>();
+      for (const resource of projectRef.current.resources) {
+        // Only a working day the person cannot work at all. Reduced availability
+        // is a rate rather than time off, and reads in the allocation profile.
+        const away = runsOf(
+          daysOf(resource.availabilityOverrides),
+          (day) => availabilityOnDay(resource, day) === 0 && calendar.isWorkingDate(dateOfDay(day)),
+        );
+        if (away.length > 0) awayByResource.set(resource.id, away);
+      }
+      const rowHeight = Number(gantt.config.row_height) || 0;
+      for (const task of projectRef.current.tasks) {
+        const away = task.resourceId ? awayByResource.get(task.resourceId) : undefined;
+        // A summary is never scheduled, so nobody is away on its row: the leaves
+        // underneath carry the assignment.
+        if (!away || solvedRef.current.summaryIds.has(task.id)) continue;
+        // A row inside a collapsed branch has no place on the chart, and asking
+        // for its top would put a band on whichever row happens to be there.
+        if (!gantt.isTaskExists(task.id) || !gantt.isTaskVisible(task.id)) continue;
+        addBands(away, gantt.getTaskTop(task.id), rowHeight, 'timeoff');
+      }
+
+      const element = (band: Band, className: string) => {
+        const div = document.createElement('div');
+        div.className = className;
+        div.style.left = `${band.left}px`;
+        div.style.width = `${band.width}px`;
+        div.style.top = `${band.top}px`;
+        div.style.height = `${band.height}px`;
+        return div;
+      };
+      bandsBelow.replaceChildren(
+        ...bands.map((band) => element(band, `gantt-bands__${band.kind}`)),
+      );
+      bandsAbove.replaceChildren(
+        ...bands
+          .filter((band) => band.kind === 'timeoff')
+          .map((band) => element(band, 'gantt-bands__hatch')),
+      );
+    };
+    paintBands();
 
     const pullFromView = (id: string | number) => {
       const ganttTask = gantt.getTask(id);
@@ -795,12 +997,15 @@ export function GanttChart({
     const handlers = [
       gantt.attachEvent('onGanttRender', () => {
         placeTodayLine();
+        paintBands();
         return true;
       }, undefined),
-      // onGanttRender alone leaves the line a render behind: refreshData sizes
-      // the rows after it, and adding a task goes through refreshData.
+      // onGanttRender alone leaves the line and the bands a render behind:
+      // refreshData sizes the rows after it, and adding a task goes through
+      // refreshData.
       gantt.attachEvent('onDataRender', () => {
         placeTodayLine();
+        paintBands();
         return true;
       }, undefined),
       gantt.attachEvent('onTaskClick', (id, event) => {
@@ -914,6 +1119,8 @@ export function GanttChart({
     return () => {
       observer.disconnect();
       todayLine.remove();
+      bandsBelow.remove();
+      bandsAbove.remove();
       gantt.ext.zoom.detachEvent(zoomHandler);
       container.removeEventListener('dblclick', openEditor, true);
       container.removeEventListener('click', selectRow, true);

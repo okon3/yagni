@@ -1,4 +1,5 @@
 import { equalSplit, type AllocationPolicy } from './allocation';
+import { availabilityOnDay } from './availability';
 import { DEFAULT_CALENDAR, WorkingCalendar, type CalendarSpec } from './calendar';
 import { expandRanges } from './dayRange';
 import { assertAcyclic, buildSuccessorIndex } from './topology';
@@ -67,6 +68,10 @@ export function schedule(
   /**
    * Availability overrides projected onto the working-minute axis.
    *
+   * Every day any override touches is resolved once, so overlapping periods
+   * become a single disjoint interval each and the query below has no ordering
+   * rule of its own to get wrong.
+   *
    * Days that are not working days collapse to the same coordinate, so a period
    * falling entirely on a weekend or inside a company shutdown becomes a
    * zero-width interval and correctly costs nothing.
@@ -75,19 +80,17 @@ export function schedule(
   const capacityEdges: number[] = [];
   for (const resource of resources) {
     const intervals: { from: number; to: number; availability: number }[] = [];
-    for (const override of resource.availabilityOverrides ?? []) {
-      const days = [...expandRanges([override])].sort((a, b) => a - b);
-      for (const day of days) {
-        const from = calendar.dayStartInWorkingMinutes(day);
-        const to = calendar.dayStartInWorkingMinutes(day + 1);
-        if (to <= from) continue;
-        const availability = Math.max(0, override.availability);
-        // Consecutive days at the same rate merge into one interval, keeping the
-        // event list short for a two-week period.
-        const last = intervals[intervals.length - 1];
-        if (last && last.to === from && last.availability === availability) last.to = to;
-        else intervals.push({ from, to, availability });
-      }
+    const days = [...expandRanges(resource.availabilityOverrides)].sort((a, b) => a - b);
+    for (const day of days) {
+      const from = calendar.dayStartInWorkingMinutes(day);
+      const to = calendar.dayStartInWorkingMinutes(day + 1);
+      if (to <= from) continue;
+      const availability = availabilityOnDay(resource, day);
+      // Consecutive days at the same rate merge into one interval, keeping the
+      // event list short for a two-week period.
+      const last = intervals[intervals.length - 1];
+      if (last && last.to === from && last.availability === availability) last.to = to;
+      else intervals.push({ from, to, availability });
     }
     if (intervals.length === 0) continue;
     overrides.set(resource.id, intervals);
@@ -98,13 +101,10 @@ export function schedule(
   const capacityAt = (resourceId: ResourceId, at: number): number => {
     const resource = resourceById.get(resourceId);
     if (!resource) return 0;
-    // Last match wins, so a narrow exception declared after a broad period takes
-    // precedence over it.
-    const covering = (overrides.get(resourceId) ?? []).filter(
+    const covering = (overrides.get(resourceId) ?? []).find(
       (interval) => at >= interval.from && at < interval.to,
     );
-    if (covering.length > 0) return covering[covering.length - 1].availability;
-    return resource.availability ?? 1;
+    return covering ? covering.availability : resource.availability ?? 1;
   };
 
   const nextCapacityEdge = (after: number): number | undefined =>

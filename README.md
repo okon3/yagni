@@ -88,7 +88,13 @@ period at zero **pauses** every task sharing that person without redistributing
 their share, and appears as a gap in the allocation profile.
 
 A period falling on a weekend or inside a shutdown costs nothing, and the UI says
-so rather than leaving the user wondering why no date moved.
+so rather than leaving the user wondering why no date moved. A day covered by both
+a shutdown and an absence is shaded as the shutdown, which is the reason that
+already accounts for it.
+
+Both the simulation and the timeline shading resolve a person's capacity for a
+given day through the same function, or the chart could show an absence the
+schedule does not honour.
 
 What is still global is the **working week and the daily hours**: one person cannot
 have different working hours from another. That would break the shared axis and
@@ -127,6 +133,16 @@ fell outside, with no scrollbar to suggest anything was missing. A fifth level
 with quarter columns carries a multi-year plan; quarters are a custom scale unit,
 since dhtmlx ships none.
 
+Not drawing what falls outside the range is also why **the timeline is widened
+whenever the plan no longer fits it**. dhtmlx works out the range when it renders,
+and Adatta pins it in the configuration, where it then outranks the data — so the
+first task added to a fresh project, whose range is three days around today, and a
+file opened while Adatta's range was still pinned, both left an empty chart with
+the row sitting in the grid. The window now grows to hold the plan, at whatever
+zoom is showing, and only when it has to: a redraw of the whole chart on every
+edit is not worth it. It only ever grows — a plan that shrinks leaves the window
+where it was, and Adatta is what tightens it again.
+
 The grid carries the **inputs** and nothing else: name, resource, effort and start.
 Duration and end date are derived, so they live in the per-row details dialog behind
 the button at the end of the row, together with progress and colour — a computed
@@ -143,13 +159,46 @@ allocation profile, and a one-day bar has no room for a name anyway.
 
 Today is a vertical line, exact at every zoom level, plus a pill on the scale cell
 holding it — the day at day scale, the week at month scale, the month at quarter
-scale. Non-working days are shaded instead only while a timeline cell is one day
-wide, since at week or month scale a single cell spans working and non-working
-days alike. The calendar answers which days those are, so a four-day week and a
-company shutdown shade the same way as a weekend.
+scale.
+
+The time nobody works is shaded in two registers. **Non-working days** are grey and
+strictly background: the calendar answers which days those are, so a four-day week
+shades the same way as a weekend. Days when **nobody works although the calendar
+says they should** are red instead — a company shutdown across every row, a
+person's absence only on the rows assigned to them, the same shading for both,
+and which row it is on says whose day off it is. Only a period at zero counts as
+time off; reduced availability is a rate, and it reads in the allocation profile
+instead.
+
+Both are bands positioned in pixels rather than shaded cells, which is what makes
+them survive the coarser scales: a band covers the exact span at every zoom level,
+down to a few pixels for a week of leave seen at quarter scale. Time off is painted
+twice, the tint under the bars and the hatch over them, because a bar crossing an
+absence has to show both its own colour and the reason it is stretched.
+
+Non-working days are the one thing that can be dropped, and the test is **width**,
+not the zoom level: below ten pixels a band reads as a hairline, and a chart striped
+with hairlines on every column is noise rather than information — which is fair,
+since a weekend is ambient regularity nobody zooms out to look for. Being geometric,
+the test follows the calendar on its own: a weekend measures 7px once a column is a
+month and disappears, while a three-day working week measures 13px at the very same
+scale and stays, which is exactly where half the calendar being unworked is worth
+seeing. Time off has no such floor — a span the plan turns on must not vanish on
+zooming out.
+
+The width compared against the threshold is **one pixels-per-day for the whole
+timeline** times the length of the run in days, never the band's own width. A month
+column is one width but holds 28 to 31 days, so measuring each band on its own put
+the same weekend on either side of the threshold from one month to the next, and the
+chart showed bands blinking in and out along its length as the viewport changed
+size. The run is also measured before it is clipped to the rendered range, so a
+weekend the range cuts in half is judged as the weekend it is rather than as the
+sliver drawn.
 
 The allocation profile is drawn as a single SVG path inside the bar — `addTaskLayer`,
-the natural mechanism for it, is a PRO feature.
+the natural mechanism for it and for the time-off bands, is a PRO feature. Both
+place their own elements instead, and in the data area rather than inside the
+layers dhtmlx rewrites on every render.
 
 ## File format
 
