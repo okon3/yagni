@@ -680,6 +680,13 @@
   font-weight: 600;
 }
 
+/* The grid's own axis, kept on the grid's side of the bar: collapsing rows is
+   to the tree what zooming is to the timeline, and neither is an edit. */
+.statusbar__rows {
+  display: flex;
+  gap: 2px;
+}
+
 .statusbar__zoom {
   display: flex;
   gap: 2px;

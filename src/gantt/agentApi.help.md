@@ -128,8 +128,14 @@ version.
 ## Navigation
 
 `select(id)`, `reveal(id)`, `zoomIn()`, `zoomOut()`, `zoomToFit()`,
-`showToday()`. Not plan data: they exist so the user's eye lands where the script
-is talking about, and so a screenshot of it is legible.
+`collapseAll()`, `expandAll()`, `showToday()`. Not plan data: they exist so the
+user's eye lands where the script is talking about, and so a screenshot of it is
+legible.
+
+A collapsed branch is drawn as its summary alone, so `collapseAll()` is how a
+deep plan fits in one screenshot and `expandAll()` is what makes every row
+readable in the grid. Neither changes the plan: `getPlan()` returns the whole
+tree either way, and nothing here marks the file dirty.
 
 ## Two things that will bite
 

@@ -91,6 +91,8 @@ export interface AgentApi {
   zoomIn(): void;
   zoomOut(): void;
   zoomToFit(): void;
+  collapseAll(): void;
+  expandAll(): void;
   showToday(): void;
 }
 
@@ -306,6 +308,8 @@ export function createAgentApi(host: AgentHost): AgentApi {
     zoomIn: () => chart().zoomIn(),
     zoomOut: () => chart().zoomOut(),
     zoomToFit: () => chart().zoomToFit(),
+    collapseAll: () => chart().collapseAll(),
+    expandAll: () => chart().expandAll(),
     showToday: () => chart().scrollToToday(),
   };
 }

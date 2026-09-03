@@ -313,6 +313,8 @@ export default function App() {
       <StatusBar
         taskCount={taskCount}
         scale={scale}
+        onCollapseAll={() => chart.current?.collapseAll()}
+        onExpandAll={() => chart.current?.expandAll()}
         onToday={() => chart.current?.scrollToToday()}
         onZoomIn={() => chart.current?.zoomIn()}
         onZoomOut={() => chart.current?.zoomOut()}

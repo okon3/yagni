@@ -2,6 +2,8 @@ export interface StatusBarProps {
   taskCount: number;
   /** Label of the active zoom level, already localised by the chart. */
   scale: string;
+  onCollapseAll(): void;
+  onExpandAll(): void;
   onToday(): void;
   onZoomIn(): void;
   onZoomOut(): void;
@@ -11,6 +13,8 @@ export interface StatusBarProps {
 export function StatusBar({
   taskCount,
   scale,
+  onCollapseAll,
+  onExpandAll,
   onToday,
   onZoomIn,
   onZoomOut,
@@ -19,6 +23,14 @@ export function StatusBar({
   return (
     <footer className="statusbar">
       <span>{taskCount} attività</span>
+      <div className="statusbar__rows">
+        <button type="button" onClick={onCollapseAll} title="Comprimi tutte le attività">
+          Comprimi
+        </button>
+        <button type="button" onClick={onExpandAll} title="Espandi tutte le attività">
+          Espandi
+        </button>
+      </div>
       {/* An agent reads the page text and the accessibility tree before it reads
           anything else, so the scripting surface has to be named there. */}
       <span className="statusbar__agent">

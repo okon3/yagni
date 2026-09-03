@@ -225,6 +225,9 @@ export interface GanttHandle {
   zoomIn(): void;
   zoomOut(): void;
   zoomToFit(): void;
+  /** Collapses every branch of the grid. View state only: the project is untouched. */
+  collapseAll(): void;
+  expandAll(): void;
   scrollToToday(): void;
 }
 
@@ -325,6 +328,24 @@ function fitRangeToPlan(schedule: Schedule): void {
   if (covered) return;
   gantt.config.start_date = undefined;
   gantt.config.end_date = undefined;
+  gantt.render();
+}
+
+/**
+ * Opens or closes every branch in one go.
+ *
+ * The whole tree is rewritten before a single redraw: `gantt.open` and
+ * `gantt.close` each redraw on their own, which on a deep plan is one render
+ * per row. `render` rather than `refreshData` because the row count changes —
+ * it is what dhtmlx itself runs when a single branch opens.
+ *
+ * Nothing here touches the project. An open branch is a property of the view,
+ * so this must not mark the file dirty.
+ */
+function setEveryBranchOpen(open: boolean): void {
+  gantt.eachTask((task) => {
+    task.$open = open;
+  });
   gantt.render();
 }
 
@@ -588,6 +609,8 @@ export function GanttChart({
       zoomIn: () => gantt.ext.zoom.zoomIn(),
       zoomOut: () => gantt.ext.zoom.zoomOut(),
       zoomToFit: () => gantt.ext.zoom.zoomToFit(),
+      collapseAll: () => setEveryBranchOpen(false),
+      expandAll: () => setEveryBranchOpen(true),
       scrollToToday: () => gantt.showDate(new Date()),
     }),
     [applySolution, loadProject],
