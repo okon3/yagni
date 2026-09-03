@@ -313,7 +313,7 @@
 }
 
 .empty__card {
-  max-width: 620px;
+  max-width: 460px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 24px 28px;
@@ -327,70 +327,194 @@
 }
 
 .empty__lead {
-  margin: 0 0 18px;
+  margin: 0 0 20px;
   font-size: 13px;
   line-height: 1.55;
   color: var(--ink-muted);
 }
 
-.empty__steps {
-  margin: 0 0 20px;
-  padding-left: 20px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--ink-muted);
-}
-
-.empty__steps li {
-  margin-bottom: 9px;
-}
-
-.empty__steps span {
-  margin-left: 2px;
-}
-
-/* Inline buttons that read as part of the sentence. */
-.empty__action {
-  font: inherit;
-  font-weight: 600;
-  padding: 2px 8px;
-  margin-right: 2px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  background: var(--surface-sunken);
-  color: var(--accent-strong);
-  cursor: pointer;
-}
-
-.empty__action:hover {
-  background: var(--accent-soft);
-  border-color: var(--line-strong);
-}
-
-.empty__open {
+.empty__actions {
   display: flex;
-  align-items: center;
   gap: 10px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
-  color: var(--ink-muted);
 }
 
-.empty__primary {
+.empty__primary,
+.empty__secondary {
   font: inherit;
+  font-size: 13px;
   font-weight: 600;
-  padding: 7px 14px;
-  border: 1px solid var(--accent-strong);
-  border-radius: 4px;
-  background: var(--accent);
-  color: #fff;
+  padding: 9px 16px;
+  border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
 }
 
+.empty__primary {
+  border: 1px solid var(--accent-strong);
+  background: var(--accent);
+  color: #fff;
+}
+
 .empty__primary:hover {
   background: var(--accent-strong);
+}
+
+.empty__secondary {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.empty__secondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.empty__note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.empty__note code {
+  font-size: 11px;
+}
+
+/* A link rather than a third button: it explains the app, it does not start it. */
+.empty__help {
+  margin-top: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.empty__help:hover {
+  color: var(--accent);
+}
+
+/* Wider than the other dialogs and scrollable: this one is read, not filled in,
+   and the diagram needs the room. */
+.help {
+  max-width: 720px;
+  max-height: 82vh;
+  overflow: auto;
+}
+
+.help .resources__hint {
+  max-width: none;
+}
+
+.help__section {
+  margin-top: 16px;
+}
+
+.help__section h3 {
+  margin: 0 0 5px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.help__section p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+
+.help__figure {
+  margin: 10px 0 12px;
+  padding: 12px 14px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  /* White, not sunken: the pale part of a bar is #edf1f7, and on a grey card it
+     vanishes — leaving the profile's own outline reading as a stray box. */
+  background: var(--surface);
+}
+
+.help__diagram {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.help__caption {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+/* The same translucent grey the timeline bands use, so a weekend reads the same
+   here as it does on the chart. */
+.help__weekend {
+  fill: color-mix(in srgb, var(--line-strong) 55%, transparent);
+}
+
+.help__gridline {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.help__day {
+  font-size: 10px;
+  fill: var(--ink-faint);
+}
+
+.help__rowname {
+  font-size: 11px;
+  fill: var(--ink-muted);
+}
+
+.help__avatar {
+  font-size: 9px;
+  font-weight: 650;
+  fill: #fff;
+}
+
+.help__pct {
+  font-size: 10px;
+  font-weight: 600;
+  fill: #fff;
+}
+
+.help__span {
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+  fill: none;
+}
+
+.help__spanlabel {
+  font-size: 10px;
+  fill: var(--ink-muted);
+}
+
+/* Always in the same place, whatever the toolbar does: it sits outside it, so a
+   plan with twenty people cannot push it onto a second line. */
+.app__help {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.app__help:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
 }
 
 .calendar {

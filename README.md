@@ -200,6 +200,26 @@ the natural mechanism for it and for the time-off bands, is a PRO feature. Both
 place their own elements instead, and in the data area rather than inside the
 layers dhtmlx rewrites on every render.
 
+## Explaining it in the app
+
+The one thing this Gantt shows that an ordinary one does not is a bar whose fill
+rises and falls, and nobody guesses what that means on their own. A help dialog says
+it, reachable from the `?` in the header and from the empty state — the two moments
+someone goes looking: in front of a plan they cannot read, and in front of nothing
+at all.
+
+Its diagram is **drawn rather than screenshotted**. A screenshot would be a binary
+in the repository that goes stale on the first change of a colour or a radius, and
+it could not be as legible either: the real chart carries a grid, a scale and a
+toolbar that are all noise to the point being made. The SVG uses the geometry
+`segmentBar.ts` computes and the colours `gantt.css` sets, and pairs the profile
+with the only comparison that matters — five days of effort against eight days of
+calendar.
+
+The empty state used to carry that explanation itself, as a numbered list. It was
+read once, by somebody who had not yet seen a bar, and from then on it stood between
+that person and the two things they actually needed: a first task, or a file.
+
 ## File format
 
 Projects are saved as `.gantt` (JSON). Open them from the toolbar or by dragging the

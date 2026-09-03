@@ -5,6 +5,7 @@ import { COLOR_OPTIONS } from './gantt/colors';
 import { CalendarDialog } from './gantt/CalendarDialog';
 import { ConfirmDialog } from './gantt/ConfirmDialog';
 import { EmptyState } from './gantt/EmptyState';
+import { HelpDialog } from './gantt/HelpDialog';
 import { ResourceDialog } from './gantt/ResourceDialog';
 import { TaskDialog, type TaskDetails, type TaskPatch } from './gantt/TaskDialog';
 import { createAgentApi } from './gantt/agentApi';
@@ -28,6 +29,7 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(INITIAL_SCALE_LABEL);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   // One question at a time, held with the promise that is waiting on it.
   const [question, setQuestion] = useState<{
     message: string;
@@ -279,6 +281,16 @@ export default function App() {
           onEditResources={openResources}
           onEditCalendar={openCalendar}
         />
+        {/* Outside the toolbar so it keeps its place when the avatars wrap. */}
+        <button
+          type="button"
+          className="app__help"
+          title="Come funziona"
+          aria-label="Come funziona"
+          onClick={() => setHelpOpen(true)}
+        >
+          ?
+        </button>
       </header>
 
       {error && (
@@ -304,7 +316,7 @@ export default function App() {
           <EmptyState
             onAddTask={handleAddTask}
             onOpen={() => void handleOpen()}
-            onEditResources={openResources}
+            onHelp={() => setHelpOpen(true)}
           />
         )}
         {dragging && <div className="app__dropzone">Rilascia il file .gantt per aprirlo</div>}
@@ -331,6 +343,8 @@ export default function App() {
           onSave={saveResources}
         />
       )}
+
+      {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
 
       {calendarOpen && (
         <CalendarDialog
