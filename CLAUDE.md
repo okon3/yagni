@@ -104,6 +104,12 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
 - **A CSS rule beats an SVG presentation attribute.** The allocation profile's
   colour is an inline `style` on the path for this reason; a `fill` attribute
   would be overridden by any stylesheet rule.
+- **`onGanttRender` fires before `refreshData` has sized the rows**, so anything
+  measuring the chart's height from it is one render behind. `onDataRender` fires
+  after the rows are in the DOM; the today line listens to both.
+- **The data area is only as tall as the viewport** and scrolls its contents, so
+  an overlay stretched to its edges stops at the first screenful.
+  `gantt.$task_bg` is the layer sized to hold every row.
 - **`gantt.templates.scale_cell_class` no longer exists** — dropped in v6, and it
   still compiles. A class on a scale cell goes through `css` on the scale itself
   (`gantt.config.scales` / a zoom level's `scales`). `timeline_cell_class` is

@@ -76,18 +76,30 @@
   background: var(--surface-sunken);
 }
 
-.gantt_task_cell.gantt-cell--today {
-  background: rgb(59 111 224 / 5%);
-  box-shadow: inset 1px 0 0 var(--today);
+/* Sits above the bars on purpose — a line hidden behind them would disappear
+   exactly where the chart is busiest — so it stays thin and semi-transparent. */
+.gantt-today {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--today);
+  opacity: 0.55;
+  pointer-events: none;
 }
 
-/* The Community build has no marker extension — the package ships no
-   codebase/ext — so today is marked by styling its own scale cell. */
+/* Marks the cell holding today at every zoom level: the day at day scale, the
+   week at month scale, the month at quarter scale. */
 .gantt_task_scale .gantt_scale_cell.gantt-scale--today {
   background: var(--today);
   border-radius: var(--radius-pill);
   color: #fff;
   font-weight: 600;
+}
+
+.gantt_task_scale .gantt_scale_cell.gantt-scale--today-span {
+  color: var(--today);
+  font-weight: 650;
 }
 
 /* A task with no colour of its own must match the dot in its name cell, and

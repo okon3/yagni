@@ -121,9 +121,12 @@ the button at the end of the row, together with progress and colour — a comput
 figure in an editable-looking cell only invites an edit the engine discards.
 
 Task names sit **beside** their bar, never inside it: the inside belongs to the
-allocation profile, and a one-day bar has no room for a name anyway. Non-working
-days are shaded and today's column is marked, both only while a timeline cell is
-one day wide — at week or month scale a single cell spans working and non-working
+allocation profile, and a one-day bar has no room for a name anyway.
+
+Today is a vertical line, exact at every zoom level, plus a pill on the scale cell
+holding it — the day at day scale, the week at month scale, the month at quarter
+scale. Non-working days are shaded instead only while a timeline cell is one day
+wide, since at week or month scale a single cell spans working and non-working
 days alike. The calendar answers which days those are, so a four-day week and a
 company shutdown shade the same way as a weekend.
 

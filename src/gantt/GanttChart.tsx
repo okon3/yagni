@@ -35,15 +35,6 @@ function initialsOf(name: string): string {
   return (words.length > 1 ? first + words[words.length - 1][0] : first).toUpperCase();
 }
 
-function isToday(date: Date): boolean {
-  const now = new Date();
-  return (
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear()
-  );
-}
-
 /** dhtmlx inserts a column template as HTML, so a task name must be escaped. */
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"]/g, (character) => {
@@ -70,41 +61,55 @@ function shade(hex: string, factor = 0.72): string {
 }
 
 /**
- * Marks today's column in the scale header.
+ * Marks the scale cell holding today, whatever span that cell covers.
  *
- * `gantt.templates.scale_cell_class` was dropped in dhtmlx 6 and compiles to
- * nothing: from there on the scale itself carries the hook.
+ * A cell's own `css` hook only receives where the cell starts, so the span has
+ * to come from the scale it is declared on. `gantt.templates.scale_cell_class`
+ * would be the obvious place instead — it was dropped in dhtmlx 6 and still
+ * compiles to nothing.
  */
-const dayCss = (date: Date) => (isToday(date) ? 'gantt-scale--today' : '');
+const marksToday = (unit: string, step: number, className: string) => (date: Date) => {
+  const now = new Date();
+  return now >= date && now < gantt.date.add(date, step, unit) ? className : '';
+};
+
+/** The finest row of a scale: a filled pill on the exact cell. */
+const todayCell = (unit: string, step = 1) => marksToday(unit, step, 'gantt-scale--today');
+
+/**
+ * A coarser row above it: coloured text only. A filled pill on a week or a year
+ * paints a band across the whole header.
+ */
+const todaySpan = (unit: string, step = 1) => marksToday(unit, step, 'gantt-scale--today-span');
 
 const ZOOM_LEVELS: ZoomLevel[] = [
   {
     name: 'day',
     scale_height: 50,
-    scales: [{ unit: 'day', step: 1, format: '%d %M', css: dayCss }],
+    scales: [{ unit: 'day', step: 1, format: '%d %M', css: todayCell('day') }],
   },
   {
     name: 'week',
     scale_height: 50,
     scales: [
-      { unit: 'week', step: 1, format: 'Sett. %W' },
-      { unit: 'day', step: 1, format: '%d %M', css: dayCss },
+      { unit: 'week', step: 1, format: 'Sett. %W', css: todaySpan('week') },
+      { unit: 'day', step: 1, format: '%d %M', css: todayCell('day') },
     ],
   },
   {
     name: 'month',
     scale_height: 50,
     scales: [
-      { unit: 'month', step: 1, format: '%F %Y' },
-      { unit: 'week', step: 1, format: 'Sett. %W' },
+      { unit: 'month', step: 1, format: '%F %Y', css: todaySpan('month') },
+      { unit: 'week', step: 1, format: 'Sett. %W', css: todayCell('week') },
     ],
   },
   {
     name: 'quarter',
     scale_height: 50,
     scales: [
-      { unit: 'year', step: 1, format: '%Y' },
-      { unit: 'month', step: 1, format: '%M' },
+      { unit: 'year', step: 1, format: '%Y', css: todaySpan('year') },
+      { unit: 'month', step: 1, format: '%M', css: todayCell('month') },
     ],
   },
 ];
@@ -531,14 +536,10 @@ export function GanttChart({
     // Weekends, shortened weeks and company shutdowns are all the calendar's
     // business, so the shading asks it rather than re-deriving them here. Only
     // meaningful while a cell is one day: at week or month scale a cell spans
-    // both working and non-working days.
-    const dayScale = () => gantt.getScale()?.unit === 'day';
+    // both working and non-working days, so nothing is shaded there.
     gantt.templates.timeline_cell_class = (_task, date) => {
-      if (!dayScale()) return '';
-      const classes = [];
-      if (!solvedRef.current.calendar.isWorkingDate(date)) classes.push('gantt-cell--off');
-      if (isToday(date)) classes.push('gantt-cell--today');
-      return classes.join(' ');
+      if (gantt.getScale()?.unit !== 'day') return '';
+      return solvedRef.current.calendar.isWorkingDate(date) ? '' : 'gantt-cell--off';
     };
 
     gantt.ext.zoom.init({ levels: ZOOM_LEVELS, activeLevelIndex: 1, useKey: 'ctrlKey' });
@@ -548,6 +549,30 @@ export function GanttChart({
       scaleChangeRef.current?.(SCALE_LABELS[config.name ?? ''] ?? '');
     });
     gantt.init(container);
+
+    // Today as a line rather than a shaded column: a column means a whole month
+    // at month scale, while a line is exact at every zoom level. The marker
+    // extension would do this, but the Community package ships no codebase/ext.
+    // It lives inside the data area, which scrolls with the bars, so only a
+    // change of scale moves it.
+    const todayLine = document.createElement('div');
+    todayLine.className = 'gantt-today';
+    gantt.$task_data.appendChild(todayLine);
+    const placeTodayLine = () => {
+      const now = new Date();
+      const { min_date: from, max_date: to } = gantt.getState();
+      const visible = from instanceof Date && to instanceof Date && now >= from && now <= to;
+      todayLine.style.display = visible ? '' : 'none';
+      if (!visible) return;
+      // Outside the rendered range posFromDate extrapolates, which would put the
+      // line beyond the timeline and stretch the scrollable area.
+      todayLine.style.left = `${gantt.posFromDate(now)}px`;
+      // The data area is only as tall as the viewport and scrolls its contents,
+      // so a line stretched to its edges would stop at the first screenful. The
+      // background layer is the one dhtmlx sizes to hold every row.
+      todayLine.style.height = `${gantt.$task_bg.offsetHeight}px`;
+    };
+    placeTodayLine();
 
     const pullFromView = (id: string | number) => {
       const ganttTask = gantt.getTask(id);
@@ -617,6 +642,16 @@ export function GanttChart({
     container.addEventListener('dblclick', openEditor, true);
 
     const handlers = [
+      gantt.attachEvent('onGanttRender', () => {
+        placeTodayLine();
+        return true;
+      }, undefined),
+      // onGanttRender alone leaves the line a render behind: refreshData sizes
+      // the rows after it, and adding a task goes through refreshData.
+      gantt.attachEvent('onDataRender', () => {
+        placeTodayLine();
+        return true;
+      }, undefined),
       gantt.attachEvent('onTaskClick', (id, event) => {
         if (!(event?.target as HTMLElement | null)?.closest?.('[data-task-info]')) return true;
         openTaskRef.current?.(String(id));
@@ -717,8 +752,10 @@ export function GanttChart({
     const observer = new ResizeObserver(() => gantt.setSizes());
     observer.observe(container);
 
+
     return () => {
       observer.disconnect();
+      todayLine.remove();
       gantt.ext.zoom.detachEvent(zoomHandler);
       container.removeEventListener('dblclick', openEditor, true);
       handlers.forEach((handlerId) => gantt.detachEvent(handlerId));
