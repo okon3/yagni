@@ -313,24 +313,21 @@
 }
 
 .empty__card {
-  max-width: 460px;
+  /* A width of its own: with three short lines in it the card would otherwise
+     shrink to the widest of them and read as a tooltip rather than a start. */
+  width: 400px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 24px 28px;
+  border-radius: 10px;
+  padding: 28px 30px;
   background: #fff;
   box-shadow: 0 6px 24px rgb(28 36 48 / 8%);
 }
 
 .empty__card h2 {
-  font-size: 17px;
-  margin: 0 0 8px;
-}
-
-.empty__lead {
-  margin: 0 0 20px;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--ink-muted);
+  margin: 0 0 22px;
+  font-size: 19px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 
 .empty__actions {
@@ -382,7 +379,7 @@
 
 /* A link rather than a third button: it explains the app, it does not start it. */
 .empty__help {
-  margin-top: 16px;
+  margin-top: 20px;
   padding: 0;
   border: 0;
   background: none;

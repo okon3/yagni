@@ -1,10 +1,14 @@
 /**
  * What is on screen when there is no plan yet.
  *
- * Two ways in and one way to learn how it works. The instructions that used to
- * be here moved into the help dialog: they were read once, by someone who had
- * not yet seen a bar, and then stood between that person and the two buttons
- * they actually needed.
+ * Two ways in and one way to learn how it works. What used to be here — five
+ * numbered steps, then a paragraph on effort — moved into the help dialog: it
+ * was read once, by somebody who had not yet seen a bar, and from then on it
+ * stood between that person and the two buttons they actually came for.
+ *
+ * The heading says what the tool promises rather than what the screen contains.
+ * Naming the absence is the one thing somebody staring at an empty screen does
+ * not need told.
  */
 export function EmptyState({
   onAddTask,
@@ -18,12 +22,7 @@ export function EmptyState({
   return (
     <div className="empty">
       <div className="empty__card">
-        <h2>Un piano vuoto</h2>
-        <p className="empty__lead">
-          Dichiari l&apos;<strong>effort</strong> e da quando un&apos;attività può partire. La data
-          di fine la calcola il motore, tenendo conto di chi ci lavora e di cos&apos;altro sta
-          facendo nello stesso momento.
-        </p>
+        <h2>Dai l&apos;effort, la fine la calcola lui</h2>
 
         <div className="empty__actions">
           <button type="button" className="empty__primary" onClick={onAddTask}>
