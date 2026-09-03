@@ -196,6 +196,12 @@ It departs from the buttons in exactly three ways, each because a script cannot
 do what a person does: nothing is confirmed (a `<dialog>` awaiting a click would
 hang it), errors throw instead of returning silently, and patches are partial.
 
+Not everything the buttons do belongs on the surface. The test is reach, not
+parity: expose an operation when a script cannot reach the same outcome by
+composing what is already there, and leave it out when it is a shortcut for a
+sequence an agent can already write. Either way the surface only exists as far as
+`agentApi.help.md` describes it, so weigh that file on every change that moves it.
+
 `yagni.help()` and `/llms.txt` are one file — `agentApi.help.md`, imported with
 `?raw` and emitted by a Vite plugin. Do not add a second copy.
 
@@ -237,7 +243,9 @@ neighbouring day.
 - Comments carry the *why* — non-obvious behaviour, or a deliberate deviation.
   Never the *what*, never the previous state of the code.
 - **One commit per completed, tested feature**, and the README goes in the *same*
-  commit — it documents the scheduling semantics and must not drift.
+  commit — it documents the scheduling semantics and must not drift. So does
+  `agentApi.help.md` when the commit moves the agent surface: it is all the
+  documentation an agent gets, and a stale one is worse than none.
 - Before committing: `npm test`, `npm run build`, `npm run lint` all clean.
 - Verify UI work in the browser, not by asserting it works. Several bugs here
   were only visible at runtime.
