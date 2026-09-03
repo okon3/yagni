@@ -154,6 +154,25 @@ extent is not on screen. Confirmations are dialogs of the app's own: an embedded
 browser suppresses `window.confirm`, which would turn every guarded action into a
 silent no-op.
 
+One person's work can be **highlighted**, and highlighting is not filtering: their
+rows, bars and links keep their opacity while the rest of the plan fades to a
+quarter of it. Nothing is hidden, because what one looks for is precisely how a
+person's work sits inside everyone else's — and a summary counts as theirs as soon
+as anyone below it is, so a highlighted leaf never hangs under a faded parent. A
+link is kept whenever either of its ends is theirs: what gates their work, and what
+their work gates, is part of reading it. The avatars in the toolbar pin a person
+until they are unpinned; hovering an avatar — there, or in the grid's resource
+column — borrows the highlight for as long as the pointer stays on it. Nothing is
+spared, the selected row included: one row left bright in somebody else's colour
+reads as part of the highlight rather than as a selection.
+
+That is a stylesheet rule rather than a class per highlighted row. Every row already
+carries one class per person working on it or anywhere below it, and highlighting
+someone injects a single rule that dims whatever does not carry theirs — so changing
+who is highlighted costs no redraw. Which matters twice over: dhtmlx rebuilds its
+rows on every redraw and would drop a class set by hand, and redrawing on hover
+would replace the very node the pointer is on.
+
 Task names sit **beside** their bar, never inside it: the inside belongs to the
 allocation profile, and a one-day bar has no room for a name anyway.
 

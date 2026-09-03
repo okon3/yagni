@@ -6,6 +6,7 @@ import {
   effectiveColorOf,
   emptyProject,
   rejectionForLink,
+  resourcesByTask,
   solve,
   subtreeOf,
   type Project,
@@ -307,5 +308,45 @@ describe('rejectionForLink', () => {
     const subject = project(tasks);
     rejectionForLink(subject, 'b', 'a');
     expect(subject.tasks.map((entry) => entry.predecessors)).toEqual([undefined, ['a']]);
+  });
+});
+
+describe('resourcesByTask', () => {
+  const owners = (tasks: ProjectTask[]) => {
+    const map = resourcesByTask(tasks, buildHierarchy(tasks));
+    return Object.fromEntries([...map].map(([id, ids]) => [id, [...ids].sort()]));
+  };
+
+  it('names nobody on a task with no resource', () => {
+    expect(owners([{ id: 'a', name: 'A', nominalDays: 1, start: at(0) }])).toEqual({});
+  });
+
+  it('carries a leaf up to every ancestor', () => {
+    expect(
+      owners([
+        { id: 'p', name: 'P', nominalDays: 0, start: at(0) },
+        { id: 'c', name: 'C', nominalDays: 0, start: at(0), parentId: 'p' },
+        { id: 'g', name: 'G', nominalDays: 1, start: at(0), parentId: 'c', resourceId: 'alice' },
+      ]),
+    ).toEqual({ p: ['alice'], c: ['alice'], g: ['alice'] });
+  });
+
+  it('collects everyone working under a summary', () => {
+    expect(
+      owners([
+        { id: 'p', name: 'P', nominalDays: 0, start: at(0) },
+        { id: 'a', name: 'A', nominalDays: 1, start: at(0), parentId: 'p', resourceId: 'alice' },
+        { id: 'b', name: 'B', nominalDays: 1, start: at(0), parentId: 'p', resourceId: 'bob' },
+      ]),
+    ).toEqual({ p: ['alice', 'bob'], a: ['alice'], b: ['bob'] });
+  });
+
+  it('ignores a resource left on a summary, as the rest of the model does', () => {
+    expect(
+      owners([
+        { id: 'p', name: 'P', nominalDays: 1, start: at(0), resourceId: 'bob' },
+        { id: 'c', name: 'C', nominalDays: 1, start: at(0), parentId: 'p', resourceId: 'alice' },
+      ]),
+    ).toEqual({ p: ['alice'], c: ['alice'] });
   });
 });

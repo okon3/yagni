@@ -1,6 +1,21 @@
 .gantt-host {
   position: absolute;
   inset: 0;
+
+  /* How faint the rest of the plan goes while one person is highlighted. Read
+     by a rule the chart injects, which is what names the classes to spare: they
+     are one per person and cannot be written here. Faint enough to read as
+     background at a glance, opaque enough that the plan stays legible — the
+     point is to highlight, not to filter rows out of sight. */
+  --gantt-dimmed: 0.24;
+}
+
+/* Rows, bars and links follow the highlight instead of blinking into it: a
+   pointer sweeping the avatars would otherwise flash the whole chart. */
+.gantt-host .gantt_row,
+.gantt-host .gantt_task_line,
+.gantt-host .gantt_task_link {
+  transition: opacity 140ms ease;
 }
 
 /* dhtmlx ships its own font stack and its own greys. Everything in this block

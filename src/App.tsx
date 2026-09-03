@@ -30,6 +30,11 @@ export default function App() {
   const [scale, setScale] = useState(INITIAL_SCALE_LABEL);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [people, setPeople] = useState<Resource[]>(initialProject.resources);
+  // Two sources for one highlight: the toolbar pins a person until they are
+  // unpinned, an avatar under the pointer borrows it for as long as it is there.
+  const [pinnedResource, setPinnedResource] = useState<string | null>(null);
+  const [hoveredResource, setHoveredResource] = useState<string | null>(null);
   // One question at a time, held with the promise that is waiting on it.
   const [question, setQuestion] = useState<{
     message: string;
@@ -50,8 +55,22 @@ export default function App() {
     taskCounts: Map<string, number>;
   }>({ resources: [], taskCounts: new Map() });
 
-  const syncCount = useCallback(() => {
-    setTaskCount(chart.current?.getProject().tasks.length ?? 0);
+  /**
+   * Pulls back out of the chart whatever the toolbar and the status bar show.
+   *
+   * The chart owns the project, so this runs after everything that can change
+   * it — a dialog, a drag, a script — rather than only where a person is edited.
+   * A pinned person who is no longer in the plan is dropped here: the file that
+   * was just opened knows nothing about them.
+   */
+  const syncFromChart = useCallback(() => {
+    const project = chart.current?.getProject();
+    setTaskCount(project?.tasks.length ?? 0);
+    const resources = project?.resources ?? [];
+    setPeople([...resources]);
+    setPinnedResource((pinned) =>
+      pinned && resources.some((resource) => resource.id === pinned) ? pinned : null,
+    );
   }, []);
 
   const ask = useCallback(
@@ -81,9 +100,9 @@ export default function App() {
       setFilename(name);
       setDirty(false);
       setError(null);
-      syncCount();
+      syncFromChart();
     },
-    [syncCount],
+    [syncFromChart],
   );
 
   const reportFailure = useCallback((cause: unknown) => {
@@ -100,8 +119,8 @@ export default function App() {
     setFilename(DEFAULT_FILENAME);
     setDirty(false);
     setError(null);
-    syncCount();
-  }, [syncCount]);
+    syncFromChart();
+  }, [syncFromChart]);
 
   const handleNew = useCallback(async () => {
     if (!(await confirmDiscard())) return;
@@ -128,8 +147,8 @@ export default function App() {
 
   const handleAddTask = useCallback(() => {
     chart.current?.addTask();
-    syncCount();
-  }, [syncCount]);
+    syncFromChart();
+  }, [syncFromChart]);
 
   const openTaskDetails = useCallback((id: string) => {
     const handle = chart.current;
@@ -167,9 +186,9 @@ export default function App() {
       handle.deleteTask(id);
       setOpenTask(null);
       setDirty(true);
-      syncCount();
+      syncFromChart();
     },
-    [ask, syncCount],
+    [ask, syncFromChart],
   );
 
   const openResources = useCallback(() => {
@@ -229,6 +248,33 @@ export default function App() {
     );
   }, []);
 
+  /**
+   * The highlight follows the pointer over any avatar, in the grid or in the
+   * toolbar.
+   *
+   * One document-wide listener rather than handlers on the avatars themselves:
+   * React synthesises the enter of the element being entered while the mouseout
+   * of the one being left is still dispatching, so a handler that cleared the
+   * highlight on the way out would land after the one that set it and win. A
+   * single mouseover cannot disagree with itself — whatever the pointer is on
+   * now is the answer, which also heals a stale hover as soon as the pointer
+   * moves, and dhtmlx does replace the node under it whenever it redraws a row.
+   */
+  useEffect(() => {
+    const track = (event: MouseEvent) => {
+      const avatar = (event.target as HTMLElement | null)?.closest?.('[data-resource-id]');
+      setHoveredResource(avatar?.getAttribute('data-resource-id') ?? null);
+    };
+    // No mouseover fires for a pointer that has left the window altogether.
+    const clear = () => setHoveredResource(null);
+    document.addEventListener('mouseover', track);
+    document.documentElement.addEventListener('mouseleave', clear);
+    return () => {
+      document.removeEventListener('mouseover', track);
+      document.documentElement.removeEventListener('mouseleave', clear);
+    };
+  }, []);
+
   const onDragOver = (event: DragEvent<HTMLElement>) => {
     // Without preventDefault the browser refuses the drop and opens the file.
     event.preventDefault();
@@ -274,12 +320,15 @@ export default function App() {
         <Toolbar
           filename={filename}
           dirty={dirty}
+          people={people}
+          pinned={pinnedResource}
           onNew={() => void handleNew()}
           onOpen={() => void handleOpen()}
           onSave={handleSave}
           onAddTask={handleAddTask}
           onEditResources={openResources}
           onEditCalendar={openCalendar}
+          onHighlight={setPinnedResource}
         />
         {/* Outside the toolbar so it keeps its place when the avatars wrap. */}
         <button
@@ -303,9 +352,10 @@ export default function App() {
         <GanttChart
           ref={chart}
           project={initialProject}
+          highlighted={hoveredResource ?? pinnedResource}
           onChange={() => {
             setDirty(true);
-            syncCount();
+            syncFromChart();
           }}
           onOpenTask={openTaskDetails}
           onDeleteTask={(id) => void requestDelete(id)}

@@ -114,6 +114,12 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   render, so an element of ours put inside either one is gone by the next one.
   `$task_data` is the stable parent, and its children paint in DOM order: before
   `$bars_area` is under the bars, after it is over them.
+- **A class written onto a row by hand does not survive a redraw.** dhtmlx
+  rebuilds the grid rows and the bars on `refreshData`, so a class of ours has to
+  come from a template — which is why every row carries one per person working on
+  it or below it, and highlighting someone is a single injected stylesheet rule.
+  Doing it through a re-render would also replace the node the pointer is on, and
+  the pointer would then have to move before anything fired again.
 - **The timeline range is computed at render time, and nowhere else.**
   `refreshData` redraws the bars from the model but never the scales, so a task
   whose dates fall outside the current range is simply not drawn — an empty chart

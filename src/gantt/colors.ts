@@ -36,3 +36,11 @@ export function avatarColorOf(name: string): string {
   }
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
+
+/** Up to two initials, so "Marta Rossi" reads as MR and "Marta" as M. */
+export function initialsOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '?';
+  const first = words[0][0];
+  return (words.length > 1 ? first + words[words.length - 1][0] : first).toUpperCase();
+}

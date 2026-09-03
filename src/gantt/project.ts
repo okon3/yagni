@@ -43,6 +43,8 @@ export interface SolvedProject {
   /** Ids of tasks that have children, whose figures are derived. */
   summaryIds: Set<string>;
   hierarchy: Hierarchy;
+  /** Who works on each task, a summary included. Absent when nobody does. */
+  resourcesByTask: Map<string, Set<string>>;
 }
 
 export class TaskCycleError extends Error {
@@ -151,6 +153,34 @@ export function effectiveColorOf(
   return tasks.find((task) => task.id === root)?.color || undefined;
 }
 
+/**
+ * The people working on each task, counting everything below a summary.
+ *
+ * A summary has no resource of its own — its figures roll up from the leaves —
+ * so it answers with whoever works inside it. Highlighting a person then keeps
+ * the branches their work sits in readable, instead of leaving a lit leaf under
+ * a faded parent.
+ */
+export function resourcesByTask(
+  tasks: ProjectTask[],
+  hierarchy: Hierarchy,
+): Map<string, Set<string>> {
+  const owners = new Map<string, Set<string>>();
+  const add = (taskId: string, resourceId: string) => {
+    const known = owners.get(taskId);
+    if (known) known.add(resourceId);
+    else owners.set(taskId, new Set([resourceId]));
+  };
+  for (const task of tasks) {
+    // A summary's own resourceId is ignored everywhere else, so it must not
+    // claim the row here either.
+    if (!task.resourceId || hierarchy.isSummary(task.id)) continue;
+    add(task.id, task.resourceId);
+    for (const ancestorId of hierarchy.ancestorsOf(task.id)) add(ancestorId, task.resourceId);
+  }
+  return owners;
+}
+
 function projectOrigin(tasks: ProjectTask[]): Date {
   return (
     tasks.reduce<Date | undefined>(
@@ -208,7 +238,13 @@ export function solve(project: Project): SolvedProject {
   );
 
   rollUp(project, hierarchy, result, calendar);
-  return { schedule: result, calendar, summaryIds, hierarchy };
+  return {
+    schedule: result,
+    calendar,
+    summaryIds,
+    hierarchy,
+    resourcesByTask: resourcesByTask(project.tasks, hierarchy),
+  };
 }
 
 /**

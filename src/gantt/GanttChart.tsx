@@ -4,7 +4,7 @@ import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { isShared, renderSegments } from './segmentBar';
 import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges } from '../scheduler';
 import type { CalendarSpec, DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
-import { DEFAULT_BAR_COLOR, avatarColorOf } from './colors';
+import { DEFAULT_BAR_COLOR, avatarColorOf, initialsOf } from './colors';
 import {
   effectiveColorOf,
   rejectionForLink,
@@ -48,19 +48,30 @@ const shortDate = (value: Date) => (value ? dayMonth.format(new Date(value)) : '
 /** Columns whose value a summary derives from its children. */
 const DERIVED_ON_SUMMARY = new Set(['nominal_days', 'resource_id', 'start_date']);
 
+/**
+ * A resource id as a class token, carried by every row, bar and link that
+ * person appears on.
+ *
+ * Ids come from the file and may hold anything, a space included, which would
+ * split into two class names. The escape is injective — the escape character
+ * escapes itself — so two people can never land on the same class.
+ */
+function resourceClass(id: string): string {
+  const safe = id.replace(/[^a-zA-Z0-9-]/g, (char) => `_${char.charCodeAt(0).toString(16)}_`);
+  return `gantt-res-${safe}`;
+}
+
+/** Class tokens for whoever works on the task, or anywhere below it. */
+function resourceClassesOf(solved: SolvedProject, id: string): string {
+  const owners = solved.resourcesByTask.get(id);
+  return owners ? [...owners].map(resourceClass).join(' ') : '';
+}
+
 const INFO_ICON =
   '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">' +
   '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
   '<circle cx="8" cy="4.6" r="0.95" fill="currentColor"/>' +
   '<rect x="7.25" y="6.7" width="1.5" height="4.9" rx="0.75" fill="currentColor"/></svg>';
-
-/** Up to two initials, so "Marta Rossi" reads as MR and "Marta" as M. */
-function initialsOf(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  const first = words[0][0];
-  return (words.length > 1 ? first + words[words.length - 1][0] : first).toUpperCase();
-}
 
 /** dhtmlx inserts a column template as HTML, so a task name must be escaped. */
 function escapeHtml(value: string): string {
@@ -259,6 +270,9 @@ function toGanttData(project: Project, solved: SolvedProject) {
         // pale on a shared task: there the colour belongs to the profile inside.
         color: barBackground(inherited, scheduled, summary),
         shared: scheduled ? isShared(scheduled) : false,
+        // Rendered on every row whether or not anyone is highlighted: the
+        // highlight is then one stylesheet rule away, with no redraw.
+        resource_classes: resourceClassesOf(solved, task.id),
       };
     }),
     links: project.tasks.flatMap((task) =>
@@ -382,6 +396,7 @@ function nextTaskId(project: Project): string {
 
 export function GanttChart({
   project,
+  highlighted,
   onChange,
   onOpenTask,
   onDeleteTask,
@@ -390,6 +405,8 @@ export function GanttChart({
   ref,
 }: {
   project: Project;
+  /** Whose work stays at full opacity while the rest of the plan fades. */
+  highlighted?: string | null;
   onChange?: () => void;
   onOpenTask?: (id: string) => void;
   /** Asked, not done: the confirmation belongs with the rest of the dialogs. */
@@ -438,6 +455,7 @@ export function GanttChart({
         ganttTask.bar_color = inherited ?? '';
         ganttTask.color = barBackground(inherited, scheduled, summary);
         ganttTask.shared = isShared(scheduled);
+        ganttTask.resource_classes = resourceClassesOf(solved, task.id);
       }
       // refreshData redraws from the mutated task objects without firing the
       // update events that would bounce straight back into this function.
@@ -634,6 +652,9 @@ export function GanttChart({
       const title = availability < 1 ? `${resource.name} - ${percentage}%` : resource.name;
       return (
         `<span class="gantt-avatar" style="background:${avatarColorOf(resource.name)}"` +
+        // Whoever the pointer is on drives the highlight, and App reads it off
+        // this attribute — the same one the toolbar's avatars carry.
+        ` data-resource-id="${escapeHtml(resource.id)}"` +
         ` title="${escapeHtml(title)}">${escapeHtml(initialsOf(resource.name))}</span>` +
         (availability < 1 ? `<span class="gantt-avatar__pct">${percentage}%</span>` : '')
       );
@@ -726,10 +747,26 @@ export function GanttChart({
       { name: 'add', width: 40 },
     ];
 
+    // Every row, bar and link says whose work it is, so that highlighting a
+    // person is a stylesheet rule and not a redraw.
+    gantt.templates.grid_row_class = (_start, _end, task) => String(task.resource_classes ?? '');
     gantt.templates.task_class = (_start, _end, task) => {
-      if (task.is_summary) return 'gantt-bar--summary';
-      return task.shared ? 'gantt-bar--shared' : '';
+      const classes = [String(task.resource_classes ?? '')];
+      if (task.is_summary) classes.push('gantt-bar--summary');
+      else if (task.shared) classes.push('gantt-bar--shared');
+      return classes.filter(Boolean).join(' ');
     };
+    // A link keeps both ends' people: what gates someone's work, and what their
+    // work gates, is part of reading their plan.
+    gantt.templates.link_class = (link) =>
+      [
+        ...new Set(
+          [link.source, link.target]
+            .filter((id) => gantt.isTaskExists(id))
+            .flatMap((id) => String(gantt.getTask(id).resource_classes ?? '').split(' '))
+            .filter(Boolean),
+        ),
+      ].join(' ');
     // The bar holds the allocation profile and nothing else: the name lives
     // beside it, where a one-day bar can still show it in full.
     gantt.templates.task_text = (_start, _end, task) => {
@@ -1162,6 +1199,25 @@ export function GanttChart({
       gantt.clearAll();
     };
   }, [applySolution, loadProject]);
+
+  // A stylesheet rule rather than a class written onto the rows: dhtmlx rebuilds
+  // them on every redraw and would drop it, and redrawing on hover would replace
+  // the very node the pointer is on. How faint the rest of the plan goes is the
+  // stylesheet's business, which is why the rule reads a custom property.
+  useEffect(() => {
+    if (!highlighted) return;
+    // Nothing is spared, the selected row included: one row left bright in
+    // somebody else's colour reads as part of the highlight.
+    const others = `:not(.${resourceClass(highlighted)})`;
+    const rule = document.createElement('style');
+    rule.textContent =
+      `.gantt-host .gantt_row${others},` +
+      `.gantt-host .gantt_task_line${others},` +
+      `.gantt-host .gantt_task_link${others}` +
+      `{opacity:var(--gantt-dimmed)}`;
+    document.head.appendChild(rule);
+    return () => rule.remove();
+  }, [highlighted]);
 
   return <div ref={host} className="gantt-host" />;
 }
