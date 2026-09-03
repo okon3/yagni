@@ -694,3 +694,15 @@
   min-width: 26px;
   background: var(--surface-sunken);
 }
+
+/* Set apart from the rest of the row: nothing else in a dialog is irreversible,
+   and there is no undo yet. */
+.taskinfo__delete {
+  color: var(--danger) !important;
+  border-color: transparent !important;
+}
+
+.taskinfo__delete:hover {
+  border-color: var(--danger-line) !important;
+  background: var(--danger-soft) !important;
+}

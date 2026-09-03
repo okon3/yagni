@@ -4,7 +4,7 @@ import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { isShared, renderSegments } from './segmentBar';
 import type { CalendarSpec, Resource, ScheduledTask } from '../scheduler';
 import { DEFAULT_BAR_COLOR, avatarColorOf } from './colors';
-import { effectiveColorOf, solve, type Project, type SolvedProject } from './project';
+import { effectiveColorOf, solve, subtreeOf, type Project, type SolvedProject } from './project';
 import type { TaskDetails, TaskPatch } from './TaskDialog';
 import './gantt.css';
 
@@ -130,6 +130,8 @@ export interface GanttHandle {
   /** Null when the row has meanwhile been deleted. */
   getTaskDetails(id: string): TaskDetails | null;
   updateTask(id: string, patch: TaskPatch): void;
+  /** Takes the task's subtree with it, and clears dependencies on any of them. */
+  deleteTask(id: string): void;
   getResources(): Resource[];
   /** Tasks assigned to a removed resource are released to "no resource". */
   setResources(resources: Resource[], releasedResourceIds: string[]): void;
@@ -315,10 +317,16 @@ export function GanttChart({
           ownsColor: task.parentId === undefined,
           progress: task.progress ?? 0,
           isSummary: solved.summaryIds.has(id),
+          descendantCount: subtreeOf(projectRef.current.tasks, id).size - 1,
           elapsedDays: solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes),
           effortDays: solved.calendar.minutesToDays(scheduled.effortMinutes),
           shared: isShared(scheduled),
         };
+      },
+      deleteTask: (id) => {
+        // gantt.deleteTask fires onAfterTaskDelete, where the model, the
+        // dependencies and the schedule are already dealt with.
+        if (gantt.isTaskExists(id)) gantt.deleteTask(id);
       },
       updateTask: (id, patch) => {
         const task = projectRef.current.tasks.find((candidate) => candidate.id === id);
@@ -708,19 +716,7 @@ export function GanttChart({
       }, undefined),
       gantt.attachEvent('onAfterTaskDelete', (id) => {
         if (applyingRef.current) return true;
-        // Deleting a summary takes its subtree with it; leaving the descendants
-        // behind would keep them in the schedule as invisible rows.
-        const doomed = new Set<string>([String(id)]);
-        let grew = true;
-        while (grew) {
-          grew = false;
-          for (const task of projectRef.current.tasks) {
-            if (task.parentId && doomed.has(task.parentId) && !doomed.has(task.id)) {
-              doomed.add(task.id);
-              grew = true;
-            }
-          }
-        }
+        const doomed = subtreeOf(projectRef.current.tasks, String(id));
         projectRef.current.tasks = projectRef.current.tasks.filter((task) => !doomed.has(task.id));
         for (const task of projectRef.current.tasks) {
           task.predecessors = task.predecessors?.filter(

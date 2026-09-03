@@ -118,6 +118,29 @@ export function buildHierarchy(tasks: ProjectTask[]): Hierarchy {
  * ancestor, so moving a branch under a different parent recolours it — the tree
  * stays one visual block instead of a patchwork.
  */
+/**
+ * A task and everything under it.
+ *
+ * Deleting a summary has to take its subtree with it: descendants left behind
+ * would keep consuming capacity as rows the tree can no longer show.
+ */
+export function subtreeOf(tasks: ProjectTask[], id: string): Set<string> {
+  const inside = new Set([id]);
+  // The list is in no particular order, so one pass could miss a grandchild
+  // declared before its parent; repeat until nothing new is found.
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const task of tasks) {
+      if (task.parentId && inside.has(task.parentId) && !inside.has(task.id)) {
+        inside.add(task.id);
+        grew = true;
+      }
+    }
+  }
+  return inside;
+}
+
 export function effectiveColorOf(
   tasks: ProjectTask[],
   hierarchy: Hierarchy,

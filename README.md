@@ -118,7 +118,10 @@ working on it:
 The grid carries the **inputs** and nothing else: name, resource, effort and start.
 Duration and end date are derived, so they live in the per-row details dialog behind
 the button at the end of the row, together with progress and colour — a computed
-figure in an editable-looking cell only invites an edit the engine discards.
+figure in an editable-looking cell only invites an edit the engine discards. That
+dialog is also where a task is deleted, which takes its subtree with it and clears
+any dependency on the tasks that go: the delete is behind a confirmation because
+there is no undo yet.
 
 Task names sit **beside** their bar, never inside it: the inside belongs to the
 allocation profile, and a one-day bar has no room for a name anyway.

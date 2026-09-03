@@ -6,6 +6,7 @@ import {
   effectiveColorOf,
   emptyProject,
   solve,
+  subtreeOf,
   type Project,
   type ProjectTask,
 } from './project';
@@ -217,5 +218,36 @@ describe('dependencies across the hierarchy', () => {
       ]),
     );
     expect(solved.schedule.tasks.get('c')!.startWorkingMinutes).toBe(0);
+  });
+});
+
+describe('subtreeOf', () => {
+  const leaf = (id: string, parentId?: string): ProjectTask => ({
+    id,
+    name: id,
+    nominalDays: 1,
+    start: at(0),
+    parentId,
+  });
+
+  it('returns the task alone when it has no children', () => {
+    expect([...subtreeOf([leaf('a'), leaf('b')], 'a')]).toEqual(['a']);
+  });
+
+  it('collects children and grandchildren', () => {
+    const tasks = [leaf('a'), leaf('b', 'a'), leaf('c', 'b'), leaf('d')];
+    expect([...subtreeOf(tasks, 'a')].sort()).toEqual(['a', 'b', 'c']);
+  });
+
+  // The task list carries no ordering guarantee, and a file may well declare a
+  // grandchild before its parent.
+  it('does not depend on declaration order', () => {
+    const tasks = [leaf('c', 'b'), leaf('b', 'a'), leaf('a')];
+    expect([...subtreeOf(tasks, 'a')].sort()).toEqual(['a', 'b', 'c']);
+  });
+
+  it('leaves a sibling branch out', () => {
+    const tasks = [leaf('a'), leaf('b', 'a'), leaf('x'), leaf('y', 'x')];
+    expect([...subtreeOf(tasks, 'x')].sort()).toEqual(['x', 'y']);
   });
 });

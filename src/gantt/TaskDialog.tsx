@@ -14,6 +14,8 @@ export interface TaskDetails {
   ownsColor: boolean;
   progress: number;
   isSummary: boolean;
+  /** How many tasks sit under this one; they go with it when it is deleted. */
+  descendantCount: number;
   /** Working days the task actually spans, stretching included. */
   elapsedDays: number;
   /** Effort rolled up from the leaves; equals `nominalDays` on a leaf. */
@@ -48,12 +50,14 @@ export function TaskDialog({
   colors,
   onCancel,
   onSave,
+  onDelete,
 }: {
   task: TaskDetails;
   resources: Resource[];
   colors: { key: string; label: string }[];
   onCancel(): void;
   onSave(patch: TaskPatch): void;
+  onDelete(): void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState(task.name);
@@ -243,6 +247,9 @@ export function TaskDialog({
       )}
 
       <div className="resources__actions">
+        <button type="button" className="taskinfo__delete" onClick={onDelete}>
+          Elimina
+        </button>
         <span className="resources__spacer" />
         <button type="button" onClick={onCancel}>
           Annulla

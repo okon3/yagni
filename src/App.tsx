@@ -119,6 +119,20 @@ export default function App() {
     [openTask],
   );
 
+  const deleteTaskDetails = useCallback(() => {
+    if (!openTask) return;
+    const { id, name, descendantCount } = openTask.details;
+    const question =
+      descendantCount > 0
+        ? `Elimino "${name}" e le sue ${descendantCount} sottoattività?`
+        : `Elimino "${name}"?`;
+    if (!window.confirm(question)) return;
+    chart.current?.deleteTask(id);
+    setOpenTask(null);
+    setDirty(true);
+    syncCount();
+  }, [openTask, syncCount]);
+
   const openResources = useCallback(() => {
     const handle = chart.current;
     if (!handle) return;
@@ -264,6 +278,7 @@ export default function App() {
           colors={COLOR_OPTIONS}
           onCancel={() => setOpenTask(null)}
           onSave={saveTaskDetails}
+          onDelete={deleteTaskDetails}
         />
       )}
     </main>
