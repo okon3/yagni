@@ -6,9 +6,9 @@
  * was read once, by somebody who had not yet seen a bar, and from then on it
  * stood between that person and the two buttons they actually came for.
  *
- * The heading says what the tool promises rather than what the screen contains.
- * Naming the absence is the one thing somebody staring at an empty screen does
- * not need told.
+ * The heading is the app's own name and one line saying what kind of tool it is.
+ * Naming the absence instead — "Nessuna attività", "Un piano vuoto" — tells
+ * somebody staring at an empty screen the one thing they already know.
  */
 export function EmptyState({
   onAddTask,
@@ -22,7 +22,11 @@ export function EmptyState({
   return (
     <div className="empty">
       <div className="empty__card">
-        <h2>Dai l&apos;effort, la fine la calcola lui</h2>
+        <h2>YAGNI</h2>
+        <p className="empty__lead">
+          Uno strumento Gantt basato sull&apos;<strong>effort</strong>: le date le calcola il
+          motore.
+        </p>
 
         <div className="empty__actions">
           <button type="button" className="empty__primary" onClick={onAddTask}>
@@ -38,7 +42,7 @@ export function EmptyState({
         </p>
 
         <button type="button" className="empty__help" onClick={onHelp}>
-          Come funziona la ripartizione dell&apos;effort
+          Hai bisogno d&apos;aiuto?
         </button>
       </div>
     </div>

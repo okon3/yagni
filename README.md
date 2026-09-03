@@ -219,9 +219,10 @@ calendar.
 The empty state used to carry that explanation itself, as five numbered steps and a
 paragraph on effort. It was read once, by somebody who had not yet seen a bar, and
 from then on it stood between that person and the two things they actually came for:
-a first task, or a file. What is left is a heading saying what the tool promises,
-those two buttons, and a way into the dialog — naming the absence is the one thing
-somebody staring at an empty screen does not need told.
+a first task, or a file. What is left is the app's name, one line saying what kind
+of tool it is, those two buttons, and a way into the dialog. Naming the absence
+instead — "Nessuna attività", "Un piano vuoto" — tells somebody staring at an empty
+screen the one thing they already know.
 
 ## File format
 
