@@ -110,6 +110,13 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
 - **The data area is only as tall as the viewport** and scrolls its contents, so
   an overlay stretched to its edges stops at the first screenful.
   `gantt.$task_bg` is the layer sized to hold every row.
+- **A zoom level too fine for the project silently crops it.** `zoomToFit` picks
+  the coarsest level that fits and then clamps the range, anchored at the end,
+  and smart rendering does not draw a row whose bar falls outside that range —
+  so the chart shows a partial plan with no scrollbar and no warning. The
+  coarsest level must therefore be coarse enough for the longest plan expected;
+  a column per month tops out around ten months. Quarters are a custom unit:
+  dhtmlx builds one from `<unit>_start` and `add_<unit>`, and ships neither.
 - **`gantt.templates.scale_cell_class` no longer exists** — dropped in v6, and it
   still compiles. A class on a scale cell goes through `css` on the scale itself
   (`gantt.config.scales` / a zoom level's `scales`). `timeline_cell_class` is

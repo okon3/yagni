@@ -119,6 +119,14 @@ working on it:
   wins over a task's own colour. When checking a colour, read `getComputedStyle`,
   not the attribute or the data field.
 
+Four zoom levels were not enough: each one names the band above its columns —
+days, weeks, months, quarters — and the coarsest drew a column per month, which
+tops out at about ten months of plan. Beyond that `zoomToFit` cropped the
+timeline from the start and smart rendering simply stopped drawing the rows that
+fell outside, with no scrollbar to suggest anything was missing. A fifth level
+with quarter columns carries a multi-year plan; quarters are a custom scale unit,
+since dhtmlx ships none.
+
 The grid carries the **inputs** and nothing else: name, resource, effort and start.
 Duration and end date are derived, so they live in the per-row details dialog behind
 the button at the end of the row, together with progress and colour — a computed

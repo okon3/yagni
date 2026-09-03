@@ -89,6 +89,28 @@ const todayCell = (unit: string, step = 1) => marksToday(unit, step, 'gantt-scal
  */
 const todaySpan = (unit: string, step = 1) => marksToday(unit, step, 'gantt-scale--today-span');
 
+/**
+ * Quarters as a scale unit.
+ *
+ * dhtmlx builds a custom unit from `<unit>_start` and `add_<unit>`, and ships
+ * neither for quarters. Without one the coarsest level draws a column per
+ * month, so a project longer than about ten months cannot be fitted into the
+ * timeline at all: `zoomToFit` then crops it — from the start, and in silence,
+ * because smart rendering does not draw a row whose bar falls outside the
+ * range.
+ */
+function registerQuarterUnit(): void {
+  gantt.date.quarter_start = (date: Date) => {
+    const start = gantt.date.month_start(new Date(date));
+    start.setMonth(Math.floor(start.getMonth() / 3) * 3);
+    return start;
+  };
+  gantt.date.add_quarter = (date: Date, increment: number) =>
+    gantt.date.add(date, increment * 3, 'month');
+}
+
+const quarterLabel = (date: Date) => `T${Math.floor(date.getMonth() / 3) + 1}`;
+
 const ZOOM_LEVELS: ZoomLevel[] = [
   {
     name: 'day',
@@ -115,18 +137,27 @@ const ZOOM_LEVELS: ZoomLevel[] = [
     name: 'quarter',
     scale_height: 50,
     scales: [
-      { unit: 'year', step: 1, format: '%Y', css: todaySpan('year') },
+      { unit: 'quarter', step: 1, format: quarterLabel, css: todaySpan('quarter') },
       { unit: 'month', step: 1, format: '%M', css: todayCell('month') },
+    ],
+  },
+  {
+    name: 'year',
+    scale_height: 50,
+    scales: [
+      { unit: 'year', step: 1, format: '%Y', css: todaySpan('year') },
+      { unit: 'quarter', step: 1, format: quarterLabel, css: todayCell('quarter') },
     ],
   },
 ];
 
-/** What the status bar calls each zoom level. */
+/** What the status bar calls each zoom level: the band above its columns. */
 const SCALE_LABELS: Record<string, string> = {
   day: 'Giorni',
   week: 'Settimane',
   month: 'Mesi',
   quarter: 'Trimestri',
+  year: 'Anni',
 };
 
 export const INITIAL_SCALE_LABEL = SCALE_LABELS.week;
@@ -624,6 +655,8 @@ export function GanttChart({
       return solvedRef.current.calendar.isWorkingDate(date) ? '' : 'gantt-cell--off';
     };
 
+    // Before the zoom levels, two of which are declared in quarters.
+    registerQuarterUnit();
     gantt.ext.zoom.init({ levels: ZOOM_LEVELS, activeLevelIndex: 1, useKey: 'ctrlKey' });
     // Zooming also happens by ctrl+wheel, so the status bar cannot rely on its
     // own buttons to know which scale is showing.
