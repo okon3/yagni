@@ -140,6 +140,28 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   click settles focus after the handler returns.
 - `resource` is a reserved field name in the task type; the custom field is
   `resource_id`.
+- **`moveTask(id, -1, parent)` appends** at the end of the new parent's children.
+  That is the convention dhtmlx's own shift+right indent uses; the typings only
+  say `tindex: number`.
+- **A parent that was a leaf until a moment ago renders collapsed**, so a row
+  created or moved under it is invisible. Set `$open` on the parent first.
+- **`gantt.addTask` returns the id it actually used**, which is not always the one
+  supplied — the grid's `+` hands out a timestamp. Use the return value.
+
+## The agent API
+
+`window.yagni` (`src/gantt/agentApi.ts`) is an **adapter, not a feature**: every
+operation delegates to the same `GanttHandle` the buttons use, so a rule must
+never exist in both. It mounts in `App`, because `filename`, `dirty` and the task
+count are `App` state; the object is built once and reads them through a ref, as
+a value closed over would go stale on the first rename.
+
+It departs from the buttons in exactly three ways, each because a script cannot
+do what a person does: nothing is confirmed (a `<dialog>` awaiting a click would
+hang it), errors throw instead of returning silently, and patches are partial.
+
+`yagni.help()` and `/llms.txt` are one file — `agentApi.help.md`, imported with
+`?raw` and emitted by a Vite plugin. Do not add a second copy.
 
 The engine is the source of truth. The flow is: edit → pull into the model →
 `solve()` → write the results back onto the dhtmlx tasks → `refreshData()`. That

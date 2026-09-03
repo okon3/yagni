@@ -1,4 +1,5 @@
 import {
+  CyclicDependencyError,
   DEFAULT_CALENDAR,
   WorkingCalendar,
   schedule,
@@ -250,6 +251,45 @@ function rollUp(
       segments: [],
     });
   }
+}
+
+/**
+ * Why `from -> to` cannot be added as a dependency, or null.
+ *
+ * Asked before mutating, by the script and by a link drawn with the mouse
+ * alike. `solve()` would otherwise throw with the cyclic `predecessors` already
+ * written into the model, leaving the project holding a schedule it cannot
+ * solve.
+ *
+ * The check is a trial `solve()` rather than `assertAcyclic` on the declared
+ * graph, because a cycle can exist only after summary dependencies are pushed
+ * down to their leaves: two summaries depending on each other's subtree read as
+ * acyclic while declared and deadlock once expanded. Reusing `solve` is also the
+ * only way this cannot disagree with what the engine will do next.
+ */
+export function rejectionForLink(project: Project, from: string, to: string): string | null {
+  if (from === to) return `Un'attività non può dipendere da se stessa ("${from}")`;
+  const known = new Set(project.tasks.map((task) => task.id));
+  if (!known.has(from)) return `Attività "${from}" inesistente`;
+  if (!known.has(to)) return `Attività "${to}" inesistente`;
+
+  const prospective: Project = {
+    ...project,
+    tasks: project.tasks.map((task) =>
+      task.id === to
+        ? { ...task, predecessors: [...(task.predecessors ?? []), from] }
+        : task,
+    ),
+  };
+  try {
+    solve(prospective);
+  } catch (cause) {
+    if (cause instanceof CyclicDependencyError) {
+      return `La dipendenza da "${from}" a "${to}" crea un ciclo: ${cause.cycle.join(' → ')}`;
+    }
+    throw cause;
+  }
+  return null;
 }
 
 /** No people: inventing names the user has to delete is worse than starting bare. */

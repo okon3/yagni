@@ -6,6 +6,7 @@ import {
   type DayRange,
   type Resource,
 } from '../scheduler';
+import { parseWallClock, serializeDate } from './dates';
 import type { Project, ProjectTask } from './project';
 
 export const FILE_FORMAT = 'gantt-effort-split';
@@ -18,28 +19,10 @@ export class ProjectFileError extends Error {
   }
 }
 
-/**
- * Local wall-clock, no timezone suffix.
- *
- * `toISOString` would convert to UTC, which in any positive offset shifts an
- * 08:00 start back to the previous day and silently rewrites the schedule when
- * the file is reopened.
- */
-function serializeDate(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
-}
-
 function parseDate(value: unknown, context: string): Date {
   if (typeof value !== 'string') throw new ProjectFileError(`${context}: missing date`);
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
-  if (!match) throw new ProjectFileError(`${context}: malformed date "${value}"`);
-  const [, year, month, day, hour, minute] = match.map(Number);
-  const date = new Date(year, month - 1, day, hour, minute);
-  if (Number.isNaN(date.getTime())) throw new ProjectFileError(`${context}: invalid date "${value}"`);
+  const date = parseWallClock(value);
+  if (!date) throw new ProjectFileError(`${context}: malformed date "${value}"`);
   return date;
 }
 

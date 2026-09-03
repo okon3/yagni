@@ -19,6 +19,11 @@ export function StatusBar({
   return (
     <footer className="statusbar">
       <span>{taskCount} attività</span>
+      {/* An agent reads the page text and the accessibility tree before it reads
+          anything else, so the scripting surface has to be named there. */}
+      <span className="statusbar__agent">
+        Per agenti: <code>window.yagni.help()</code>
+      </span>
       <span className="statusbar__spacer" />
       <button type="button" onClick={onToday}>
         Oggi

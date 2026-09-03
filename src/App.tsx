@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type DragEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type DragEvent } from 'react';
 import type { CalendarSpec, Resource } from './scheduler';
 import { GanttChart, INITIAL_SCALE_LABEL, type GanttHandle } from './gantt/GanttChart';
 import { COLOR_OPTIONS } from './gantt/colors';
@@ -7,6 +7,7 @@ import { ConfirmDialog } from './gantt/ConfirmDialog';
 import { EmptyState } from './gantt/EmptyState';
 import { ResourceDialog } from './gantt/ResourceDialog';
 import { TaskDialog, type TaskDetails, type TaskPatch } from './gantt/TaskDialog';
+import { createAgentApi } from './gantt/agentApi';
 import { StatusBar } from './gantt/StatusBar';
 import { Toolbar } from './gantt/Toolbar';
 import { PROJECT_EXTENSION, downloadText, pickTextFile } from './gantt/files';
@@ -91,14 +92,19 @@ export default function App() {
     );
   }, []);
 
-  const handleNew = useCallback(async () => {
-    if (!(await confirmDiscard())) return;
+  /** Everything the New button does except ask. The agent API takes it as is. */
+  const reset = useCallback(() => {
     chart.current?.loadProject(emptyProject());
     setFilename(DEFAULT_FILENAME);
     setDirty(false);
     setError(null);
     syncCount();
-  }, [confirmDiscard, syncCount]);
+  }, [syncCount]);
+
+  const handleNew = useCallback(async () => {
+    if (!(await confirmDiscard())) return;
+    reset();
+  }, [confirmDiscard, reset]);
 
   const handleOpen = useCallback(async () => {
     if (!(await confirmDiscard())) return;
@@ -192,6 +198,33 @@ export default function App() {
     chart.current?.setResources(resources, releasedIds);
     setResourcesOpen(false);
     setDirty(true);
+  }, []);
+
+  // The scripting surface mounts here rather than in the chart: filename, dirty
+  // and the task count are this component's state, and every write has to leave
+  // them as honest as a dialog callback does.
+  //
+  // The changing values are read through a ref, so the object can be built once:
+  // closing over `filename` would go stale on the first rename. Registered in
+  // production too — there is no backend and no secret in the page, and gating
+  // it behind DEV would make it useless on the deployed site.
+  const agentState = useRef({ filename, dirty, adopt, reset });
+  useEffect(() => {
+    agentState.current = { filename, dirty, adopt, reset };
+  }, [adopt, dirty, filename, reset]);
+
+  useEffect(() => {
+    window.yagni = createAgentApi({
+      handle: () => chart.current,
+      filename: () => agentState.current.filename,
+      dirty: () => agentState.current.dirty,
+      setFilename,
+      adopt: (text, name) => agentState.current.adopt(text, name),
+      newProject: () => agentState.current.reset(),
+    });
+    console.info(
+      'YAGNI: window.yagni pilota il piano da uno script. yagni.help() per la superficie completa.',
+    );
   }, []);
 
   const onDragOver = (event: DragEvent<HTMLElement>) => {

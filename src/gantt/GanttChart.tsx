@@ -124,8 +124,24 @@ const SCALE_LABELS: Record<string, string> = {
 
 export const INITIAL_SCALE_LABEL = SCALE_LABELS.week;
 
+/**
+ * What a new row may carry. Everything is optional and falls back to the
+ * defaults the toolbar's button uses.
+ */
+export interface NewTask {
+  name?: string;
+  nominalDays?: number;
+  /** Normalised to 08:00, as every other creation path does. */
+  start?: Date;
+  resourceId?: string;
+  color?: string;
+  parentId?: string;
+}
+
 export interface GanttHandle {
   getProject(): Project;
+  /** The solved schedule behind what is on screen. */
+  getSolved(): SolvedProject;
   loadProject(project: Project): void;
   /** Null when the row has meanwhile been deleted. */
   getTaskDetails(id: string): TaskDetails | null;
@@ -138,7 +154,16 @@ export interface GanttHandle {
   getCalendar(): CalendarSpec;
   setCalendar(calendar: CalendarSpec): void;
   countTasksByResource(): Map<string, number>;
-  addTask(): void;
+  /** The id of the created row, which the caller needs to say anything else about it. */
+  addTask(task?: NewTask): string;
+  /** Null re-parents to the top level. */
+  setParent(id: string, parentId: string | null): void;
+  /** Finish-to-start. Silent on a link that already exists. */
+  addLink(from: string, to: string): void;
+  removeLink(from: string, to: string): void;
+  selectTask(id: string): void;
+  /** Scrolls the timeline until the task is in view. */
+  revealTask(id: string): void;
   zoomIn(): void;
   zoomOut(): void;
   zoomToFit(): void;
@@ -304,6 +329,7 @@ export function GanttChart({
     ref,
     () => ({
       getProject: () => projectRef.current,
+      getSolved: () => solvedRef.current,
       loadProject,
       getTaskDetails: (id) => {
         const task = projectRef.current.tasks.find((candidate) => candidate.id === id);
@@ -387,30 +413,61 @@ export function GanttChart({
         }
         return counts;
       },
-      addTask: () => {
-        const id = nextTaskId(projectRef.current);
-        const start = new Date();
-        start.setHours(8, 0, 0, 0);
-        projectRef.current.tasks.push({ id, name: 'Nuova attività', nominalDays: 1, start });
-        applyingRef.current = true;
-        gantt.addTask({
-          id,
-          text: 'Nuova attività',
-          start_date: gantt.date.date_to_str(gantt.config.date_format)(start),
-          parent: 0,
-          duration: 1,
-          progress: 0,
-          resource_id: '',
-          nominal_days: 1,
-          rolled_effort_days: 1,
-          is_summary: false,
-          bar_color: '',
-          shared: false,
-        });
-        applyingRef.current = false;
-        applySolution();
+      addTask: (task) => {
+        const start = task?.start ? new Date(task.start) : new Date();
+        const effort = task?.nominalDays ?? 1;
+        // A parent that was a leaf until now renders collapsed, which would hide
+        // the row that was just created.
+        if (task?.parentId && gantt.isTaskExists(task.parentId)) {
+          gantt.getTask(task.parentId).$open = true;
+        }
+        // No applying flag and no write to the model here: onAfterTaskAdd is the
+        // single path that turns a dhtmlx row into a project task, and it
+        // already honours whatever data the row carries. Adding a second path
+        // is how the grid's "+" button once produced rows with a NaN duration.
+        const id = String(
+          gantt.addTask({
+            id: nextTaskId(projectRef.current),
+            text: task?.name ?? 'Nuova attività',
+            start_date: gantt.date.date_to_str(gantt.config.date_format)(start),
+            parent: task?.parentId ?? 0,
+            duration: 1,
+            progress: 0,
+            resource_id: task?.resourceId ?? '',
+            nominal_days: effort,
+            rolled_effort_days: effort,
+            is_summary: false,
+            bar_color: task?.color ?? '',
+            shared: false,
+          }),
+        );
         gantt.showTask(id);
+        return id;
       },
+      setParent: (id, parentId) => {
+        // -1 appends at the end of the new parent's children, the convention
+        // dhtmlx's own shift+right indent uses.
+        const target = parentId ?? gantt.config.root_id;
+        if (parentId && gantt.isTaskExists(parentId)) gantt.getTask(parentId).$open = true;
+        // onAfterTaskMove writes task.parentId and re-solves, so nothing else
+        // may touch the model here.
+        gantt.moveTask(id, -1, target);
+      },
+      addLink: (from, to) => {
+        const exists = gantt
+          .getLinks()
+          .some((link) => String(link.source) === from && String(link.target) === to);
+        if (exists) return;
+        gantt.addLink({ source: from, target: to, type: gantt.config.links.finish_to_start });
+      },
+      removeLink: (from, to) => {
+        const link = gantt
+          .getLinks()
+          .find((entry) => String(entry.source) === from && String(entry.target) === to);
+        if (link) gantt.deleteLink(link.id);
+      },
+      selectTask: (id) => gantt.selectTask(id),
+      revealTask: (id) => gantt.showTask(id),
       zoomIn: () => gantt.ext.zoom.zoomIn(),
       zoomOut: () => gantt.ext.zoom.zoomOut(),
       zoomToFit: () => gantt.ext.zoom.zoomToFit(),
@@ -729,6 +786,9 @@ export function GanttChart({
             start,
             parentId: parent,
             resourceId: (item.resource_id as string | undefined) || undefined,
+            // Only a top-level task owns a colour; a subtask inherits its
+            // parent's, and a copy frozen here would stop following it.
+            color: parent ? undefined : (item.bar_color as string | undefined) || undefined,
           });
         }
         applySolution();

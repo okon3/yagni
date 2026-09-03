@@ -665,6 +665,16 @@
   flex: 1;
 }
 
+/* Discreet on purpose: it is a pointer for a script, not a feature to advertise. */
+.statusbar__agent {
+  color: var(--ink-faint, var(--ink-muted));
+  opacity: 0.75;
+}
+
+.statusbar__agent code {
+  font-size: 11px;
+}
+
 .statusbar__scale strong {
   color: var(--ink);
   font-weight: 600;

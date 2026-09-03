@@ -161,6 +161,30 @@ left untouched when a file fails to load.
 The current version is **2**. Version 1 files still load: their `daysOff` are read
 as availability overrides at zero, which is what they always meant.
 
+## Driving it from a script
+
+`window.yagni` reads the solved plan and edits it without going through the grid
+or the dialogs — the surface an agent uses to work on a project. It is registered
+in production too: there is no backend and no secret in the page.
+
+```js
+yagni.help();                                    // the whole surface, as Markdown
+const before = yagni.toText();                   // the only undo there is
+const id = yagni.addTask({ name: 'Analisi', nominalDays: 5, resourceId: 'r1' });
+yagni.getPlan().tasks;                           // tree order, dates as text
+yagni.loadText(before);                          // changed my mind
+```
+
+It is an adapter over the same `GanttHandle` the buttons use, so no rule lives in
+two places, and it departs from them in exactly three ways: nothing is confirmed
+(a `<dialog>` awaiting a click would hang a script, so `removeResource` takes
+`{ releaseTasks: true }` instead of asking), errors throw rather than returning
+silently, and patches are partial.
+
+`yagni.help()` and `/llms.txt` are the same file served two ways:
+[`src/gantt/agentApi.help.md`](src/gantt/agentApi.help.md), which a Vite plugin
+serves in dev and emits into the build. Two copies would drift.
+
 ## Development
 
 ```bash
