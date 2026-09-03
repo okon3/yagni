@@ -143,6 +143,16 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   zooming the page, and `useKey` stays out of the config or Firefox would zoom
   twice per notch. A wheel flick and a trackpad pinch both arrive as bursts, so
   the handler takes one step per gesture, not per event.
+- **That listener has to be on the capture phase**, and stop the propagation.
+  dhtmlx scrolls the chart on the wheel from a handler on the data area, and
+  when it actually scrolls it consumes the event — when it is already at the
+  end of the scroll it returns `true` instead and lets it through. A listener
+  on the bubble phase therefore fires only at the two ends: zoom in works at
+  the top, zoom out at the bottom, nothing works in between. Which is also a
+  warning about the verification: a synthetic `wheel` reproduces none of this,
+  and a synthetic one dispatched on a node cached before a zoom reaches nothing
+  at all — the redraw replaced the node, and a detached element no longer has
+  the container among its ancestors.
 - **`zoomToFit` has to run after a load, not inside it.** Called from within
   `loadProject`, between the `parse` and the end of the load, it picks the right
   scale and draws the right range — and leaves the extension's own level index

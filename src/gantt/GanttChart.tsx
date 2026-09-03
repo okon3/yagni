@@ -1238,6 +1238,13 @@ export function GanttChart({
      * sure to try. A trackpad pinch arrives here as the same event with
      * `ctrlKey` set, so pinching zooms the timeline for free.
      *
+     * Capture phase, and the propagation stopped: dhtmlx scrolls the chart on
+     * the wheel from a handler on the data area, and when it does scroll it
+     * consumes the event — so a listener on the bubble phase, like this one
+     * was, only ever ran at the two ends of the vertical scroll, where dhtmlx
+     * has nothing to scroll and lets the event through. Zooming in worked at
+     * the top and zooming out at the bottom, and nothing worked in between.
+     *
      * One step per gesture rather than per event: a flick of a wheel and a
      * pinch both fire in bursts, and the levels are few enough that a burst
      * would cross all of them and land on quarters.
@@ -1246,6 +1253,8 @@ export function GanttChart({
     const zoomOnWheel = (event: WheelEvent) => {
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
+      // Or dhtmlx scrolls the rows away under the scale that is being changed.
+      event.stopPropagation();
       if (event.deltaY === 0) return;
       const now = event.timeStamp || Date.now();
       if (now - lastZoomStep < WHEEL_ZOOM_COOLDOWN) return;
@@ -1253,7 +1262,7 @@ export function GanttChart({
       if (event.deltaY < 0) gantt.ext.zoom.zoomIn();
       else gantt.ext.zoom.zoomOut();
     };
-    container.addEventListener('wheel', zoomOnWheel, { passive: false });
+    container.addEventListener('wheel', zoomOnWheel, { passive: false, capture: true });
 
     // dhtmlx measures its container once at init. It listens for window resize,
     // but not for the container changing size on its own — a split pane, a
@@ -1268,7 +1277,7 @@ export function GanttChart({
       bandsBelow.remove();
       bandsAbove.remove();
       gantt.ext.zoom.detachEvent(zoomHandler);
-      container.removeEventListener('wheel', zoomOnWheel);
+      container.removeEventListener('wheel', zoomOnWheel, true);
       container.removeEventListener('dblclick', openEditor, true);
       container.removeEventListener('click', selectRow);
       document.removeEventListener('keydown', deleteSelected);
