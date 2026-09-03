@@ -4,7 +4,14 @@ import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { isShared, renderSegments } from './segmentBar';
 import type { CalendarSpec, Resource, ScheduledTask } from '../scheduler';
 import { DEFAULT_BAR_COLOR, avatarColorOf } from './colors';
-import { effectiveColorOf, solve, subtreeOf, type Project, type SolvedProject } from './project';
+import {
+  effectiveColorOf,
+  rejectionForLink,
+  solve,
+  subtreeOf,
+  type Project,
+  type SolvedProject,
+} from './project';
 import type { TaskDetails, TaskPatch } from './TaskDialog';
 import './gantt.css';
 
@@ -255,6 +262,7 @@ export function GanttChart({
   onOpenTask,
   onDeleteTask,
   onScaleChange,
+  onReject,
   ref,
 }: {
   project: Project;
@@ -263,6 +271,8 @@ export function GanttChart({
   /** Asked, not done: the confirmation belongs with the rest of the dialogs. */
   onDeleteTask?: (id: string) => void;
   onScaleChange?: (label: string) => void;
+  /** Why an edit made in the chart was refused, for the caller to surface. */
+  onReject?: (message: string) => void;
   ref?: Ref<GanttHandle>;
 }) {
   const host = useRef<HTMLDivElement>(null);
@@ -272,6 +282,7 @@ export function GanttChart({
   const deleteTaskRef = useRef(onDeleteTask);
   const scaleChangeRef = useRef(onScaleChange);
   const changeRef = useRef(onChange);
+  const rejectRef = useRef(onReject);
   const projectRef = useRef(project);
   const solvedRef = useRef<SolvedProject>(solve(project));
   const applyingRef = useRef(false);
@@ -281,7 +292,8 @@ export function GanttChart({
     deleteTaskRef.current = onDeleteTask;
     scaleChangeRef.current = onScaleChange;
     changeRef.current = onChange;
-  }, [onChange, onDeleteTask, onOpenTask, onScaleChange]);
+    rejectRef.current = onReject;
+  }, [onChange, onDeleteTask, onOpenTask, onReject, onScaleChange]);
 
   const applySolution = useCallback(
     (notify = true) => {
@@ -826,6 +838,22 @@ export function GanttChart({
         }
         applySolution();
         return true;
+      }, undefined),
+      // Refused here rather than after the fact, and for the same reason the
+      // scripted path refuses: onAfterLinkAdd writes the predecessors into the
+      // model before re-solving, so a cycle drawn with the mouse used to leave
+      // the project holding a schedule it cannot solve and the chart half
+      // updated, with nothing but an uncaught error to show for it.
+      gantt.attachEvent('onBeforeLinkAdd', (_id, link) => {
+        if (applyingRef.current) return true;
+        const problem = rejectionForLink(
+          projectRef.current,
+          String(link.source),
+          String(link.target),
+        );
+        if (!problem) return true;
+        rejectRef.current?.(problem);
+        return false;
       }, undefined),
       gantt.attachEvent('onAfterLinkAdd', () => {
         if (applyingRef.current) return true;

@@ -298,6 +298,7 @@ export default function App() {
           onOpenTask={openTaskDetails}
           onDeleteTask={(id) => void requestDelete(id)}
           onScaleChange={setScale}
+          onReject={setError}
         />
         {taskCount === 0 && (
           <EmptyState

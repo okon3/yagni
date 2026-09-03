@@ -147,6 +147,11 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   created or moved under it is invisible. Set `$open` on the parent first.
 - **`gantt.addTask` returns the id it actually used**, which is not always the one
   supplied — the grid's `+` hands out a timestamp. Use the return value.
+- **A link has to be refused in `onBeforeLinkAdd`.** By `onAfterLinkAdd`,
+  `syncLinks()` has already written the predecessors into the model, so `solve()`
+  throws inside the handler and leaves the project holding a schedule it cannot
+  solve — with only an uncaught error to show for it. `rejectionForLink` is the
+  guard, and both the mouse and the script go through it.
 
 ## The agent API
 

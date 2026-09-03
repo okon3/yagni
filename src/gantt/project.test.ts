@@ -5,6 +5,7 @@ import {
   buildHierarchy,
   effectiveColorOf,
   emptyProject,
+  rejectionForLink,
   solve,
   subtreeOf,
   type Project,
@@ -249,5 +250,62 @@ describe('subtreeOf', () => {
   it('leaves a sibling branch out', () => {
     const tasks = [leaf('a'), leaf('b', 'a'), leaf('x'), leaf('y', 'x')];
     expect([...subtreeOf(tasks, 'x')].sort()).toEqual(['x', 'y']);
+  });
+});
+
+describe('rejectionForLink', () => {
+  const task = (id: string, predecessors?: string[], parentId?: string): ProjectTask => ({
+    id,
+    name: id.toUpperCase(),
+    nominalDays: 1,
+    start: at(0),
+    predecessors,
+    parentId,
+  });
+
+  it('accepts a link that closes nothing', () => {
+    expect(rejectionForLink(project([task('a'), task('b')]), 'a', 'b')).toBeNull();
+  });
+
+  it('refuses the reverse of an existing dependency', () => {
+    const problem = rejectionForLink(project([task('a'), task('b', ['a'])]), 'b', 'a');
+    expect(problem).toMatch(/ciclo/);
+  });
+
+  it('refuses a cycle several hops long', () => {
+    const tasks = [task('a'), task('b', ['a']), task('c', ['b'])];
+    expect(rejectionForLink(project(tasks), 'c', 'a')).toMatch(/ciclo/);
+  });
+
+  it('refuses a task depending on itself', () => {
+    expect(rejectionForLink(project([task('a')]), 'a', 'a')).toMatch(/se stessa/);
+  });
+
+  it('names an id that does not exist', () => {
+    expect(rejectionForLink(project([task('a')]), 'a', 'ghost')).toMatch(/inesistente/);
+  });
+
+  /**
+   * The reason the check is a trial solve() rather than assertAcyclic on the
+   * declared graph: two summaries depending on each other's subtree read as
+   * acyclic while declared, and deadlock once pushed down to the leaves.
+   */
+  it('refuses a cycle that only exists once summaries expand to their leaves', () => {
+    // Nothing here is a declared cycle: s1 and s2 have no predecessors of their
+    // own. It is a cycle only after a depends on leaves(s2) and b on leaves(s1).
+    const tasks = [
+      task('s1'),
+      task('a', ['s2'], 's1'),
+      task('s2'),
+      task('b', undefined, 's2'),
+    ];
+    expect(rejectionForLink(project(tasks), 's1', 'b')).toMatch(/ciclo/);
+  });
+
+  it('leaves the project untouched whatever it decides', () => {
+    const tasks = [task('a'), task('b', ['a'])];
+    const subject = project(tasks);
+    rejectionForLink(subject, 'b', 'a');
+    expect(subject.tasks.map((entry) => entry.predecessors)).toEqual([undefined, ['a']]);
   });
 });
