@@ -2,8 +2,7 @@ import { endToShow, formatDays } from './format';
 import { escapeHtml } from './html';
 import { isShared } from './segmentBar';
 import { isContended, type Resource, type ScheduledTask } from '../scheduler';
-import type { MarkedChain, SolvedProject } from './project';
-import type { ProjectTask } from './project';
+import type { MarkedChain, ProjectTask, SolvedProject } from './project';
 
 /**
  * Everything the hover has to answer, resolved before any of it is rendered.
@@ -52,8 +51,9 @@ const percent = (rate: number) => `${Math.round(rate * 100)}%`;
 /**
  * The rates the task ran at, as one figure or as the span it moved between.
  *
- * Empty on a summary and on a task with no effort, neither of which is ever
- * scheduled into segments — hence a range and not a division by a span.
+ * Read off the segments the simulation produced, never worked back out of the
+ * dates: a summary and a task with no effort both have no segments at all, and
+ * the second of those spans no time to divide by either.
  */
 function rateRange(rates: number[]): string | null {
   if (rates.length === 0) return null;
