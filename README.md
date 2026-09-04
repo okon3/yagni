@@ -311,6 +311,30 @@ who is highlighted costs no redraw. Which matters twice over: dhtmlx rebuilds it
 rows on every redraw and would drop a class set by hand, and redrawing on hover
 would replace the very node the pointer is on.
 
+A plan is also **searched**, from the box in the status bar: whatever matches is
+marked in the grid and across the timeline, the count says how many there are, and
+<kbd>Invio</kbd> walks them one at a time — opening whatever branches hide the next
+one, bringing it on screen and selecting it, <kbd>Maiusc</kbd>+<kbd>Invio</kbd>
+backwards, ringing round at either end. <kbd>Ctrl</kbd>+<kbd>F</kbd> puts the caret
+in the box, so the browser's own find does not open over the plan, and
+<kbd>Esc</kbd> empties it.
+
+**It marks and walks; it never filters**, which is the argument highlighting makes
+just above. A task lifted out of its tree is a name with no plan around it, and its
+phase, its neighbours and what it runs alongside are the reason anybody looked it
+up. On a tree the choice is worse than elsewhere: drop the ancestors that do not
+match and the hierarchy goes with them, keep them and the filter is showing rows
+that do not match. Nothing hidden is also nothing to undo — a marking leaves no
+state a user has to remember to get out of.
+
+Matching is blind to case and to accents in both directions, so *attivita* finds
+"Attività" and the other way round. The marks come from a row template asking one
+query, not from a class written onto each row: dhtmlx would drop a class of ours on
+the next redraw, and a copy per row would be a second thing to keep in step. What
+matches is measured again after every edit — a rename, a new row, an undo — because
+walking onto a row that is no longer there is worse than losing one's place; the
+match under the eye keeps it as long as it is still a match.
+
 The critical chain is an **outline** around the bar, never a fill. The bar's
 colour belongs to the user and dhtmlx sets it inline through
 `--dhx-gantt-task-background`, so a background rule would silently beat it and a

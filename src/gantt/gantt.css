@@ -363,6 +363,28 @@
   color: var(--ink-faint);
 }
 
+/* A row the search matched, in the grid and across the timeline both — nothing
+   is hidden, so a match has to be findable among everything else. It is a
+   background and an edge on purpose: the bar's outline belongs to the critical
+   chain and its fill to the user's colour, and a match must cost a task neither.
+   Under .gantt-host so it outranks the row's own hover and selected states. */
+.gantt-host .gantt_row.gantt-found,
+.gantt-host .gantt_task_row.gantt-found {
+  background: var(--accent-soft);
+}
+
+.gantt-host .gantt_grid_data .gantt_row.gantt-found {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* The one the eye was sent to. It is the selected row as well, so this only has
+   to be louder than the other matches — which the plain selection is not, being
+   fainter than the match tint it would sit on. */
+.gantt-host .gantt_grid_data .gantt_row.gantt-found.gantt_selected,
+.gantt-host .gantt_task_row.gantt-found.gantt_selected {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
 /* Derived cells: shown for information, not editable. */
 .gantt-derived {
   color: var(--ink-faint);

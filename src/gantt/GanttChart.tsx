@@ -28,6 +28,7 @@ import {
   type ProjectTask,
   type SolvedProject,
 } from './project';
+import { matchesSearch, searchKey } from './search';
 import { keystrokeIsCaptured } from './shortcuts';
 import type { TaskDetails, TaskPatch } from './TaskDialog';
 import './gantt.css';
@@ -254,8 +255,16 @@ export interface GanttHandle {
   addLink(from: string, to: string): void;
   removeLink(from: string, to: string): void;
   selectTask(id: string): void;
-  /** Scrolls the timeline until the task is in view. */
+  /** Opens whatever branches hide the task, then scrolls it into view. */
   revealTask(id: string): void;
+  /**
+   * Marks the rows whose name matches, and answers with their ids in the order
+   * the grid shows them. An empty query marks nothing.
+   *
+   * The plan is never filtered, so this is a marking and a list to walk rather
+   * than a state the view is left in.
+   */
+  setSearch(query: string): string[];
   zoomIn(): void;
   zoomOut(): void;
   zoomToFit(): void;
@@ -543,6 +552,11 @@ export function GanttChart({
   const lanesRef = useRef<{ solved: SolvedProject; lanes: LoadLane[] } | null>(null);
   // Owned by the effect that builds the panel, called by the toggle below it.
   const repaintLoadRef = useRef<() => void>(() => {});
+  // What the row templates test a name against. A ref rather than a field on
+  // each row: dhtmlx rebuilds the rows on every redraw and a class of ours has
+  // to come from a template, and a template asking one question of one value
+  // cannot fall out of step with the query the way a copy per row would.
+  const searchKeyRef = useRef('');
 
   useEffect(() => {
     openTaskRef.current = onOpenTask;
@@ -814,7 +828,42 @@ export function GanttChart({
         if (link) gantt.deleteLink(link.id);
       },
       selectTask: (id) => gantt.selectTask(id),
-      revealTask: (id) => gantt.showTask(id),
+      revealTask: (id) => {
+        if (!gantt.isTaskExists(id)) return;
+        // A row inside a closed branch has no position on the chart, so
+        // showTask would scroll to wherever the closed parent sits. Opening a
+        // branch is a property of the view and marks nothing dirty.
+        let opened = false;
+        for (const ancestorId of solvedRef.current.hierarchy.ancestorsOf(id)) {
+          if (!gantt.isTaskExists(ancestorId)) continue;
+          const ancestor = gantt.getTask(ancestorId);
+          if (ancestor.$open) continue;
+          ancestor.$open = true;
+          opened = true;
+        }
+        // The number of rows changed, which refreshData does not lay out again.
+        if (opened) gantt.render();
+        gantt.showTask(id);
+      },
+      setSearch: (query) => {
+        const key = searchKey(query);
+        // Only a change of query needs a redraw of its own. After an edit this
+        // is asked again with the same query, against a plan whose rows
+        // `applySolution` has already redrawn.
+        if (key !== searchKeyRef.current) {
+          searchKeyRef.current = key;
+          gantt.refreshData();
+        }
+        if (key === '') return [];
+        const found: string[] = [];
+        // eachTask walks the whole tree in the order the grid lays it out,
+        // closed branches included — a match one cannot see yet is still a
+        // match, and revealing it is what opens the branch.
+        gantt.eachTask((task) => {
+          if (matchesSearch(String(task.text ?? ''), key)) found.push(String(task.id));
+        });
+        return found;
+      },
       zoomIn: () => gantt.ext.zoom.zoomIn(),
       zoomOut: () => gantt.ext.zoom.zoomOut(),
       zoomToFit: () => gantt.ext.zoom.zoomToFit(),
@@ -976,9 +1025,18 @@ export function GanttChart({
       0,
     );
 
+    /** Whether the row is one the search is pointing at. */
+    const found = (task: { text?: unknown }) =>
+      matchesSearch(String(task.text ?? ''), searchKeyRef.current) ? 'gantt-found' : '';
+
     // Every row, bar and link says whose work it is, so that highlighting a
     // person is a stylesheet rule and not a redraw.
-    gantt.templates.grid_row_class = (_start, _end, task) => String(task.resource_classes ?? '');
+    gantt.templates.grid_row_class = (_start, _end, task) =>
+      [String(task.resource_classes ?? ''), found(task)].filter(Boolean).join(' ');
+    // A band across the chart rather than a mark on the bar: the outline is the
+    // critical chain's and the fill is the user's colour, so a match has to
+    // read on the row it is on without touching either.
+    gantt.templates.task_row_class = (_start, _end, task) => found(task);
     gantt.templates.task_class = (_start, _end, task) => {
       const classes = [String(task.resource_classes ?? '')];
       if (task.is_summary) classes.push('gantt-bar--summary');

@@ -33,6 +33,7 @@ import {
   writeDraft,
   type Draft,
 } from './gantt/draft';
+import { wrapIndex } from './gantt/search';
 import { keystrokeIsCaptured } from './gantt/shortcuts';
 import './App.css';
 
@@ -67,6 +68,16 @@ export default function App() {
   // Off by default: the chart is what the plan is edited in, and the lanes are
   // what it is checked against — asked for, and taking room only then.
   const [showLoad, setShowLoad] = useState(false);
+  // Searching marks and walks; it never filters. The query is App's because the
+  // matches are: the chart answers which rows match, App decides which one the
+  // eye is on.
+  const [search, setSearch] = useState('');
+  const [matches, setMatches] = useState<string[]>([]);
+  // The match the chart is showing, held as an id rather than an index: the
+  // list is remeasured after every edit, and a position in the old one means
+  // nothing in the new.
+  const [focusedMatch, setFocusedMatch] = useState<string | null>(null);
+  const searchField = useRef<HTMLInputElement>(null);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [people, setPeople] = useState<Resource[]>(initialProject.resources);
@@ -375,6 +386,62 @@ export default function App() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [travel]);
 
+  /**
+   * Ctrl+F puts the caret in the search field, as it does in every other
+   * document, so the browser's own find does not open over the plan.
+   *
+   * The captured-keystroke guard makes one exception, for the field this
+   * shortcut owns: pressing it again there selects the query rather than
+   * handing the gesture to the browser. Everywhere else — a grid editor, a
+   * dialog — the keys belong to whatever holds the focus.
+   */
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      if (event.key.toLowerCase() !== 'f') return;
+      const field = searchField.current;
+      if (!field || (keystrokeIsCaptured() && document.activeElement !== field)) return;
+      event.preventDefault();
+      field.focus();
+      field.select();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  /**
+   * What matches, remeasured whenever the query or the plan moves.
+   *
+   * `history` steps on every model change — a rename, a new row, an undo, a
+   * script — so a list measured against the plan as it was can never be walked
+   * onto rows that have since gone. The focused match survives if it is still
+   * a match, since remeasuring is not the same as starting a new search.
+   */
+  useEffect(() => {
+    const found = chart.current?.setSearch(search) ?? [];
+    setMatches(found);
+    setFocusedMatch((current) =>
+      current && found.includes(current) ? current : (found[0] ?? null),
+    );
+  }, [history, search]);
+
+  // Landing on a match is a view change and nothing else: it opens the branches
+  // above the row, brings it on screen, and selects it so Del and the details
+  // button have something to act on.
+  useEffect(() => {
+    if (!focusedMatch) return;
+    chart.current?.revealTask(focusedMatch);
+    chart.current?.selectTask(focusedMatch);
+  }, [focusedMatch]);
+
+  const stepMatch = useCallback(
+    (step: number) => {
+      const next = wrapIndex(matches.length, matches.indexOf(focusedMatch ?? ''), step);
+      if (next >= 0) setFocusedMatch(matches[next]);
+    },
+    [focusedMatch, matches],
+  );
+
   // The browser's own question, which is the only one that can still be asked
   // once the page is going away.
   useEffect(() => {
@@ -601,6 +668,12 @@ export default function App() {
         scale={scale}
         chainState={chainState}
         loadShown={showLoad}
+        search={search}
+        matchCount={matches.length}
+        matchPosition={focusedMatch ? matches.indexOf(focusedMatch) + 1 : 0}
+        searchFieldRef={searchField}
+        onSearch={setSearch}
+        onStepMatch={stepMatch}
         onCollapseAll={() => chart.current?.collapseAll()}
         onExpandAll={() => chart.current?.expandAll()}
         onCriticalChain={handleCriticalChain}

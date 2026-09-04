@@ -231,6 +231,11 @@ deep plan fits in one screenshot and `expandAll()` is what makes every row
 readable in the grid. Neither changes the plan: `getPlan()` returns the whole
 tree either way, and nothing here marks the file dirty.
 
+`reveal(id)` opens whatever branches hide the row before scrolling to it, so a
+leaf under a collapsed summary does land on screen. There is no `find`: the names
+are in `getPlan()`, and matching them is a line of your own followed by
+`reveal` + `select`.
+
 ## Two things that will bite
 
 `isDirty()`, `getFilename()` and the status bar are React state and settle one

@@ -1,3 +1,4 @@
+import type { Ref } from 'react';
 import { CRITICAL_CHAIN_LIMIT, type ChainState } from './project';
 
 export interface StatusBarProps {
@@ -8,6 +9,16 @@ export interface StatusBarProps {
   chainState: ChainState;
   /** Whether the per-person load lanes are open under the chart. */
   loadShown: boolean;
+  /** What is being looked for, owned by App because the matches are. */
+  search: string;
+  matchCount: number;
+  /** Which match the chart is on, 1-based, or 0 when it is on none of them. */
+  matchPosition: number;
+  /** So Ctrl+F can put the caret here, from App where every shortcut lives. */
+  searchFieldRef?: Ref<HTMLInputElement>;
+  onSearch(query: string): void;
+  /** +1 for the next match, -1 for the previous. Rings round at either end. */
+  onStepMatch(step: number): void;
   onCollapseAll(): void;
   onExpandAll(): void;
   onCriticalChain(): void;
@@ -56,6 +67,12 @@ export function StatusBar({
   scale,
   chainState,
   loadShown,
+  search,
+  matchCount,
+  matchPosition,
+  searchFieldRef,
+  onSearch,
+  onStepMatch,
   onCollapseAll,
   onExpandAll,
   onCriticalChain,
@@ -68,6 +85,63 @@ export function StatusBar({
   return (
     <footer className="statusbar">
       <span>{taskCount} attività</span>
+      {/* Nothing is filtered, so this is a way through the plan and belongs with
+          the other controls over the view rather than with the file actions. */}
+      <div className="statusbar__search">
+        <input
+          ref={searchFieldRef}
+          type="search"
+          className="statusbar__searchfield"
+          value={search}
+          placeholder="Cerca attività"
+          // The field carries no visible text of its own, so this is its name
+          // rather than a second one competing with a label.
+          aria-label="Cerca attività"
+          onChange={(event) => onSearch(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              onStepMatch(event.shiftKey ? -1 : 1);
+            } else if (event.key === 'Escape') {
+              // Its own field, so this cannot reach anything else — and there
+              // is nothing to leave behind, the plan never having been filtered.
+              event.stopPropagation();
+              onSearch('');
+            }
+          }}
+        />
+        {search !== '' && (
+          <>
+            {/* Read out on its own, because on a long plan the answer to a
+                query is often that there is nothing to walk to. */}
+            <span className="statusbar__matches" role="status">
+              {matchCount === 0 ? 'nessuna' : `${matchPosition}/${matchCount}`}
+            </span>
+            {/* Greyed rather than removed, as the undo arrows are: a control
+                that comes and goes moves everything beside it. */}
+            <button
+              type="button"
+              className="statusbar__step"
+              disabled={matchCount === 0}
+              aria-label="Risultato precedente"
+              title="Risultato precedente (Maiusc+Invio)"
+              onClick={() => onStepMatch(-1)}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="statusbar__step"
+              disabled={matchCount === 0}
+              aria-label="Risultato successivo"
+              title="Risultato successivo (Invio)"
+              onClick={() => onStepMatch(1)}
+            >
+              ›
+            </button>
+          </>
+        )}
+      </div>
       <div className="statusbar__rows">
         <button type="button" onClick={onCollapseAll} title="Comprimi tutte le attività">
           Comprimi
