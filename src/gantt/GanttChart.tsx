@@ -1130,9 +1130,24 @@ export function GanttChart({
       0,
     );
 
-    /** Whether the row is one the search is pointing at. */
-    const found = (task: { text?: unknown }) =>
-      matchesSearch(String(task.text ?? ''), searchKeyRef.current) ? 'gantt-found' : '';
+    /**
+     * Whether the row is one the search is pointing at, or holds one below it.
+     * A summary carries the fainter mark whether its branch is open or closed —
+     * closed is where it earns its keep, since the matching rows are not on
+     * screen at all, but tying it to `$open` would make the highlight flicker
+     * with the arrow. Same argument as `resource_classes`: the branch says what
+     * it contains, always.
+     */
+    const found = (task: { id?: unknown; text?: unknown }) => {
+      const key = searchKeyRef.current;
+      if (key === '') return '';
+      if (matchesSearch(String(task.text ?? ''), key)) return 'gantt-found';
+      let below = false;
+      gantt.eachTask((child) => {
+        below ||= matchesSearch(String(child.text ?? ''), key);
+      }, task.id as string);
+      return below ? 'gantt-found-below' : '';
+    };
 
     // Every row, bar and link says whose work it is, so that highlighting a
     // person is a stylesheet rule and not a redraw.

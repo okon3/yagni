@@ -390,6 +390,11 @@ match and the hierarchy goes with them, keep them and the filter is showing rows
 that do not match. Nothing hidden is also nothing to undo — a marking leaves no
 state a user has to remember to get out of.
 
+A closed branch would still hide its matches, though — the count says three and
+the plan shows none — so a summary holding a match anywhere below it carries a
+fainter mark of the same colour, open or closed alike: it points at where to
+open, it is not a result, and the walk still lands on the matches themselves.
+
 Matching is blind to case and to accents in both directions, so *attivita* finds
 "Attività" and the other way round. The marks come from a row template asking one
 query, not from a class written onto each row: dhtmlx would drop a class of ours on

@@ -389,6 +389,18 @@
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
+/* A branch holding a match below it — the only trace of one while the branch is
+   closed. Fainter than the match itself on purpose: it points at where to open,
+   it is not a result. */
+.gantt-host .gantt_row.gantt-found-below,
+.gantt-host .gantt_task_row.gantt-found-below {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.gantt-host .gantt_grid_data .gantt_row.gantt-found-below {
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
 /* The one the eye was sent to. It is the selected row as well, so this only has
    to be louder than the other matches — which the plain selection is not, being
    fainter than the match tint it would sit on. */
