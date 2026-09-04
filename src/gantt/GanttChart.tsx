@@ -1017,8 +1017,14 @@ export function GanttChart({
         align: 'center',
         // Progress, colour and the float figure live behind this button: the
         // first two are rarely changed, and the float costs a search per row.
-        template: () =>
-          `<button type="button" class="gantt-rowinfo" data-task-info="1" title="Dettaglio attività">${INFO_ICON}</button>`,
+        // The button has no content, so its title is its accessible name — and
+        // one shared by every row leaves anyone moving between buttons unable
+        // to tell whose detail is about to open. Carried by the template, which
+        // dhtmlx re-runs on each render, rather than written onto the node: a
+        // class or an attribute set by hand does not survive a redraw.
+        template: (task) =>
+          `<button type="button" class="gantt-rowinfo" data-task-info="1"` +
+          ` title="Dettaglio di «${escapeHtml(String(task.text ?? ''))}»">${INFO_ICON}</button>`,
       },
       { name: 'add', width: 40 },
     ];

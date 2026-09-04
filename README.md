@@ -289,7 +289,9 @@ fit, which took the name from 230px to 152px — and a truncated name is the one
 whose content cannot be guessed from what is left of it, while the timeline scrolls
 and re-scales.
 
-Float stays in the per-row details dialog behind the button at the end of the row,
+Float stays in the per-row details dialog behind the button at the end of the row —
+which names the task it opens, since the button has no content and a title shared by
+every row leaves anyone stepping between them unable to tell whose detail is next —
 together with progress and colour, and not because it is derived: it is *measured*,
 one row at a time, at the cost of a re-solve of the plan per day probed. A column of
 those would be a search per row on every edit. That dialog is also where a task is

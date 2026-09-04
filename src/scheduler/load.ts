@@ -125,7 +125,10 @@ export function resourceLoad(
       // Where somebody is working, what they would have had alone is the very
       // capacity the simulation divided, so it is read back rather than resolved
       // again. Concurrent segments agree on it by construction: it is one
-      // resource at one instant.
+      // resource at one instant — which stops being true the day `allocation.ts`
+      // grows a per-task cap, since a capped task would carry a smaller solo
+      // rate than the one beside it and the first entry would no longer speak
+      // for the resource. Read the maximum then, or resolve the capacity again.
       const capacity = active.length > 0 ? active[0].solo : capacityAt(resource, intervals, from);
       const committed = active.reduce((total, entry) => total + entry.rate, 0);
       committedMinutes += committed * (to - from);
