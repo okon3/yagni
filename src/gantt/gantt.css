@@ -619,3 +619,73 @@
 .loadtip__rate {
   font-variant-numeric: tabular-nums;
 }
+
+/* What a bar answers on hover. dhtmlx sizes its tooltip for one line and sets
+   `white-space: nowrap`, which a table of figures and a sentence both need
+   undone; the rest is the app's own surface rather than the library's. */
+.gantt_tooltip {
+  /* dhtmlx only sets it inside .gantt_container, and the tooltip node lives on
+     document.body — so max-width would otherwise not include the padding. */
+  box-sizing: border-box;
+  max-width: 340px;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-dialog);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: normal;
+  /* It opens below and to the right of the pointer, so it sits over whatever
+     the pointer is heading for. Nothing in it is interactive, and the extension
+     has a branch for the pointer landing on it that this makes unreachable:
+     moving under the tooltip now describes the bar underneath instead of
+     freezing on the one left behind. */
+  pointer-events: none;
+}
+
+.gantt-tip__name {
+  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+/* Label and value in two columns, so the figures line up down the left of the
+   value column and the tooltip reads as a table rather than as prose. */
+.gantt-tip__grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 10px;
+  margin: 0;
+}
+
+.gantt-tip__grid dt {
+  color: var(--ink-faint);
+}
+
+.gantt-tip__grid dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.gantt-tip__grid em {
+  font-style: normal;
+  color: var(--warn);
+}
+
+/* A sentence, not a figure: separated from the table above it and allowed to
+   wrap, since what it says is why the bar is the length it is. */
+.gantt-tip__note {
+  margin: 7px 0 0;
+  color: var(--ink-muted);
+}
+
+.gantt-tip__critical {
+  color: var(--critical);
+}
+
+.gantt-tip__note em {
+  font-style: normal;
+  color: var(--ink-faint);
+}

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, type Ref } from 'react';
 import { gantt, type ZoomLevel } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
+import { barFactsOf, renderBarTooltip } from './barTooltip';
 import { endToShow, formatDays } from './format';
+import { escapeHtml } from './html';
 import { isShared, renderSegments } from './segmentBar';
 import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges, isContended } from '../scheduler';
 import type { CalendarSpec, DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
@@ -81,22 +83,6 @@ const INFO_ICON =
   '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
   '<circle cx="8" cy="4.6" r="0.95" fill="currentColor"/>' +
   '<rect x="7.25" y="6.7" width="1.5" height="4.9" rx="0.75" fill="currentColor"/></svg>';
-
-/** dhtmlx inserts a column template as HTML, so a task name must be escaped. */
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"]/g, (character) => {
-    switch (character) {
-      case '&':
-        return '&amp;';
-      case '<':
-        return '&lt;';
-      case '>':
-        return '&gt;';
-      default:
-        return '&quot;';
-    }
-  });
-}
 
 /** Darkens a hex colour for borders and outlines. */
 function shade(hex: string, factor = 0.72): string {
@@ -1031,6 +1017,15 @@ export function GanttChart({
     };
     gantt.templates.rightside_text = (_start, _end, task) => escapeHtml(String(task.text ?? ''));
 
+    // Before init: the extension hangs its own tooltip off onGanttReady, which
+    // fires inside init. Community ships it — unlike addTaskLayer, it is not one
+    // of the calls the build deletes — and calling plugins() twice is a no-op,
+    // which StrictMode's second mount depends on.
+    gantt.plugins({ tooltip: true });
+    // The extension's own 30ms means a pointer crossing the chart trails a
+    // tooltip per bar. Long enough to be asked for, short enough to be a hover.
+    gantt.config.tooltip_timeout = 220;
+
     // Before the zoom levels, two of which are declared in quarters.
     registerQuarterUnit();
     // No useKey: the extension's own ctrl+wheel binds "mousewheel", which this
@@ -1043,6 +1038,39 @@ export function GanttChart({
       scaleChangeRef.current?.(SCALE_LABELS[config.name ?? ''] ?? '');
     });
     gantt.init(container);
+
+    /**
+     * What a bar says when the pointer rests on it.
+     *
+     * Read off the plan on screen by id rather than out of the hovered element,
+     * so smart rendering is irrelevant: the bar has to exist to be hovered, and
+     * nothing here is stored on it to be lost at the next redraw. The extension
+     * delegates one mousemove on `$root`, which outlives every redraw too.
+     */
+    const barTooltip = (id: string | null): string | undefined => {
+      const project = projectRef.current;
+      const task = project.tasks.find((candidate) => candidate.id === id);
+      const scheduled = id === null ? undefined : solvedRef.current.schedule.tasks.get(id);
+      if (!task || !scheduled) return undefined;
+      return renderBarTooltip(
+        barFactsOf(
+          task,
+          scheduled,
+          solvedRef.current,
+          project.resources,
+          chainRef.current,
+          subtreeOf(project.tasks, task.id).size - 1,
+        ),
+      );
+    };
+    // The extension's own tooltip covers everything carrying a task id, the grid
+    // rows included — where the columns already say all of this and the avatars
+    // carry native titles that would fight it. Replaced by one on the bars.
+    gantt.ext.tooltips.detach(`[${gantt.config.task_attribute}]:not(.gantt_task_row)`);
+    gantt.ext.tooltips.tooltipFor({
+      selector: '.gantt_task_line',
+      html: (_event, node) => barTooltip(node.getAttribute(gantt.config.task_attribute)),
+    });
 
     // Today as a line rather than a shaded column: a column means a whole month
     // at month scale, while a line is exact at every zoom level. The marker
@@ -1543,6 +1571,10 @@ export function GanttChart({
 
     return () => {
       observer.disconnect();
+      gantt.ext.tooltips.detach('.gantt_task_line');
+      // The tooltip node lives on document.body, so an unmount while one is up
+      // would leave it there with nothing to describe.
+      gantt.ext.tooltips.tooltip.hide();
       todayLine.remove();
       bandsBelow.remove();
       bandsAbove.remove();

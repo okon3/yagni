@@ -182,6 +182,30 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   `gantt.ext.zoom.getCurrentLevel()`. Fitting on open therefore sits in `App`,
   after `loadProject` returns, which is also where it belongs — an undo shares
   `loadProject` and must keep its viewport.
+- **The `tooltip` extension *is* in Community**, unlike `addTaskLayer` — the bundle
+  lists it among the built-in extensions, so `gantt.plugins({ tooltip: true })`
+  works, and `plugins()` is idempotent, which StrictMode's second mount needs. It
+  attaches a tooltip of its own on `onGanttReady`, over
+  `[data-task-id]:not(.gantt_task_row)` — the **grid rows** as much as the bars.
+  Replacing it means `detach` on that exact selector string, since the listeners
+  are keyed by it, and then a `tooltipFor` of one's own.
+- **`tooltip_timeout` above `tooltip_hide_timeout` cancels the tooltip** on a move
+  from one bar straight to another: leaving schedules the hide, entering schedules
+  the show, and the hide fires first and cancels it. A real pointer keeps firing
+  `mousemove` and every one of them re-arms the show, so a person never sees this —
+  a single synthetic `hover` sees nothing else. **Two hovers a pixel apart is the
+  cheapest way to make a hover test mean anything**, and a hover onto the very
+  pixel the pointer already sits on fires no event at all.
+- **The tooltip node lives on `document.body`**, so it is outside the
+  `box-sizing: border-box` dhtmlx sets for `.gantt_container *`, and it opens
+  below-right of the pointer — over whatever the pointer is heading for.
+  `pointer-events: none` is what stops it going on describing the bar the pointer
+  has already left.
+- **`grid_width` is a budget, not a total.** The grid holds it and shrinks its
+  resizable columns towards `min_column_width` to fit, so a new column is paid for
+  by the ones already there — adding two took the name column from 230px to 152px,
+  in silence and with no horizontal scrollbar to show for it. Computing
+  `grid_width` from the columns' own widths is what makes the timeline pay instead.
 - **`gantt.templates.scale_cell_class` no longer exists** — dropped in v6, and it
   still compiles. A class on a scale cell goes through `css` on the scale itself
   (`gantt.config.scales` / a zoom level's `scales`). `timeline_cell_class` is

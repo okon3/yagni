@@ -274,6 +274,22 @@ extent is not on screen. Confirmations are dialogs of the app's own: an embedded
 browser suppresses `window.confirm`, which would turn every guarded action into a
 silent no-op.
 
+A bar **answers on hover**: its dates, its effort against the duration those dates
+span, the person and the share of them it got, and — while the chain is marked —
+whether the end date hangs on it and why. The dialog behind the row's button says all
+of that too, one row at a time and for a click, but a plan is read by sweeping it. So
+the tooltip reports what is already computed and asks the engine for nothing: the
+float *figure* costs a re-solve of the plan per day probed, which is a price for a
+click and not for a pointer crossing a bar. Where the chart draws the criticality
+dashed the tooltip says in words that it predates the last edit, since the ring and
+the sentence must not disagree about the same measurement.
+
+It is the library's own tooltip extension, which the Community build does ship —
+unlike `addTaskLayer`. That matters for more than the licence: the extension
+delegates a single listener on the chart's root and looks the task up by id, so the
+hover neither stores anything on a bar to lose at the next redraw nor cares that
+smart rendering leaves most of the bars out of the DOM.
+
 One person's work can be **highlighted**, and highlighting is not filtering: their
 rows, bars and links keep their opacity while the rest of the plan fades to a
 quarter of it. Nothing is hidden, because what one looks for is precisely how a
