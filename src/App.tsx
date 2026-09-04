@@ -201,6 +201,10 @@ export default function App() {
       setSavedText(options?.neverSaved ? null : canonical);
       setFilename(name);
       setError(null);
+      // Dropped for the same reason the history is, and the same reason a pinned
+      // person is: a query aimed at the plan that was open says nothing about
+      // the one that has just arrived. An undo is not an opening and keeps it.
+      setSearch('');
       syncFromChart();
     },
     [commitHistory, syncFromChart],
@@ -215,6 +219,7 @@ export default function App() {
     setSavedText(text);
     setFilename(DEFAULT_FILENAME);
     setError(null);
+    setSearch('');
     syncFromChart();
   }, [commitHistory, syncFromChart]);
 
