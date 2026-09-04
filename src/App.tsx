@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent } from 'react';
+// ?inline: as a data URI the mark survives even a lone single-file index.html,
+// where a URL beside the page would have nothing to point at.
+import markUrl from './assets/favicon.svg?inline';
 import type { CalendarSpec, Resource } from './scheduler';
 import { GanttChart, INITIAL_SCALE_LABEL, type GanttHandle } from './gantt/GanttChart';
 import { COLOR_OPTIONS } from './gantt/colors';
@@ -697,7 +700,7 @@ export default function App() {
       <header className="app__bar">
         <h1>
           {/* One SVG for the header and the favicon, so the mark cannot drift. */}
-          <img className="app__mark" src="/favicon.svg" alt="" width={20} height={20} />
+          <img className="app__mark" src={markUrl} alt="" width={20} height={20} />
           <span className="app__brand">
             YAGNI
             <span className="app__expansion">Yet Another Gantt, Now Improved</span>

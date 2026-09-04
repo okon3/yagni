@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
+import { viteSingleFile } from 'vite-plugin-singlefile'
 
 const HELP = fileURLToPath(new URL('./src/gantt/agentApi.help.md', import.meta.url))
 
@@ -30,6 +31,11 @@ function llmsTxt(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), llmsTxt()],
-})
+// `--mode single` inlines every bundle into index.html, for a build that is a
+// lone file to hand around; llms.txt still comes out beside it, unserved there.
+export default defineConfig(({ mode }) => ({
+  // Relative, so the build works from a sub-path too — the app has no router
+  // and nothing else that assumes the site root.
+  base: './',
+  plugins: [react(), llmsTxt(), ...(mode === 'single' ? [viteSingleFile()] : [])],
+}))
