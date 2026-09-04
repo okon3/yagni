@@ -134,7 +134,9 @@ as a diamond. There is nothing else to set and nothing extra in the file —
 writing an effort back above zero makes it an ordinary task again — and a summary
 is never one, whatever its children sum to. `getPlan()` returns its `start` and
 `end` equal, on the finish of whatever it closes, or on the morning of the date it
-was given when nothing runs into it.
+was given when nothing runs into it. Reading one back is `effortDays === 0 &&
+!isSummary`, not `start === end`, which a summary holding a single milestone
+satisfies too.
 
 `resourceId: null` unassigns, and an unassigned task never contends: it runs at
 full rate. **An id no resource carries is refused before anything is written**,
