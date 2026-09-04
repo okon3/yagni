@@ -20,6 +20,7 @@ import {
   loadByResource,
   peopleUnder,
   rejectionForLink,
+  reorderTasks,
   slackByRow,
   solve,
   subtreeOf,
@@ -1457,6 +1458,22 @@ export function GanttChart({
       if (Number.isFinite(nominal) && nominal >= 0) task.nominalDays = nominal;
     };
 
+    /**
+     * Writes the grid's row order back onto the model.
+     *
+     * Walked with `getChildren` rather than `eachTask`, which is an iteration
+     * over what is on screen: a branch the user closed must keep the order it
+     * has inside it, not be flattened out of the file for being folded.
+     */
+    const pullOrderFromView = () => {
+      const walk = (parent: string | number): string[] =>
+        gantt.getChildren(parent).flatMap((id) => [String(id), ...walk(id)]);
+      projectRef.current.tasks = reorderTasks(
+        projectRef.current.tasks,
+        walk(gantt.config.root_id),
+      );
+    };
+
     const syncLinks = () => {
       const byTarget = new Map<string, string[]>();
       gantt.getLinks().forEach((link) => {
@@ -1606,6 +1623,10 @@ export function GanttChart({
             color: parent ? undefined : (item.bar_color as string | undefined) || undefined,
           });
         }
+        // Pushed at the end of the list, while the grid put it next to its
+        // siblings — which for a child of anything but the last branch is a
+        // different place.
+        pullOrderFromView();
         applySolution();
         return true;
       }, undefined),
@@ -1615,6 +1636,9 @@ export function GanttChart({
         if (task) {
           task.parentId = parent !== undefined && String(parent) !== '0' ? String(parent) : undefined;
         }
+        // A move is a reorder as much as a re-parent: dropping a row between two
+        // of its own siblings changes nothing else at all.
+        pullOrderFromView();
         applySolution();
         return true;
       }, undefined),

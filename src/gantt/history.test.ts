@@ -125,6 +125,37 @@ describe('naming a change', () => {
     );
   });
 
+  it('names the row that was dragged, not the one that got out of its way', () => {
+    const three = projectOf([
+      task(),
+      task({ id: 't2', name: 'Modello dati' }),
+      task({ id: 't3', name: 'Collaudo' }),
+    ]);
+    // t3 to the front. Every other row shifts down, so the first difference is
+    // "Collaudo" arriving where the first task used to be — and naming the row
+    // it displaced would name the wrong one.
+    const dragged = projectOf([
+      task({ id: 't3', name: 'Collaudo' }),
+      task(),
+      task({ id: 't2', name: 'Modello dati' }),
+    ]);
+    expect(describeChange(three, dragged)).toBe('riordino di «Collaudo»');
+  });
+
+  it('says nothing more than a reorder when several rows changed places', () => {
+    const three = projectOf([
+      task(),
+      task({ id: 't2', name: 'Modello dati' }),
+      task({ id: 't3', name: 'Collaudo' }),
+    ]);
+    const shuffled = projectOf([
+      task({ id: 't3', name: 'Collaudo' }),
+      task({ id: 't2', name: 'Modello dati' }),
+      task(),
+    ]);
+    expect(describeChange(three, shuffled)).toBe('riordino delle attività');
+  });
+
   it('tells a dependency added from one removed', () => {
     const linked = projectOf([task(), task({ id: 't2', name: 'Modello dati', predecessors: ['t1'] })]);
     expect(describeChange(before, linked)).toBe('aggiunta di una dipendenza');

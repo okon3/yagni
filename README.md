@@ -531,6 +531,12 @@ recomputed on load, so a file can never hold a schedule inconsistent with its ow
 premises. Dates are written as local wall-clock time; `toISOString` would shift them
 to UTC and move an 08:00 start to the previous day.
 
+**The order of the task list is the order of the rows**, and dragging a row to
+reorder it writes that order back. It is not a new field: the list has always been
+read back in the order it was written, so before it was kept in step a reorder
+survived exactly until the next save — or until the next undo, which restores a
+snapshot through the same path.
+
 Parsing is strict — unknown resources, duplicate ids, dangling predecessors, a
 circular hierarchy, an availability share outside 0..1, a colour that is not a
 `#rrggbb` triplet and future versions are all rejected, and the open project is

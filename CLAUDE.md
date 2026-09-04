@@ -79,6 +79,13 @@ not the test.
   constraint is snapped to that day's opening, and a closed day moves on to the
   next open one — the calendar owns the hours, so the only part of a start
   anyone chose is which day it is.
+- **The order of `project.tasks` is the order of the rows.** `toGanttData` hands
+  dhtmlx the array as it stands, so the file has always decided the arrangement
+  — while `onAfterTaskMove` reports only the new *parent*, which made a reorder
+  among siblings a change the model never heard about: right on screen, gone at
+  the next save and at the next undo, both of which rebuild from a snapshot.
+  Anything that rearranges rows has to read the order back off the grid
+  (`getChildren`, not `eachTask` — a closed branch still has an order).
 - **A task with no resource never contends** and runs at full rate.
 - The split between concurrent tasks applies **on top** of whatever capacity the
   resource has at that moment.

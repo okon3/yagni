@@ -13,6 +13,7 @@ import {
   isMilestone,
   loadByResource,
   rejectionForLink,
+  reorderTasks,
   resourcesByTask,
   slackByRow,
   solve,
@@ -248,6 +249,31 @@ describe('milestones', () => {
     const summary = solved.schedule.tasks.get('p')!;
     expect(summary.start).toEqual(at(1));
     expect(summary.end).toEqual(at(1));
+  });
+});
+
+describe('row order', () => {
+  const three: ProjectTask[] = [
+    { id: 'a', name: 'A', nominalDays: 1, start: at(0) },
+    { id: 'b', name: 'B', nominalDays: 1, start: at(0) },
+    { id: 'c', name: 'C', nominalDays: 1, start: at(0) },
+  ];
+
+  it('takes the order the grid is in', () => {
+    expect(reorderTasks(three, ['c', 'a', 'b']).map((task) => task.id)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('keeps a task the order does not mention rather than dropping it', () => {
+    // A view is entitled to an opinion about arrangement, not to delete.
+    expect(reorderTasks(three, ['c']).map((task) => task.id)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('ignores an id the project does not have, and a repeat of one it does', () => {
+    expect(reorderTasks(three, ['ghost', 'b', 'b', 'a']).map((task) => task.id)).toEqual([
+      'b',
+      'a',
+      'c',
+    ]);
   });
 });
 

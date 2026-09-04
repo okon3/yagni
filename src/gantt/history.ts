@@ -159,6 +159,22 @@ export function describeChange(before: Project, after: Project): string {
       : `modifica di ${edited.length} attività`;
   }
 
+  const beforeOrder = before.tasks.map((task) => task.id);
+  const afterOrder = after.tasks.map((task) => task.id);
+  if (!equalValues(beforeOrder, afterOrder)) {
+    // The row that was dragged is the one whose removal leaves the two orders
+    // equal: a move shifts every row it passed, so the first difference names a
+    // row that only got out of the way.
+    const dragged = afterOrder.find((id) =>
+      equalValues(
+        beforeOrder.filter((other) => other !== id),
+        afterOrder.filter((other) => other !== id),
+      ),
+    );
+    const task = dragged === undefined ? undefined : afterTasks.get(dragged);
+    return task ? `riordino di ${quoted(task)}` : 'riordino delle attività';
+  }
+
   // Reordered dependencies, or a rename to the same name through a path that
   // rewrote the file: something moved, and there is nothing better to say.
   return GENERIC_CHANGE;

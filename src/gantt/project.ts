@@ -239,6 +239,36 @@ export function resourcesByTask(
 }
 
 /**
+ * The tasks in the order given, with anything the order leaves out kept behind
+ * it.
+ *
+ * The order of this list is not decoration: it is what the file is written in
+ * and what a load reads back, since `toGanttData` hands dhtmlx the array as it
+ * stands. So the grid's own order has to be written back into it — otherwise
+ * dragging a row to reorder it lasts exactly until the next save, or until the
+ * next undo, which restores a snapshot through the same path.
+ *
+ * An id the caller does not mention keeps its task rather than dropping it: the
+ * order is a view's opinion about arrangement, and a view is not entitled to
+ * delete.
+ */
+export function reorderTasks(tasks: ProjectTask[], orderedIds: string[]): ProjectTask[] {
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const ordered: ProjectTask[] = [];
+  const placed = new Set<string>();
+  for (const id of orderedIds) {
+    const task = byId.get(id);
+    if (!task || placed.has(id)) continue;
+    ordered.push(task);
+    placed.add(id);
+  }
+  for (const task of tasks) {
+    if (!placed.has(task.id)) ordered.push(task);
+  }
+  return ordered;
+}
+
+/**
  * The people working under a task, in the project's own order.
  *
  * `resourcesByTask` answers with a set, which has no order to agree about — and
