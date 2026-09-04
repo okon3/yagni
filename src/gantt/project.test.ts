@@ -286,6 +286,15 @@ describe('the start constraint', () => {
     expect(constraintStart(held[1], dropped, solved)).toEqual(new Date(2026, 8, 28, 8, 0));
   });
 
+  it('lets a task be pulled ahead of everything else in the plan', () => {
+    const solved = solve(project(held));
+    // The calendar's origin is the earliest start the plan has, so a day before
+    // it has no place on the working-minute axis at all. Asked for one, the
+    // constraint used to come back as the origin — the task pinned behind
+    // whatever happened to be first, and nothing on screen to say so.
+    expect(constraintStart(held[1], at(-7), solved)).toEqual(at(-7));
+  });
+
   it('does not snap the solved start of a task that begins after lunch', () => {
     const tasks: ProjectTask[] = [
       { id: 'a', name: 'A', nominalDays: 0.5, start: at(0), resourceId: 'alice' },

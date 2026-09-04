@@ -218,9 +218,26 @@ export class WorkingCalendar {
    * which day it is. A Saturday collapses onto the Monday the engine would have
    * pushed it to anyway, which keeps the stored constraint and the solved start
    * the same value rather than two that agree by accident.
+   *
+   * Walked out day by day rather than gone through the working-minute axis,
+   * which starts at the origin and therefore cannot express a day before it:
+   * `dayStartInWorkingMinutes` clamps, and the origin is the earliest start the
+   * plan currently has — an artefact of the plan, not a rule about dates. Going
+   * through the axis turned "start this a month earlier" into "start this on
+   * the day the project already starts", silently, and left a task unable to
+   * move ahead of whatever is first.
    */
   startOfWorkingDay(date: Date): Date {
-    return this.fromWorkingMinutes(this.dayStartInWorkingMinutes(dayIndexOf(date)), 'start');
+    let day = dayIndexOf(date);
+    // A run of closed days is weekends plus the shutdowns the spec declares,
+    // and both are finite — but a calendar can still be given enough holidays
+    // to swallow every day there is.
+    const limit = this.holidays.length * 2 + 7;
+    for (let skipped = 0; !this.isWorkingDay(day); skipped++) {
+      if (skipped > limit) throw new Error('Calendar has no working day to start on');
+      day++;
+    }
+    return dateAtDayIndex(day, this.windows[0].from);
   }
 
   /**
