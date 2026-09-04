@@ -247,11 +247,27 @@ makes, made once the load has finished. An undo is not an opening: it restores
 the plan through the same path and keeps the window the user was looking
 through, closed branches included.
 
-The grid carries the **inputs** and nothing else: name, resource, effort and start.
-Duration, end date and float are derived, so they live in the per-row details dialog
-behind the button at the end of the row, together with progress and colour — a computed
-figure in an editable-looking cell only invites an edit the engine discards. That
-dialog is also where a task is deleted — as is <kbd>Del</kbd> on the selected row —
+The grid carries the **inputs** — name, resource, effort and start — and beside them
+the two figures a plan is actually read by: **end date and duration**, both derived.
+The rule is not that a computed figure has to be hidden, only that it must not *look*
+editable. Those two columns are faint and italic on every row, which is the register a
+summary's rolled-up effort has always worn, and no editor is attached to them at all —
+so the double-click that opens a field on Effort opens nothing on Fine, and neither
+does <kbd>Enter</kbd> from the keyboard, since both paths end in the same call and it
+refuses a column with no editor. Nothing there can write an end date back: the model
+has no field for one.
+
+They cost the grid 146px, and it is the timeline that gives them up rather than the
+task name. The grid holds its configured width and squeezes its resizable columns to
+fit, which took the name from 230px to 152px — and a truncated name is the one cell
+whose content cannot be guessed from what is left of it, while the timeline scrolls
+and re-scales.
+
+Float stays in the per-row details dialog behind the button at the end of the row,
+together with progress and colour, and not because it is derived: it is *measured*,
+one row at a time, at the cost of a re-solve of the plan per day probed. A column of
+those would be a search per row on every edit. That dialog is also where a task is
+deleted — as is <kbd>Del</kbd> on the selected row —
 which takes its subtree with it and clears any dependency on the tasks that go.
 Only a task with subtasks asks for confirmation, since that is the deletion whose
 extent is not on screen. Confirmations are dialogs of the app's own: an embedded

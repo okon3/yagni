@@ -299,6 +299,13 @@ function toGanttData(project: Project, solved: SolvedProject, chain: MarkedChain
         type: typeOf(task, solved),
         start_date: formatDate(scheduled?.start ?? task.start),
         end_date: formatDate(scheduled?.end ?? task.start),
+        // The end the grid prints, which is `end_date` everywhere except on a
+        // task of no length. `end_date` is the bar's geometry and stays the
+        // engine's, so the two are separate fields rather than one rounded off.
+        end_shown: scheduled ? endToShow(scheduled) : task.start,
+        elapsed_days: scheduled
+          ? solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes)
+          : 0,
         progress: task.progress ?? 0,
         resource_id: task.resourceId ?? '',
         nominal_days: task.nominalDays,
@@ -587,6 +594,8 @@ export function GanttChart({
         ganttTask.type = typeOf(task, solved);
         ganttTask.start_date = scheduled.start;
         ganttTask.end_date = scheduled.end;
+        ganttTask.end_shown = endToShow(scheduled);
+        ganttTask.elapsed_days = solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes);
         ganttTask.nominal_days = task.nominalDays;
         ganttTask.rolled_effort_days = solved.calendar.minutesToDays(scheduled.effortMinutes);
         const summary = solved.summaryIds.has(task.id);
@@ -787,6 +796,7 @@ export function GanttChart({
             resource_id: task?.resourceId ?? '',
             nominal_days: effort,
             rolled_effort_days: effort,
+            elapsed_days: effort,
             is_summary: false,
             bar_color: task?.color ?? '',
             shared: false,
@@ -935,18 +945,50 @@ export function GanttChart({
             : shortDate(task.start_date as Date),
         editor: { type: 'date', map_to: 'start_date' },
       },
+      // The two derived columns. Every cell wears the register a summary's
+      // rolled-up figures already wear, and neither column carries an editor —
+      // which is what `openEditor` tests before it opens one, so a double-click
+      // here cannot even reach a field. The end date is never an input.
+      {
+        name: 'end_shown',
+        label: 'Fine',
+        width: 84,
+        align: 'center',
+        resize: true,
+        template: (task) =>
+          `<span class="gantt-derived">${shortDate(task.end_shown as Date)}</span>`,
+      },
+      {
+        name: 'elapsed_days',
+        label: 'Durata',
+        width: 62,
+        align: 'center',
+        resize: true,
+        template: (task) =>
+          `<span class="gantt-derived">${formatDays(Number(task.elapsed_days ?? 0))}g</span>`,
+      },
       {
         name: 'info',
         label: '',
         width: 34,
         align: 'center',
-        // Duration, end date, progress and colour live behind this button: they
-        // are either derived or rarely changed, and cost the grid its width.
+        // Progress, colour and the float figure live behind this button: the
+        // first two are rarely changed, and the float costs a search per row.
         template: () =>
           `<button type="button" class="gantt-rowinfo" data-task-info="1" title="Dettaglio attività">${INFO_ICON}</button>`,
       },
       { name: 'add', width: 40 },
     ];
+    // The grid holds `grid_width` and squeezes its resizable columns down to
+    // `min_column_width` to fit, so two more columns came out of the task name —
+    // 230px to 152px, and a truncated name is the one cell whose content cannot
+    // be guessed from what is left of it. The grid is sized to hold the columns
+    // it declares instead, and the width comes off the timeline, which scrolls
+    // and re-scales while a name does neither.
+    gantt.config.grid_width = gantt.config.columns.reduce(
+      (total, column) => total + (Number(column.width) || 0),
+      0,
+    );
 
     // Every row, bar and link says whose work it is, so that highlighting a
     // person is a stylesheet rule and not a redraw.
