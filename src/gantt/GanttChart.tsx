@@ -1489,12 +1489,13 @@ export function GanttChart({
     );
 
     // The keys that move between cells come from dhtmlx's keyboard navigation
-    // extension, which Community does not ship — `gantt.ext` holds no
-    // `keyboardNavigation` at all. Left alone, Tab falls through to the browser
-    // and lands on the grid's scrollbar with the editor still open behind it,
-    // and Enter does nothing at all: the only way to commit a typed value is
-    // to click somewhere else. The moves themselves are on `inlineEditors`,
-    // which does ship, and each one saves the cell it leaves.
+    // extension, which this chart deliberately does not load: it would also
+    // claim the arrows and Del, which App already owns. Left alone, Tab falls
+    // through to the browser and lands on the grid's scrollbar with the editor
+    // still open behind it, and Enter does nothing at all: the only way to
+    // commit a typed value is to click somewhere else. The two moves that are
+    // wanted are on `inlineEditors`, which is loaded, and each saves the cell
+    // it leaves.
     const editorKeys = (event: KeyboardEvent) => {
       const editors = gantt.ext.inlineEditors;
       if (!editors.isVisible()) return;

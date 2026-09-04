@@ -267,16 +267,26 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   is still a descendant of `$grid`. Selecting first detaches it and the click is
   swallowed, and the expand/collapse arrow and the `+` button of a row that is
   not already selected then need a second click.
-- **The keyboard navigation extension is not in Community.** `gantt.ext` holds
-  `inlineEditors`, `zoom` and `tooltips` but no `keyboardNavigation`, so
-  `keyboard_navigation` and `keyboard_navigation_cells` configure nothing that
-  ships here and every key it would have bound is unbound: inside an open
-  editor, Tab fell through to the browser and landed on the grid's *scrollbar*
-  with the editor still open behind it, and Enter did nothing at all — the only
-  way to commit a typed value was to click elsewhere. The moves themselves are
-  on `inlineEditors` (`editNextCell`/`editPrevCell`, which take a
-  `canChangeRow`, and each saves the cell it leaves), so binding them is a
-  listener, not a reimplementation.
+- **A config whose extension was never loaded does nothing, and says nothing.**
+  `gantt.config.keyboard_navigation = true` sat here for a long time while
+  `gantt.ext.keyboardNavigation` was `undefined`: `plugins()` is what registers
+  an extension, the app passes it only `{ tooltip: true }`, and a config for an
+  unregistered extension is neither an error nor a warning. Every key that
+  extension binds was therefore unbound — inside an open editor Tab fell through
+  to the browser and landed on the grid's *scrollbar* with the editor still open
+  behind it, and Enter did nothing at all. The two moves the app actually wants
+  are on `inlineEditors` (`editNextCell`/`editPrevCell`, which take a
+  `canChangeRow`, and each saves the cell it leaves), so it binds those itself
+  rather than loading a whole navigation mode that would also claim the arrows
+  and Del, which App already owns.
+- **What Community ships is a runtime question, not a typings one, and
+  `plugins()` answers it in silence.** Asking for an extension the build does
+  not contain is a no-op — no throw, no warning — so the only honest probe is
+  `plugins({ x: true })` followed by reading `gantt.ext`. Measured on 10.0.2:
+  `tooltip`, `keyboard_navigation`, `quick_info`, `drag_timeline`, `fullscreen`
+  and `export_api` **are** there; `click_drag`, `marker`, `undo`, `multiselect`,
+  `grouping`, `overlay`, `auto_scheduling` and `critical_path` are **not**. So
+  creating a task by dragging on the timeline has no extension behind it here.
 - **An inline editor opens on a single click**, focuses its field and selects
   its text, with no help and no configuration — `keyboard_navigation` and
   `keyboard_navigation_cells` both `false` at init change none of it. So a
