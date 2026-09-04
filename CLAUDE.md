@@ -75,6 +75,10 @@ not the test.
   rule `pullFromView` had for the drag, applied to every write. Without it a
   rename walks the declared start forward to wherever the plan currently puts
   the task, and the plan changes on the day the predecessor holding it goes.
+- **A declared start is a working day, not an instant.** One accepted as a
+  constraint is snapped to that day's opening, and a closed day moves on to the
+  next open one — the calendar owns the hours, so the only part of a start
+  anyone chose is which day it is.
 - **A task with no resource never contends** and runs at full rate.
 - The split between concurrent tasks applies **on top** of whatever capacity the
   resource has at that moment.
@@ -273,6 +277,16 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   created or moved under it is invisible. Set `$open` on the parent first.
 - **`gantt.addTask` returns the id it actually used**, which is not always the one
   supplied — the grid's `+` hands out a timestamp. Use the return value.
+- **`round_dnd_dates` defaults to `true`**, and what it rounds to is the cell of
+  the *finest scale currently on screen* — not a day. So the same gesture means
+  something different at every zoom: 23/09 11:37 lands on 23/09 by day, on
+  Monday 21/09 by week and on **1 October** by month or quarter, which is where
+  a plan long enough to need those views is always sitting. A nudge of a few
+  pixels then moves a task eight days, in silence, on every task and not only on
+  milestones. It is off here, and `constraintStart` snaps the raw instant to the
+  working day instead — **after** deciding the start is a constraint at all, or
+  the 13:00 solved start of a task held by a predecessor rounds to 08:00 and
+  reads as a move nobody made.
 - **One drag is reported twice**, as `onAfterTaskDrag` and `onAfterTaskUpdate`,
   and by the time the second one arrives `applySolution` has already written the
   *solved* start onto the row. Pulling `start_date` back in unconditionally

@@ -57,6 +57,15 @@ construction: the simulation loop contains no calendar logic at all.
   the day that predecessor is removed. A start is therefore only taken as a
   constraint when it differs from the solved one, which is also why dropping a
   bar exactly where it already sits declares nothing.
+- **A start is a day, not an instant.** One that is taken as a constraint is
+  taken as the opening of the working day it fell on, and a day the calendar has
+  closed moves on to the next open one. The hours a task can run in belong to the
+  calendar, so the only part of a start anyone chooses is which day it is —
+  a drop carries whatever minute the pointer was over, and a date field carries
+  no time at all. It also means the chart never quietly moves a task further
+  than the gesture did: dhtmlx would otherwise snap a drop to the cell of the
+  scale on screen, which on a plan long enough to be viewed by month is a whole
+  month of travel for a nudge of a few pixels.
 - **A summary task is never scheduled.** If it were, it would contend with its own
   children for the same person and halve their rate. Its effort and dates roll up
   from its leaves instead, and its elapsed time can exceed the sum of its

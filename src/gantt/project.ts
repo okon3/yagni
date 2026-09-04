@@ -188,10 +188,17 @@ export function isMilestone(task: ProjectTask, summaryIds: Set<string>): boolean
  * constraint *onto* the date the plan already computed — asking for the date it
  * already has changes nothing — which is the same bargain a drag has always
  * made: dropping a bar where it already sits declares nothing.
+ *
+ * One that *is* a constraint is taken as the working day it lands on. A drop
+ * carries the instant under the pointer and a date field carries none at all,
+ * and neither is a time anybody chose; the snap has to come after the
+ * comparison, or the solved start of a task held to 13:00 by a predecessor
+ * would round to 08:00 and read as a move nobody made.
  */
 export function constraintStart(task: ProjectTask, offered: Date, solved: SolvedProject): Date {
   const scheduled = solved.schedule.tasks.get(task.id);
-  return scheduled && offered.getTime() === scheduled.start.getTime() ? task.start : offered;
+  if (scheduled && offered.getTime() === scheduled.start.getTime()) return task.start;
+  return solved.calendar.startOfWorkingDay(offered);
 }
 
 export function effectiveColorOf(

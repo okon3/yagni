@@ -899,6 +899,13 @@ export function GanttChart({
     // default name dhtmlx gives to rows created from the grid.
     gantt.i18n.setLocale('it');
     gantt.config.date_format = '%Y-%m-%d %H:%i';
+    // dhtmlx rounds a drop to the cell of the finest scale on screen, and on a
+    // plan long enough to need the month or quarter view that cell is a month:
+    // a nudge of a few pixels on 23 September lands the task on 1 October, with
+    // nothing on screen to say so. The exact instant under the pointer is the
+    // honest input, and `constraintStart` snaps it to the working day it fell
+    // on — a scale the plan can always show.
+    gantt.config.round_dnd_dates = false;
     // The end date is computed, never typed or dragged, so the right bar handle
     // would offer an edit the engine immediately overwrites.
     gantt.config.drag_resize = false;
@@ -1497,8 +1504,9 @@ export function GanttChart({
           const parent = item.parent !== undefined && String(item.parent) !== '0'
             ? String(item.parent)
             : undefined;
-          const start = item.start_date ? new Date(item.start_date as Date) : new Date();
-          start.setHours(8, 0, 0, 0);
+          const start = solvedRef.current.calendar.startOfWorkingDay(
+            item.start_date ? new Date(item.start_date as Date) : new Date(),
+          );
           // Honour whatever the caller supplied and only fall back to a day of
           // effort, so a row created with data does not silently lose it.
           const supplied = Number(item.nominal_days);

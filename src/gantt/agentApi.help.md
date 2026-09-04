@@ -162,7 +162,7 @@ which is exactly the task a planner has to move.
 
 | Call | Notes |
 | --- | --- |
-| `addTask(patch?) → id` | `{ name, nominalDays, start, resourceId, color, parentId }`, all optional. The start is normalised to 08:00. |
+| `addTask(patch?) → id` | `{ name, nominalDays, start, resourceId, color, parentId }`, all optional. The start is normalised to the opening of a working day. |
 | `updateTask(id, patch)` | Any subset of `{ name, nominalDays, start, resourceId, color, progress }`. Throws on `nominalDays`, `start` or `resourceId` for a summary. |
 | `deleteTask(id)` | Takes the subtree with it and clears dependencies on any of it. |
 | `setParent(id, parentId \| null)` | `null` moves it to the top level. Refuses a parent from inside `id`'s own subtree. |
@@ -187,6 +187,11 @@ leaves the declared constraint where it was: otherwise a rename would walk it
 forward to wherever the plan currently puts the task, and the plan would change
 the day its predecessor went away. To move a task, ask for the date you want; to
 pin it to the date it already has, there is nothing to ask for.
+
+A start that *is* taken as a constraint is taken as the **opening of the working
+day it falls on**, and a day the calendar has closed moves on to the next open
+one: `2026-09-23T11:37` and a Saturday both come back as an 08:00. The time of
+day is the calendar's to decide, so asking for one is asking for nothing.
 
 `resourceId: null` unassigns, and an unassigned task never contends: it runs at
 full rate. **An id no resource carries is refused before anything is written**,

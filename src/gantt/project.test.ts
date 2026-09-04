@@ -272,6 +272,33 @@ describe('the start constraint', () => {
     expect(constraintStart(held[1], at(3), solved)).toEqual(at(3));
   });
 
+  it('takes the working day a drop landed on, not the instant under the pointer', () => {
+    const solved = solve(project(held));
+    const dropped = new Date(2026, 8, 23, 11, 37);
+    expect(constraintStart(held[1], dropped, solved)).toEqual(new Date(2026, 8, 23, 8, 0));
+  });
+
+  it('moves a drop on a closed day onto the day the plan would run it', () => {
+    const solved = solve(project(held));
+    // Saturday. Left as it is, the constraint and the start the engine solves
+    // from it are two different values that agree only by rounding forward.
+    const dropped = new Date(2026, 8, 26, 15, 0);
+    expect(constraintStart(held[1], dropped, solved)).toEqual(new Date(2026, 8, 28, 8, 0));
+  });
+
+  it('does not snap the solved start of a task that begins after lunch', () => {
+    const tasks: ProjectTask[] = [
+      { id: 'a', name: 'A', nominalDays: 0.5, start: at(0), resourceId: 'alice' },
+      { id: 'b', name: 'B', nominalDays: 1, start: at(0), resourceId: 'bob', predecessors: ['a'] },
+    ];
+    const solved = solve(project(tasks));
+    const scheduled = solved.schedule.tasks.get('b')!;
+    // Snapping before comparing would read 13:00 as a move to 08:00 and walk the
+    // declared start of a task nobody dragged.
+    expect(scheduled.start.getHours()).toBe(13);
+    expect(constraintStart(tasks[1], scheduled.start, solved)).toEqual(at(0));
+  });
+
   it('keeps a milestone on the side of the boundary it was pinned to', () => {
     const tasks: ProjectTask[] = [
       { id: 'a', name: 'A', nominalDays: 2, start: at(0), resourceId: 'alice' },

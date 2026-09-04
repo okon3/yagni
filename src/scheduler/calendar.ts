@@ -211,6 +211,19 @@ export class WorkingCalendar {
   }
 
   /**
+   * The opening of the working day this date falls on, or of the next one.
+   *
+   * A declared start is a day, not an instant: the hours a task is available to
+   * run in are the calendar's, so the only part of a start anyone chooses is
+   * which day it is. A Saturday collapses onto the Monday the engine would have
+   * pushed it to anyway, which keeps the stored constraint and the solved start
+   * the same value rather than two that agree by accident.
+   */
+  startOfWorkingDay(date: Date): Date {
+    return this.fromWorkingMinutes(this.dayStartInWorkingMinutes(dayIndexOf(date)), 'start');
+  }
+
+  /**
    * Start of the given day on the working-minute axis.
    *
    * Days that are not working days collapse onto the next working day, which is
