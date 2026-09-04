@@ -501,6 +501,26 @@ rather than stalling the scheduler halfway through the load.
 The current version is **2**. Version 1 files still load: their `daysOff` are read
 as availability overrides at zero, which is what they always meant.
 
+## Taking the plan out
+
+`.gantt` is the project; **CSV is the schedule.** The `CSV` button writes the solved
+plan — one row per task, in the order the grid shows them — with the dates, the
+effort and the elapsed duration the engine derived, which the project file
+deliberately does not store. There is no CSV import: a file of results is not a set
+of premises to schedule from.
+
+The dialect is the one a spreadsheet expects in the locale the application speaks:
+`;` between the fields, a comma for the decimals, CRLF, a UTF-8 BOM so accented
+names survive the default import, and dates as `DD/MM/YYYY HH:mm`. `Livello` is the
+depth in the outline, and `Riepilogo` marks a summary — whose effort is the rollup
+of its children's, so a column summed without reading that flag counts every leaf
+twice. `Contesa` marks a row stretched by sharing somebody, as opposed to one
+stretched by part time or an absence.
+
+The dates are the ones the schedule carries, never converted a second time from the
+working minutes, so a milestone lands in the file on the same instant its diamond
+is drawn on.
+
 ## Not losing work
 
 Every change to the model is undoable: <kbd>Ctrl</kbd>+<kbd>Z</kbd>, and
@@ -592,6 +612,6 @@ they document the semantics above, including the invariant that the sum of
 
 ## Not implemented
 
-CSV/Excel import-export, several resources on one task, and per-task fixed or
+CSV/Excel import, several resources on one task, and per-task fixed or
 capped allocation — the extension point for the last one is
 `src/scheduler/allocation.ts`.

@@ -9,6 +9,8 @@ import { HelpDialog } from './gantt/HelpDialog';
 import { ResourceDialog } from './gantt/ResourceDialog';
 import { TaskDialog, type TaskDetails, type TaskPatch } from './gantt/TaskDialog';
 import { createAgentApi } from './gantt/agentApi';
+import { buildPlan } from './gantt/plan';
+import { csvFilename, planToCsv } from './gantt/planCsv';
 import { StatusBar } from './gantt/StatusBar';
 import { Toolbar } from './gantt/Toolbar';
 import { PROJECT_EXTENSION, downloadText, pickTextFile } from './gantt/files';
@@ -280,6 +282,22 @@ export default function App() {
     const text = serializeProject(project);
     downloadText(filename, text);
     setSavedText(text);
+  }, [filename]);
+
+  /**
+   * The solved plan, not the file: what a spreadsheet is asked for is the dates
+   * and the durations the engine derived, which `.gantt` deliberately does not
+   * store.
+   */
+  const handleExportCsv = useCallback(() => {
+    const solved = chart.current?.getSolved();
+    const project = chart.current?.getProject();
+    if (!solved || !project) return;
+    downloadText(
+      csvFilename(filename),
+      planToCsv(buildPlan(solved), project.resources),
+      'text/csv;charset=utf-8',
+    );
   }, [filename]);
 
   const handleAddTask = useCallback(() => {
@@ -616,6 +634,7 @@ export default function App() {
           onNew={() => void handleNew()}
           onOpen={() => void handleOpen()}
           onSave={handleSave}
+          onExportCsv={handleExportCsv}
           onUndo={() => travel(undone)}
           onRedo={() => travel(redone)}
           onAddTask={handleAddTask}

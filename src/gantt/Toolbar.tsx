@@ -13,6 +13,7 @@ export interface ToolbarProps {
   onNew(): void;
   onOpen(): void;
   onSave(): void;
+  onExportCsv(): void;
   onUndo(): void;
   onRedo(): void;
   onAddTask(): void;
@@ -31,6 +32,7 @@ export function Toolbar({
   onNew,
   onOpen,
   onSave,
+  onExportCsv,
   onUndo,
   onRedo,
   onAddTask,
@@ -49,6 +51,19 @@ export function Toolbar({
         </button>
         <button type="button" onClick={onSave}>
           Salva
+        </button>
+      </div>
+      {/* Its own group rather than beside Salva: what Salva writes is the
+          project, what this writes is the schedule derived from it — a file
+          that comes back in is one thing, a file that only goes out is
+          another. */}
+      <div className="toolbar__group" role="group" aria-label="Esporta">
+        <button
+          type="button"
+          onClick={onExportCsv}
+          title="Esporta il piano risolto in CSV (date, effort e durate)"
+        >
+          CSV
         </button>
       </div>
       <div className="toolbar__group">
