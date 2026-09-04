@@ -188,11 +188,14 @@ export function StatusBar({
       <span className="statusbar__scale">
         Scala: <strong>{scale}</strong>
       </span>
+      {/* Named, like every other button here whose face is a glyph: a `title`
+          is the accessible name only where there is no text at all, and a sign
+          counts as text — so without these the name announced is "−" and "+". */}
       <div className="statusbar__zoom">
-        <button type="button" onClick={onZoomOut} title="Riduci">
+        <button type="button" onClick={onZoomOut} aria-label="Riduci" title="Riduci">
           −
         </button>
-        <button type="button" onClick={onZoomIn} title="Ingrandisci">
+        <button type="button" onClick={onZoomIn} aria-label="Ingrandisci" title="Ingrandisci">
           +
         </button>
       </div>
