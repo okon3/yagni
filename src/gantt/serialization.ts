@@ -91,8 +91,9 @@ export function serializeProject(project: Project, solved?: SolvedProject): stri
         solved: reportFor(task.id),
       })),
     },
-    null,
-    2,
+    // Compact on purpose: the file's raw text is read by agents, where the
+    // indentation is a third of the characters and buys nothing — a model
+    // parses either form, and diffing goes through getPlan(), not the text.
   );
 }
 
