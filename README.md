@@ -406,10 +406,10 @@ match under the eye keeps it as long as it is still a match.
 The critical chain is an **outline** around the bar, never a fill. The bar's
 colour belongs to the user and dhtmlx sets it inline through
 `--dhx-gantt-task-background`, so a background rule would silently beat it and a
-task would lose its own colour for being critical. It is on by default — which
-tasks the end date hangs on is the first thing anybody asks of a plan, and a ring
-costs the bar nothing it was already showing — and the toggle sits with the other
-view switches at the bottom, next to Comprimi and Espandi. Links are left alone:
+task would lose its own colour for being critical. It is off by default — a ring
+on every load reads as a warning before any question was asked — and one click
+away on the toggle, which sits with the other view switches at the bottom, next
+to Comprimi and Espandi. Links are left alone:
 a dependency between two critical tasks need not be the reason either of them is
 critical, and drawing it as the chain would claim more than was measured.
 

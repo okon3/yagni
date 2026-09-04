@@ -73,12 +73,15 @@ export default function App() {
   const [taskCount, setTaskCount] = useState(initialProject.tasks.length);
   const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(INITIAL_SCALE_LABEL);
-  // On by default: which tasks the end date hangs on is the first thing anybody
-  // asks of a plan, and an outline costs the bars nothing they were showing.
-  const [markCritical, setMarkCritical] = useState(true);
+  // Off by default: the outlines read as a warning on every bar before anyone
+  // asked a question, and the plan opens calmer without them. The question they
+  // answer is one click away when it is actually asked.
+  const [markCritical, setMarkCritical] = useState(false);
   // What the chart is actually able to show, which past the limit is not the
-  // same as what is wanted: the chart reports it after every write.
-  const [chainState, setChainState] = useState<ChainState>('live');
+  // same as what is wanted: the chart reports it after every write. Its start
+  // has to agree with `markCritical`, or the first click on the toggle would
+  // turn off a marking that is not there.
+  const [chainState, setChainState] = useState<ChainState>('off');
   // Off by default: the chart is what the plan is edited in, and the lanes are
   // what it is checked against — asked for, and taking room only then.
   const [showLoad, setShowLoad] = useState(false);
