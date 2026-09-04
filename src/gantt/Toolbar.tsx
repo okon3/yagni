@@ -15,6 +15,7 @@ export interface ToolbarProps {
   onSave(): void;
   onExportCsv(): void;
   onExportPng(): void;
+  onPrint(): void;
   onUndo(): void;
   onRedo(): void;
   onAddTask(): void;
@@ -35,6 +36,7 @@ export function Toolbar({
   onSave,
   onExportCsv,
   onExportPng,
+  onPrint,
   onUndo,
   onRedo,
   onAddTask,
@@ -73,6 +75,13 @@ export function Toolbar({
           title="Esporta il piano come immagine PNG"
         >
           PNG
+        </button>
+        <button
+          type="button"
+          onClick={onPrint}
+          title="Stampa il piano, o salvalo in PDF dalla finestra di stampa (Ctrl+P)"
+        >
+          Stampa
         </button>
       </div>
       <div className="toolbar__group">

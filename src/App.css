@@ -1031,3 +1031,54 @@
   font-size: 14px;
   line-height: 1.5;
 }
+
+/* The plan as a sheet of paper.
+
+   The chart cannot be printed: its data area is a scrolling viewport, so what
+   goes on the page is the screenful it happens to be showing. `printPlan` puts
+   a figure of the whole plan in the document instead, paged, and this hides
+   everything else while the browser is laying it out. */
+.plan-print {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  /* Only when the figure is actually there: a browser that never fires
+     beforeprint then prints the page as it always did, rather than an empty
+     sheet. */
+  body:has(.plan-print) .app {
+    display: none;
+  }
+
+  /* The screen keeps the document at viewport height and hides the overflow,
+     which on paper would cut everything past the first sheet. */
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+  }
+
+  .plan-print {
+    display: block;
+  }
+
+  .plan-print__page {
+    break-after: page;
+  }
+
+  .plan-print__page:last-child {
+    break-after: auto;
+  }
+
+  /* The figure is laid out at page width; the viewBox does the scaling if the
+     paper turns out to be another size. */
+  .plan-print svg {
+    width: 100%;
+    height: auto;
+  }
+}

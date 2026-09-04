@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Resource } from '../scheduler';
-import { planFigure, tickUnit } from './planFigure';
+import { planFigure, planFigurePages, tickUnit } from './planFigure';
 import { solve, type Project } from './project';
 
 const people: Resource[] = [
@@ -163,5 +163,72 @@ describe('tickUnit', () => {
     expect(tickUnit(17)).toBe('week');
     expect(tickUnit(30 / 7)).toBe('week');
     expect(tickUnit(4)).toBe('month');
+  });
+});
+
+describe('planFigurePages', () => {
+  const many = (count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      id: String(index),
+      name: `Attività ${index}`,
+      nominalDays: 1,
+      start: monday,
+    }));
+
+  function pagesOf(count: number, options?: Parameters<typeof planFigurePages>[2]) {
+    const project: Project = { calendar, resources: people, tasks: many(count) };
+    return planFigurePages(project, solve(project), options);
+  }
+
+  it('is one page for a plan that fits, and pages beyond that', () => {
+    expect(pagesOf(10)).toHaveLength(1);
+    expect(pagesOf(24)).toHaveLength(1);
+    expect(pagesOf(25)).toHaveLength(2);
+    expect(pagesOf(60, { rowsPerPage: 20 })).toHaveLength(3);
+  });
+
+  it('yields a page even for an empty plan, rather than nothing to print', () => {
+    expect(pagesOf(0)).toHaveLength(1);
+  });
+
+  it('splits the rows without dropping or repeating one', () => {
+    const pages = pagesOf(30, { rowsPerPage: 12 });
+    const drawn = pages.flatMap((page) => [...page.svg.matchAll(/Attività (\d+)</g)].map((m) => Number(m[1])));
+    expect(drawn).toEqual(Array.from({ length: 30 }, (_, index) => index));
+  });
+
+  it('measures the axis over the whole plan, so the pages line up', () => {
+    const project: Project = {
+      calendar,
+      resources: people,
+      tasks: [
+        ...many(12),
+        // Alone on the second page and a month later: measured page by page its
+        // bar would start at the left edge, where the first page has 7 September.
+        { id: 'late', name: 'Coda', nominalDays: 3, start: new Date(2026, 9, 12, 8, 0) },
+      ],
+    };
+    const solved = solve(project);
+    const width = 1050;
+    const barStarts = (svg: string) =>
+      [...svg.matchAll(/<rect x="([0-9.]+)" y="[0-9.]+" width="[0-9.]+" height="12"/g)].map(
+        (match) => match[1],
+      );
+    const whole = barStarts(planFigure(project, solved, { width }).svg);
+    const [, second] = planFigurePages(project, solved, { rowsPerPage: 12, width });
+    expect(barStarts(second.svg)).toEqual([whole[whole.length - 1]]);
+  });
+
+  it('numbers the pages in the title only when there is more than one', () => {
+    expect(pagesOf(10, { title: 'piano.gantt' })[0].svg).toContain('piano.gantt<');
+    const paged = pagesOf(30, { title: 'piano.gantt', rowsPerPage: 12 });
+    expect(paged[0].svg).toContain('piano.gantt — pagina 1 di 3');
+    expect(paged[2].svg).toContain('piano.gantt — pagina 3 di 3');
+  });
+
+  it('is as tall as the rows it holds, so a short last page is short', () => {
+    const [full, last] = pagesOf(13, { rowsPerPage: 12 });
+    expect(full.height - last.height).toBe(11 * 24);
+    expect(last.width).toBe(1050);
   });
 });

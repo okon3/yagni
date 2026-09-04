@@ -329,6 +329,14 @@ happens, a file that never opens. Ask through `ConfirmDialog` instead, which App
 owns and hands out as a promise; a nested `<dialog>` stacks correctly above the
 one that asked.
 
+**`window.print()` is the exception, and it blocks.** Where `confirm` returns
+`false` and shows nothing, `print()` opens the real print dialog — modal, and
+invisible while the browser pane is hidden. Every script on the tab then hangs
+until it is dismissed, which cannot be done from here: the tab has to be closed
+and reopened. So the print path is verified by dispatching `beforeprint` on
+`window`, which is what the browser itself dispatches and what `printPlan`
+listens to; the sheet of paper needs a person.
+
 ## Undo and the draft
 
 `history.ts` holds whole-project snapshots (`serializeProject` text), and `App`

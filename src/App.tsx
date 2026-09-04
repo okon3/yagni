@@ -11,7 +11,8 @@ import { TaskDialog, type TaskDetails, type TaskPatch } from './gantt/TaskDialog
 import { createAgentApi } from './gantt/agentApi';
 import { buildPlan } from './gantt/plan';
 import { planToCsv } from './gantt/planCsv';
-import { planFigure } from './gantt/planFigure';
+import { planFigure, planFigurePages } from './gantt/planFigure';
+import { installPrintFigure } from './gantt/printPlan';
 import { StatusBar } from './gantt/StatusBar';
 import { Toolbar } from './gantt/Toolbar';
 import {
@@ -563,9 +564,32 @@ export default function App() {
   // production too — there is no backend and no secret in the page, and gating
   // it behind DEV would make it useless on the deployed site.
   const agentState = useRef({ filename, dirty, adopt, reset });
+  // Read when the pages are built rather than closed over, for the same reason
+  // the scripting surface reads its state through a ref: a rename would leave
+  // the printed title behind.
+  const printTitle = useRef(filename);
   useEffect(() => {
     agentState.current = { filename, dirty, adopt, reset };
+    printTitle.current = filename;
   }, [adopt, dirty, filename, reset]);
+
+  // Printing draws the same figure the PNG does, paged: the chart itself prints
+  // as the screenful the viewport holds, whatever the plan's height. The pages
+  // are built when the browser asks for them, never held in state — nothing here
+  // is worth redrawing on every edit.
+  useEffect(
+    () =>
+      installPrintFigure(() => {
+        const solved = chart.current?.getSolved();
+        const project = chart.current?.getProject();
+        if (!solved || !project) return [];
+        return planFigurePages(project, solved, {
+          title: printTitle.current,
+          today: new Date(),
+        });
+      }),
+    [],
+  );
 
   useEffect(() => {
     window.yagni = createAgentApi({
@@ -662,6 +686,7 @@ export default function App() {
           onSave={handleSave}
           onExportCsv={handleExportCsv}
           onExportPng={() => void handleExportPng()}
+          onPrint={() => window.print()}
           onUndo={() => travel(undone)}
           onRedo={() => travel(redone)}
           onAddTask={handleAddTask}

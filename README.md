@@ -530,6 +530,14 @@ plan, shows the weekends and the shutdowns behind the bars, marks today when the
 plan covers it, and keeps a summary's flatter shade and a milestone's diamond so
 it reads like the chart it came from.
 
+`Stampa` — and <kbd>Ctrl</kbd>+<kbd>P</kbd>, which takes the same path — prints
+that figure rather than the application: A4 landscape, the rows split over pages
+of 24 with the title and the axis repeated on each, and one time scale across all
+of them so the bars line up from page to page. A browser will not break an image
+over a page boundary, so a plan that is not paged is a plan that is cropped. The
+print dialog's *Save as PDF* is therefore also the PDF export; there is no
+separate one.
+
 ## Not losing work
 
 Every change to the model is undoable: <kbd>Ctrl</kbd>+<kbd>Z</kbd>, and

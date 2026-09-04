@@ -28,6 +28,13 @@ export interface FigureOptions {
   title?: string;
   /** Drawn when it falls inside the plan, as the chart's today line is. */
   today?: Date;
+  /**
+   * The rows to draw, when a page holds only some of them.
+   *
+   * The axis is always measured over the whole plan, so every page of the same
+   * figure shares one time scale and the bars line up from one to the next.
+   */
+  slice?: { from: number; count: number };
 }
 
 export interface Figure {
@@ -232,10 +239,13 @@ export function planFigure(
   const width = options.width ?? 1400;
   const plan = buildPlan(solved);
   const names = new Map(project.resources.map((resource) => [resource.id, resource.name]));
+  const rows = options.slice
+    ? plan.tasks.slice(options.slice.from, options.slice.from + options.slice.count)
+    : plan.tasks;
 
   const chartTop = PADDING + (options.title ? TITLE_HEIGHT : 0);
   const rowsTop = chartTop + MONTH_BAND + TICK_BAND;
-  const rowsBottom = rowsTop + plan.tasks.length * ROW_HEIGHT;
+  const rowsBottom = rowsTop + rows.length * ROW_HEIGHT;
   const height = rowsBottom + PADDING;
   const geometry = geometryOf(solved.schedule.projectStart, solved.schedule.projectEnd, width);
 
@@ -256,7 +266,7 @@ export function planFigure(
     );
   }
 
-  if (plan.tasks.length > 0) {
+  if (rows.length > 0) {
     // Behind everything else: the weekends and the shutdowns are the background
     // the bars are read against, as they are in the chart.
     for (let day = geometry.firstDay; day <= geometry.lastDay; day++) {
@@ -270,7 +280,7 @@ export function planFigure(
 
     parts.push(timeAxis(geometry, chartTop, rowsBottom));
 
-    plan.tasks.forEach((task, index) => {
+    rows.forEach((task, index) => {
       const top = rowsTop + index * ROW_HEIGHT;
       parts.push(
         `<line x1="${PADDING}" y1="${round(top)}" x2="${round(geometry.right)}" y2="${round(top)}" ` +
@@ -317,4 +327,38 @@ export function planFigure(
     parts.join('') +
     '</svg>';
   return { svg, width, height };
+}
+
+/** A4 landscape at 96dpi, less the 10mm margins the print sheet asks for. */
+const PAGE_WIDTH = 1050;
+/** What is left for rows on such a page once the title and the axis have theirs. */
+const PAGE_ROWS = 24;
+
+/**
+ * The same figure split into pages of rows.
+ *
+ * A browser does not break an image over a page boundary: a figure taller than
+ * the sheet is cropped rather than continued, and a plan of any size is taller
+ * than a sheet. So the rows are paged here, and every page repeats the title and
+ * the axis — which is also what makes a page readable on its own.
+ */
+export function planFigurePages(
+  project: Project,
+  solved: SolvedProject,
+  options: Omit<FigureOptions, 'slice'> & { rowsPerPage?: number } = {},
+): Figure[] {
+  const total = buildPlan(solved).tasks.length;
+  const perPage = Math.max(1, options.rowsPerPage ?? PAGE_ROWS);
+  const pages = Math.max(1, Math.ceil(total / perPage));
+  return Array.from({ length: pages }, (_, index) =>
+    planFigure(project, solved, {
+      ...options,
+      width: options.width ?? PAGE_WIDTH,
+      title:
+        options.title && pages > 1
+          ? `${options.title} — pagina ${index + 1} di ${pages}`
+          : options.title,
+      slice: { from: index * perPage, count: perPage },
+    }),
+  );
 }
