@@ -22,14 +22,22 @@
   summary's, but nothing in the file would say the field is inert).
 - **Task list order = row order**, written back on reorder (the list was always
   read in written order).
+- `disabled: true` marks placeholder work (semantics:
+  [scheduling.md](scheduling.md)). Optional and additive — v2 stays v2. Written
+  only where it is set: the flag is inherited by the subtree, so a child under a
+  disabled group carries nothing of its own.
 - Version 1 still loads: `daysOff` → availability overrides at zero.
 
 ## Strict parsing
 
 Refuses rather than repairs: unknown resources, duplicate ids, dangling
 predecessors, circular hierarchy, availability outside 0..1, colour not
-`#rrggbb`, future versions. Parse before load — a bad file leaves the open
-project untouched.
+`#rrggbb`, `disabled` not a boolean, future versions. Parse before load — a bad
+file leaves the open project untouched.
+
+A written `disabled: false` is accepted and **normalized to absent**: two
+spellings of the default would make one project serialize two ways, and `dirty`
+compares text.
 
 **A gap in strictness is not a bad error message, it is the open project.**
 `loadProject` writes onto `projectRef` and *then* solves: a file that parses but
@@ -47,9 +55,11 @@ CSV import (results are not premises).
 Dialect for the app's locale: `;` separator, decimal comma, CRLF, UTF-8 BOM,
 dates `DD/MM/YYYY HH:mm`. `Livello` = outline depth; `Riepilogo` marks summaries
 (their effort is the children's rollup — summing without the flag double-counts);
-`Contesa` = stretched by sharing, vs part-time/absence. Dates come from the
-schedule's own `Date`s, never re-converted from working minutes (milestone lands
-on its diamond's instant).
+`Contesa` = stretched by sharing, vs part-time/absence; `Disattivata` marks a
+placeholder the effort column would otherwise sum in as committed work (appended
+last, so a sheet built on the earlier column order still reads). Dates come from
+the schedule's own `Date`s, never re-converted from working minutes (milestone
+lands on its diamond's instant).
 
 ## PNG and print
 

@@ -132,6 +132,22 @@ describe('buildPlan', () => {
     for (const task of planOf(project).tasks) expect(task.shared).toBe(true);
   });
 
+  it('flags a disabled row, and the summary of a branch that is all placeholder', () => {
+    const project: Project = {
+      calendar: DEFAULT_CALENDAR,
+      resources: [{ id: 'r1', name: 'Marta' }],
+      tasks: [
+        { id: 'p', name: 'Gruppo', nominalDays: 0, start: at(0), disabled: true },
+        { id: 'c', name: 'Segnaposto', nominalDays: 2, start: at(0), parentId: 'p', resourceId: 'r1' },
+        { id: 'live', name: 'Lavoro', nominalDays: 1, start: at(0), resourceId: 'r1' },
+      ],
+    };
+    const rows = new Map(planOf(project).tasks.map((task) => [task.id, task.disabled]));
+    expect(rows.get('p')).toBe(true);
+    expect(rows.get('c')).toBe(true);
+    expect(rows.get('live')).toBe(false);
+  });
+
   it('leaves an unassigned task unshared at full rate', () => {
     const project: Project = {
       calendar: DEFAULT_CALENDAR,

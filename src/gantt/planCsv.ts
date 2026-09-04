@@ -33,6 +33,9 @@ const HEADERS = [
   'Durata (g)',
   'Contesa',
   'Predecessori',
+  // Appended rather than grouped with the other flags: a column order somebody
+  // has built a sheet on top of is worth more than reading well.
+  'Disattivata',
 ];
 
 /** `YYYY-MM-DDTHH:mm` as the day comes first here, purely textual. */
@@ -67,6 +70,9 @@ function row(task: PlanTask, nameOfResource: (id: string) => string): string[] {
     decimal(task.elapsedDays),
     task.shared ? 'sì' : '',
     task.predecessors.join(' '),
+    // Without it an exported plan reads a placeholder as committed work, and
+    // the effort column sums it in with the rest.
+    task.disabled ? 'sì' : '',
   ];
 }
 

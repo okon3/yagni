@@ -54,7 +54,7 @@ A `getPlan()` task:
 ```json
 { "id": "t1", "name": "Analisi", "parentId": null, "depth": 0, "isSummary": true,
   "start": "2026-09-07T08:00", "end": "2026-09-16T17:00",
-  "effortDays": 8, "elapsedDays": 8, "shared": false,
+  "effortDays": 8, "elapsedDays": 8, "shared": false, "disabled": false,
   "resourceId": null, "predecessors": [] }
 ```
 
@@ -67,6 +67,10 @@ A `getPlan()` task:
 - `shared` is true when the stretching came from splitting a person with another
   task. That distinguishes contention — move one task, or reassign it — from
   part-time and absence, which need the person changed instead.
+- `disabled` — placeholder work: positioned (it follows its start and its
+  predecessors) but weightless — no capacity, no roll-up above it, absent from
+  `getCriticalChain()` and from the load. True on a summary once every leaf
+  under it is disabled.
 - **Tasks come back in tree order** (a parent immediately before its own
   subtree) and identically between calls, so two snapshots diff row by row.
   Dragging a row on screen reorders siblings visually but not in the model, so

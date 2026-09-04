@@ -61,7 +61,7 @@ describe('planToCsv', () => {
   it('heads the columns and ends every line, the last one included', () => {
     const text = planToCsv(buildPlan(solve(project)), people);
     expect(text.slice(1).split('\r\n')[0]).toBe(
-      'Id;Attività;Livello;Riepilogo;Persona;Inizio;Fine;Effort (g);Durata (g);Contesa;Predecessori',
+      'Id;Attività;Livello;Riepilogo;Persona;Inizio;Fine;Effort (g);Durata (g);Contesa;Predecessori;Disattivata',
     );
     expect(text.endsWith('\r\n')).toBe(true);
   });
@@ -168,6 +168,25 @@ describe('planToCsv', () => {
     expect(start).toBe(end);
     // The instant Analisi closes on, seen from the same side the diamond is drawn.
     expect(start).toBe('11/09/2026 17:00');
+  });
+
+  it('marks a placeholder, so an export cannot read it as committed work', () => {
+    const withPlaceholder: Project = {
+      ...project,
+      tasks: [
+        { id: '1', name: 'Analisi', nominalDays: 5, start: new Date(2026, 8, 7, 8, 0), resourceId: 'r1' },
+        {
+          id: '2',
+          name: 'Ipotesi',
+          nominalDays: 3,
+          start: new Date(2026, 8, 7, 8, 0),
+          resourceId: 'r1',
+          disabled: true,
+        },
+      ],
+    };
+    expect(at(withPlaceholder, 'Ipotesi')[11]).toBe('sì');
+    expect(at(withPlaceholder, 'Analisi')[11]).toBe('');
   });
 
   it('holds a header and nothing else for an empty plan', () => {

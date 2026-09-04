@@ -43,6 +43,31 @@ calendar logic. `WorkingCalendar` owns every conversion.
 - **Bar colour is owned by the top-level task** and inherited by the subtree;
   moving a branch recolours it.
 
+## Disabled tasks
+
+A row can be marked **disabled**: placeholder work, positioned but weightless.
+One line: **the live plan does not see disabled tasks; disabled tasks see
+everything.**
+
+- **Inherited down the tree** like the bar colour — a flag on a group disables
+  its subtree. A **summary is disabled once every leaf under it is**; it carries
+  no state of its own.
+- **No capacity**: passed to the engine as unassigned, which is the existing
+  no-owner path — full rate, nobody's capacity spent, absent from the load lanes.
+  **Effort is still conserved** (every segment at rate 1).
+- **Dependencies, asymmetric**: an enabled leaf drops disabled predecessors
+  (after the summary→leaves expansion, so a link from a disabled summary
+  contributes nothing); a disabled leaf keeps them all, so placeholders chain
+  among themselves and follow the live plan.
+- **Roll-up counts enabled children only** — a placeholder's effort under a
+  summary would read as committed. A summary with nothing enabled left rolls up
+  from all of its children (it is disabled itself; its parent is the one that
+  skips it).
+- **Out of the critical chain**, and out of the end the chain is measured
+  against: never critical, never contended, never `shared`. Disabling the task
+  that set the date moves the chain onto whatever sets it now.
+- Milestones follow the same rules; `pinMilestones` needs nothing of its own.
+
 ## Float — measured, not derived
 
 Classic CPM is **wrong here, not approximate**: a task can set the end date with

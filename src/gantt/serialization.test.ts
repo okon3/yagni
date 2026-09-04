@@ -118,6 +118,45 @@ describe('round trip', () => {
     expect(restored.tasks[1].resourceId).toBe('r2');
   });
 
+  it('carries a disabled row, and writes the flag on nothing else', () => {
+    const project: Project = {
+      calendar: DEFAULT_CALENDAR,
+      resources: [{ id: 'r1', name: 'Marta' }],
+      tasks: [
+        { id: 'p', name: 'Gruppo', nominalDays: 0, start: new Date(2026, 0, 5, 8, 0), disabled: true },
+        {
+          id: 'c',
+          name: 'Segnaposto',
+          nominalDays: 2,
+          start: new Date(2026, 0, 5, 8, 0),
+          parentId: 'p',
+          resourceId: 'r1',
+        },
+      ],
+    };
+    const text = serializeProject(project);
+    expect(text).toContain('"disabled":true');
+    // Inherited down the tree, so the child's row says nothing of its own.
+    expect(text.match(/"disabled"/g)).toHaveLength(1);
+    const restored = deserializeProject(text);
+    expect(restored.tasks[0].disabled).toBe(true);
+    expect(restored.tasks[1].disabled).toBeUndefined();
+  });
+
+  it('reads a written false as no flag at all', () => {
+    // Two spellings of the default would make the same project serialize two
+    // ways, and the dirty comparison is a text comparison.
+    const restored = deserializeProject(
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 2,
+        tasks: [{ id: '1', nominalDays: 1, start: '2026-01-05T08:00', disabled: false }],
+      }),
+    );
+    expect('disabled' in restored.tasks[0]).toBe(false);
+    expect(serializeProject(restored)).not.toContain('disabled');
+  });
+
   it('preserves company shutdowns and personal absences', () => {
     const project: Project = {
       calendar: {
@@ -299,6 +338,14 @@ describe('rejects broken files', () => {
           { id: 'r2', name: 'Marta', availability: 1 },
         ],
         tasks: [],
+      }),
+    ],
+    [
+      'a disabled flag that is not a boolean',
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 2,
+        tasks: [{ id: '1', nominalDays: 1, start: '2026-01-05T08:00', disabled: 'yes' }],
       }),
     ],
     [

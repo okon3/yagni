@@ -36,6 +36,14 @@ export interface ProjectTask {
   progress?: number;
   color?: string;
   parentId?: string;
+  /**
+   * Work that is not committed: placed on the timeline, but weighing nothing.
+   *
+   * Only `true` is ever held — the flag's absence is the state every task is in,
+   * and a `false` written into a file or a snapshot would be a second spelling of
+   * it for the dirty comparison to disagree about.
+   */
+  disabled?: boolean;
 }
 
 export interface Project {
@@ -49,6 +57,8 @@ export interface SolvedProject {
   calendar: WorkingCalendar;
   /** Ids of tasks that have children, whose figures are derived. */
   summaryIds: Set<string>;
+  /** Rows the plan carries without being affected by them, summaries included. */
+  disabledIds: ReadonlySet<string>;
   hierarchy: Hierarchy;
   /** Who works on each task, a summary included. Absent when nobody does. */
   resourcesByTask: Map<string, Set<string>>;
@@ -211,6 +221,38 @@ export function effectiveColorOf(
 }
 
 /**
+ * The rows the plan carries without being moved by them.
+ *
+ * A disabled row is a placeholder: it keeps its declared start and its incoming
+ * dependencies, so it still reads as a plan, but it books nobody, holds nothing
+ * back, and takes no part in a roll-up or in the critical chain. The point is a
+ * row for work nobody has committed to, and the answer to "what would this plan
+ * be without it".
+ *
+ * The flag is inherited down the tree like the bar colour, so disabling a group
+ * disables the work inside it without touching a child's own flag. A summary
+ * carries no state of its own here: it is disabled once every leaf below it is,
+ * which is what lets a parent drop a dead branch out of its roll-up while still
+ * rolling up a branch with live work left in it.
+ */
+export function disabledByTask(
+  tasks: ProjectTask[],
+  hierarchy: Hierarchy,
+): ReadonlySet<string> {
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const disabledLeaf = (id: string) =>
+    byId.get(id)?.disabled === true ||
+    hierarchy.ancestorsOf(id).some((ancestorId) => byId.get(ancestorId)?.disabled === true);
+
+  const disabled = new Set<string>();
+  // `leavesUnder` answers `[id]` on a leaf, so one rule covers both kinds of row.
+  for (const task of tasks) {
+    if (hierarchy.leavesUnder(task.id).every(disabledLeaf)) disabled.add(task.id);
+  }
+  return disabled;
+}
+
+/**
  * The people working on each task, counting everything below a summary.
  *
  * A summary has no resource of its own — its figures roll up from the leaves —
@@ -306,6 +348,7 @@ export function solve(project: Project): SolvedProject {
   const summaryIds = new Set(
     project.tasks.filter((task) => hierarchy.isSummary(task.id)).map((task) => task.id),
   );
+  const disabledIds = disabledByTask(project.tasks, hierarchy);
 
   const origin = projectOrigin(project.tasks);
   const calendar = new WorkingCalendar(origin, project.calendar);
@@ -315,6 +358,14 @@ export function solve(project: Project): SolvedProject {
    * be pushed down to them. A predecessor that is itself a summary expands into
    * its leaves: finish-to-start against the latest of those is exactly
    * finish-to-start against the summary, whose end is that same maximum.
+   *
+   * Disabled is asymmetric on purpose: the live plan does not see disabled
+   * tasks, disabled tasks see everything. An enabled leaf drops them — after the
+   * expansion, so a link declared on a disabled summary contributes nothing —
+   * because a placeholder that pushed committed work would be deciding the plan
+   * it is only standing in. A disabled leaf keeps every predecessor, enabled or
+   * not, or a chain of placeholders would collapse onto its own declared starts
+   * instead of following the plan it is drawn against.
    */
   const effectivePredecessors = (leaf: ProjectTask): string[] => {
     const declared = [...(leaf.predecessors ?? [])];
@@ -324,9 +375,12 @@ export function solve(project: Project): SolvedProject {
     const expanded = declared.flatMap((id) =>
       summaryIds.has(id) ? hierarchy.leavesUnder(id) : [id],
     );
+    const seen = disabledIds.has(leaf.id)
+      ? expanded
+      : expanded.filter((id) => !disabledIds.has(id));
     // Expansion can name the leaf itself (a summary depending on something that
     // contains it), which would deadlock the simulation.
-    return [...new Set(expanded)].filter((id) => id !== leaf.id && byId.has(id));
+    return [...new Set(seen)].filter((id) => id !== leaf.id && byId.has(id));
   };
 
   const engineTasks = leaves.map<Task>((task) => ({
@@ -334,7 +388,10 @@ export function solve(project: Project): SolvedProject {
     name: task.name,
     effort: calendar.daysToMinutes(task.nominalDays),
     startConstraint: task.start,
-    resourceId: task.resourceId,
+    // A disabled leaf goes in unassigned, which is the engine's own no-owner
+    // case: full rate, nobody's capacity spent, and the load lanes skip it.
+    // Effort stays conserved — its segments simply all run at 1.
+    resourceId: disabledIds.has(task.id) ? undefined : task.resourceId,
     predecessors: effectivePredecessors(task),
   }));
 
@@ -346,11 +403,12 @@ export function solve(project: Project): SolvedProject {
     new Set(leaves.filter((task) => isMilestone(task, summaryIds)).map((task) => task.id)),
     result,
   );
-  rollUp(project, hierarchy, result);
+  rollUp(project, hierarchy, result, disabledIds);
   return {
     schedule: result,
     calendar,
     summaryIds,
+    disabledIds,
     hierarchy,
     resourcesByTask: resourcesByTask(project.tasks, hierarchy),
     engineTasks,
@@ -430,6 +488,13 @@ export interface SlackOptions {
  * leaf under a row shares the same person — otherwise the reason would explain
  * one leaf and hide the others.
  *
+ * A disabled row is not measured and not measured against: it is taken out of
+ * the plan the probes re-solve *and* out of the end they compare with, or a
+ * placeholder dated past the last committed bar would hand every live task float
+ * it does not have and leave the chain empty. So it is never critical, and
+ * disabling the task that was setting the date moves the chain onto whatever
+ * sets it now.
+ *
  * No cost ceiling of its own: the price is a re-solve per probe, and only the
  * caller knows whether it is standing in front of a frame budget. `search` is
  * the expensive half.
@@ -441,24 +506,30 @@ export function slackByRow(
 ): Map<string, TaskSlack> {
   const wanted = options.ids ?? project.tasks.map((task) => task.id);
   const measure = options.search ? totalFloat : criticalTasks;
+  const isLive = (id: string) => !solved.disabledIds.has(id);
+  const liveLeavesUnder = (id: string) => solved.hierarchy.leavesUnder(id).filter(isLive);
+  const liveTasks = solved.engineTasks.filter((task) => isLive(task.id));
+  const liveSchedule: Schedule = {
+    ...solved.schedule,
+    tasks: new Map([...solved.schedule.tasks].filter(([id]) => isLive(id))),
+  };
   // The axis `solve` used, or the probes would not be comparable to the
   // schedule they are measured against.
   const floatOptions: FloatOptions = {
     origin: solved.calendar.origin,
     calendar: project.calendar,
-    ids: new Set(wanted.flatMap((id) => solved.hierarchy.leavesUnder(id))),
+    ids: new Set(wanted.flatMap(liveLeavesUnder)),
   };
   const measured: Map<string, Measured> = measure(
-    solved.engineTasks,
+    liveTasks,
     project.resources,
-    solved.schedule,
+    liveSchedule,
     floatOptions,
   );
 
   const rows = new Map<string, TaskSlack>();
   for (const id of wanted) {
-    const under = solved.hierarchy
-      .leavesUnder(id)
+    const under = liveLeavesUnder(id)
       .map((leaf) => measured.get(leaf))
       .filter((entry): entry is Measured => entry !== undefined);
     if (under.length === 0) continue;
@@ -608,8 +679,20 @@ function pinMilestones(engineTasks: Task[], milestoneIds: Set<string>, result: S
  * milestone is involved: two rows on the same working minute can be drawn at
  * either side of a day boundary, and a summary has to bracket both. Converting
  * again would give a group of milestones an end before its start.
+ *
+ * A disabled child is left out: a summary states what its branch commits to, and
+ * a placeholder's effort counted there would be committed work as far as every
+ * figure above it goes. A summary with nothing enabled under it rolls up from all
+ * of its children instead of reporting nothing — it is itself disabled by then,
+ * so its own parent is the one that skips it, and the branch still has the dates
+ * and the effort a collapsed row has to show.
  */
-function rollUp(project: Project, hierarchy: Hierarchy, result: Schedule): void {
+function rollUp(
+  project: Project,
+  hierarchy: Hierarchy,
+  result: Schedule,
+  disabledIds: ReadonlySet<string>,
+): void {
   const depthOf = (id: string) => hierarchy.ancestorsOf(id).length;
   const summaries = project.tasks
     .filter((task) => hierarchy.isSummary(task.id))
@@ -617,11 +700,13 @@ function rollUp(project: Project, hierarchy: Hierarchy, result: Schedule): void 
     .sort((a, b) => depthOf(b.id) - depthOf(a.id));
 
   for (const summary of summaries) {
-    const children = hierarchy
+    const rows = hierarchy
       .childrenOf(summary.id)
       .map((child) => result.tasks.get(child.id))
       .filter((child): child is ScheduledTask => child !== undefined);
-    if (children.length === 0) continue;
+    if (rows.length === 0) continue;
+    const live = rows.filter((child) => !disabledIds.has(child.id));
+    const children = live.length > 0 ? live : rows;
 
     const startMinutes = Math.min(...children.map((child) => child.startWorkingMinutes));
     const endMinutes = Math.max(...children.map((child) => child.endWorkingMinutes));

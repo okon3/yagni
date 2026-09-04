@@ -32,6 +32,12 @@ export interface PlanTask {
    * question — it asks whether there is a profile worth drawing at all.
    */
   shared: boolean;
+  /**
+   * Not committed work: positioned, but taking no capacity, no part in the
+   * roll-up above it and none in the critical chain. True on a summary once
+   * every leaf under it is disabled.
+   */
+  disabled: boolean;
   resourceId: string | null;
   predecessors: string[];
 }
@@ -51,7 +57,7 @@ export interface Plan {
  * a before and an after, which is the whole point of this shape, is noise.
  */
 export function buildPlan(solved: SolvedProject): Plan {
-  const { hierarchy, schedule, summaryIds, calendar } = solved;
+  const { hierarchy, schedule, summaryIds, disabledIds, calendar } = solved;
   const tasks: PlanTask[] = [];
 
   const walk = (parentId: string | undefined, depth: number) => {
@@ -68,6 +74,7 @@ export function buildPlan(solved: SolvedProject): Plan {
         effortDays: scheduled ? calendar.minutesToDays(scheduled.effortMinutes) : task.nominalDays,
         elapsedDays: scheduled ? calendar.minutesToDays(scheduled.elapsedWorkingMinutes) : 0,
         shared: scheduled ? isContended(scheduled) : false,
+        disabled: disabledIds.has(task.id),
         resourceId: summaryIds.has(task.id) ? null : task.resourceId ?? null,
         predecessors: [...(task.predecessors ?? [])],
       });

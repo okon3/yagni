@@ -116,6 +116,13 @@ function requireString(value: unknown, context: string): string {
   return value;
 }
 
+function requireBoolean(value: unknown, context: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new ProjectFileError(`${context}: expected true or false`);
+  }
+  return value;
+}
+
 function requireNumber(value: unknown, context: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     throw new ProjectFileError(`${context}: expected a number`);
@@ -215,6 +222,12 @@ export function deserializeProject(text: string): Project {
     }
     if (record.progress !== undefined) {
       task.progress = requireNumber(record.progress, `tasks[${index}].progress`);
+    }
+    if (record.disabled !== undefined) {
+      // A written `false` is accepted and then forgotten: the model holds the
+      // flag only when it is set, so the same project cannot serialize two ways
+      // and read as dirty on load.
+      if (requireBoolean(record.disabled, `tasks[${index}].disabled`)) task.disabled = true;
     }
     if (record.color !== undefined) {
       // Now that the colour comes from a free picker rather than a fixed list,

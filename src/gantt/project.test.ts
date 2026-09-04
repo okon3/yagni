@@ -8,6 +8,7 @@ import {
   chainOnRequest,
   chainStateOf,
   constraintStart,
+  disabledByTask,
   effectiveColorOf,
   emptyProject,
   isMilestone,
@@ -612,6 +613,278 @@ describe('dependencies across the hierarchy', () => {
       ]),
     );
     expect(solved.schedule.tasks.get('c')!.startWorkingMinutes).toBe(0);
+  });
+});
+
+describe('disabled tasks', () => {
+  const disable = (tasks: ProjectTask[], id: string) =>
+    tasks.map((task) => (task.id === id ? { ...task, disabled: true } : task));
+
+  const marked = (tasks: ProjectTask[]) =>
+    [...disabledByTask(tasks, buildHierarchy(tasks))].sort();
+
+  it('takes the flag from the row itself or from any ancestor', () => {
+    const tasks: ProjectTask[] = [
+      { id: 'root', name: 'Root', nominalDays: 0, start: at(0), disabled: true },
+      { id: 'mid', name: 'Mid', nominalDays: 0, start: at(0), parentId: 'root' },
+      { id: 'leaf', name: 'Leaf', nominalDays: 1, start: at(0), parentId: 'mid' },
+      { id: 'lone', name: 'Lone', nominalDays: 1, start: at(0) },
+    ];
+    expect(marked(tasks)).toEqual(['leaf', 'mid', 'root']);
+  });
+
+  it('calls a summary disabled only once every leaf under it is', () => {
+    const tasks: ProjectTask[] = [
+      { id: 'p', name: 'P', nominalDays: 0, start: at(0) },
+      { id: 'a', name: 'A', nominalDays: 1, start: at(0), parentId: 'p', disabled: true },
+      { id: 'b', name: 'B', nominalDays: 1, start: at(0), parentId: 'p' },
+    ];
+    expect(marked(tasks)).toEqual(['a']);
+    expect(marked(disable(tasks, 'b'))).toEqual(['a', 'b', 'p']);
+  });
+
+  it('does not slow the other work of the person it is assigned to', () => {
+    const both: ProjectTask[] = [
+      { id: 'live', name: 'Live', nominalDays: 2, start: at(0), resourceId: 'alice' },
+      { id: 'ghost', name: 'Ghost', nominalDays: 2, start: at(0), resourceId: 'alice' },
+    ];
+    // Sharing Alice, the two stretch to four days each.
+    expect(days(solve(project(both)).schedule.tasks.get('live')!.elapsedWorkingMinutes)).toBe(4);
+
+    const solved = solve(project(disable(both, 'ghost')));
+    expect(days(solved.schedule.tasks.get('live')!.elapsedWorkingMinutes)).toBe(2);
+    // And the placeholder itself runs at full rate, as anything with no owner does.
+    expect(days(solved.schedule.tasks.get('ghost')!.elapsedWorkingMinutes)).toBe(2);
+  });
+
+  it('books none of the capacity it is nominally assigned', () => {
+    const plan = project([
+      { id: 'live', name: 'Live', nominalDays: 2, start: at(0), resourceId: 'alice' },
+      { id: 'ghost', name: 'Ghost', nominalDays: 3, start: at(0), resourceId: 'alice', disabled: true },
+    ]);
+    const alice = loadByResource(plan, solve(plan)).find((load) => load.resourceId === 'alice')!;
+    expect(days(alice.committedMinutes)).toBe(2);
+    for (const segment of alice.segments) {
+      expect(segment.shares.map((share) => share.taskId)).not.toContain('ghost');
+    }
+  });
+
+  it('conserves its own effort', () => {
+    const solved = solve(
+      project([
+        { id: 'ghost', name: 'Ghost', nominalDays: 3, start: at(0), resourceId: 'alice', disabled: true },
+      ]),
+    );
+    const scheduled = solved.schedule.tasks.get('ghost')!;
+    const worked = scheduled.segments.reduce(
+      (total, segment) =>
+        total + segment.rate * (segment.endWorkingMinutes - segment.startWorkingMinutes),
+      0,
+    );
+    expect(worked).toBeCloseTo(scheduled.effortMinutes);
+    expect(days(scheduled.effortMinutes)).toBe(3);
+  });
+
+  it('still waits for its own predecessor', () => {
+    const solved = solve(
+      project(
+        disable(
+          [
+            { id: 'a', name: 'A', nominalDays: 2, start: at(0), resourceId: 'alice' },
+            { id: 'b', name: 'B', nominalDays: 1, start: at(0), predecessors: ['a'] },
+          ],
+          'b',
+        ),
+      ),
+    );
+    expect(solved.schedule.tasks.get('b')!.startWorkingMinutes).toBe(
+      solved.schedule.tasks.get('a')!.endWorkingMinutes,
+    );
+  });
+
+  it('leaves an enabled successor to start as if the link were not there', () => {
+    const solved = solve(
+      project(
+        disable(
+          [
+            { id: 'ghost', name: 'Ghost', nominalDays: 5, start: at(0), resourceId: 'alice' },
+            { id: 'after', name: 'After', nominalDays: 1, start: at(0), predecessors: ['ghost'] },
+          ],
+          'ghost',
+        ),
+      ),
+    );
+    expect(solved.schedule.tasks.get('after')!.startWorkingMinutes).toBe(0);
+  });
+
+  it('drops a disabled summary out of an enabled successor’s dependencies', () => {
+    const solved = solve(
+      project([
+        { id: 'p', name: 'P', nominalDays: 0, start: at(0), disabled: true },
+        { id: 'c', name: 'C', nominalDays: 4, start: at(0), parentId: 'p', resourceId: 'alice' },
+        { id: 'after', name: 'After', nominalDays: 1, start: at(0), predecessors: ['p'] },
+      ]),
+    );
+    expect(solved.schedule.tasks.get('after')!.startWorkingMinutes).toBe(0);
+  });
+
+  it('keeps the live half of a partly disabled summary as a predecessor', () => {
+    const solved = solve(
+      project([
+        { id: 'p', name: 'P', nominalDays: 0, start: at(0) },
+        { id: 'ghost', name: 'Ghost', nominalDays: 9, start: at(0), parentId: 'p', disabled: true },
+        { id: 'live', name: 'Live', nominalDays: 2, start: at(0), parentId: 'p', resourceId: 'alice' },
+        { id: 'after', name: 'After', nominalDays: 1, start: at(0), predecessors: ['p'] },
+      ]),
+    );
+    // The link survives against `live` alone: the nine days of placeholder under
+    // the same parent must not hold it.
+    expect(solved.schedule.tasks.get('after')!.startWorkingMinutes).toBe(
+      solved.schedule.tasks.get('live')!.endWorkingMinutes,
+    );
+  });
+
+  it('chains two placeholders one after the other', () => {
+    const solved = solve(
+      project([
+        { id: 'a', name: 'A', nominalDays: 2, start: at(0), resourceId: 'alice', disabled: true },
+        { id: 'b', name: 'B', nominalDays: 1, start: at(0), predecessors: ['a'], disabled: true },
+      ]),
+    );
+    expect(solved.schedule.tasks.get('b')!.startWorkingMinutes).toBe(
+      solved.schedule.tasks.get('a')!.endWorkingMinutes,
+    );
+  });
+
+  it('follows the live plan it stands in', () => {
+    const solved = solve(
+      project([
+        { id: 'live', name: 'Live', nominalDays: 3, start: at(0), resourceId: 'alice' },
+        { id: 'ghost', name: 'Ghost', nominalDays: 1, start: at(0), predecessors: ['live'], disabled: true },
+      ]),
+    );
+    expect(solved.schedule.tasks.get('ghost')!.startWorkingMinutes).toBe(
+      solved.schedule.tasks.get('live')!.endWorkingMinutes,
+    );
+  });
+
+  it('counts only the enabled leaves in a summary’s rollup', () => {
+    const solved = solve(
+      project([
+        { id: 'p', name: 'P', nominalDays: 0, start: at(0) },
+        { id: 'live', name: 'Live', nominalDays: 2, start: at(0), parentId: 'p', resourceId: 'alice' },
+        { id: 'ghost', name: 'Ghost', nominalDays: 3, start: at(8), parentId: 'p', disabled: true },
+      ]),
+    );
+    const summary = solved.schedule.tasks.get('p')!;
+    expect(days(summary.effortMinutes)).toBe(2);
+    // Its span closes with the live child, not with the placeholder a week later.
+    expect(summary.endWorkingMinutes).toBe(solved.schedule.tasks.get('live')!.endWorkingMinutes);
+    expect(solved.disabledIds.has('p')).toBe(false);
+  });
+
+  it('keeps figures on a summary whose every leaf is disabled, and reports it disabled', () => {
+    const solved = solve(
+      project([
+        { id: 'p', name: 'P', nominalDays: 0, start: at(0), disabled: true },
+        { id: 'a', name: 'A', nominalDays: 2, start: at(0), parentId: 'p' },
+        { id: 'b', name: 'B', nominalDays: 3, start: at(0), parentId: 'p' },
+      ]),
+    );
+    const summary = solved.schedule.tasks.get('p')!;
+    expect(days(summary.effortMinutes)).toBe(5);
+    expect(solved.disabledIds.has('p')).toBe(true);
+  });
+
+  it('leaves a dead branch out of its grandparent’s rollup', () => {
+    const solved = solve(
+      project([
+        { id: 'root', name: 'Root', nominalDays: 0, start: at(0) },
+        { id: 'dead', name: 'Dead', nominalDays: 0, start: at(0), parentId: 'root', disabled: true },
+        { id: 'ghost', name: 'Ghost', nominalDays: 4, start: at(0), parentId: 'dead' },
+        { id: 'live', name: 'Live', nominalDays: 2, start: at(0), parentId: 'root', resourceId: 'alice' },
+      ]),
+    );
+    expect(days(solved.schedule.tasks.get('dead')!.effortMinutes)).toBe(4);
+    expect(days(solved.schedule.tasks.get('root')!.effortMinutes)).toBe(2);
+  });
+
+  it('disables the whole subtree from a flag on the summary', () => {
+    const plan = project([
+      { id: 'live', name: 'Live', nominalDays: 2, start: at(0), resourceId: 'alice' },
+      { id: 'p', name: 'P', nominalDays: 0, start: at(0), disabled: true },
+      { id: 'c', name: 'C', nominalDays: 2, start: at(0), parentId: 'p', resourceId: 'alice' },
+    ]);
+    const solved = solve(plan);
+    expect([...solved.disabledIds].sort()).toEqual(['c', 'p']);
+    // The child is on Alice too, and does not contend with the live task.
+    expect(days(solved.schedule.tasks.get('live')!.elapsedWorkingMinutes)).toBe(2);
+  });
+
+  it('is never in the critical chain', () => {
+    const plan = project([
+      { id: 'live', name: 'Live', nominalDays: 2, start: at(0), resourceId: 'alice' },
+      { id: 'ghost', name: 'Ghost', nominalDays: 9, start: at(0), resourceId: 'bob', disabled: true },
+    ]);
+    const rows = slackByRow(plan, solve(plan), { search: true });
+    expect(rows.has('ghost')).toBe(false);
+    // And the nine days of placeholder are not what the live task is measured
+    // against: it still sets the end of the plan that is actually committed.
+    expect(rows.get('live')!.isCritical).toBe(true);
+    expect(rows.get('live')!.floatDays).toBe(0);
+  });
+
+  it('moves the chain onto what sets the date once the critical task is disabled', () => {
+    const tasks: ProjectTask[] = [
+      { id: 'long', name: 'Long', nominalDays: 5, start: at(0), resourceId: 'alice' },
+      { id: 'short', name: 'Short', nominalDays: 2, start: at(0), resourceId: 'bob' },
+    ];
+    const before = slackByRow(project(tasks), solve(project(tasks)), { search: true });
+    expect(before.get('long')!.isCritical).toBe(true);
+    expect(before.get('short')!.floatDays).toBe(3);
+
+    const after = slackByRow(
+      project(disable(tasks, 'long')),
+      solve(project(disable(tasks, 'long'))),
+      { search: true },
+    );
+    expect(after.has('long')).toBe(false);
+    expect(after.get('short')!.isCritical).toBe(true);
+    expect(after.get('short')!.floatDays).toBe(0);
+  });
+
+  it('leaves a summary of nothing but placeholders out of the chain', () => {
+    const plan = project([
+      { id: 'live', name: 'Live', nominalDays: 2, start: at(0), resourceId: 'alice' },
+      { id: 'p', name: 'P', nominalDays: 0, start: at(0), disabled: true },
+      { id: 'c', name: 'C', nominalDays: 3, start: at(0), parentId: 'p' },
+    ]);
+    const rows = slackByRow(plan, solve(plan));
+    expect(rows.has('p')).toBe(false);
+    expect(rows.has('c')).toBe(false);
+  });
+
+  it('pins a disabled milestone on the instant its predecessor closes on', () => {
+    const solved = solve(
+      project([
+        { id: 'a', name: 'A', nominalDays: 2, start: at(0), resourceId: 'alice' },
+        { id: 'm', name: 'M', nominalDays: 0, start: at(0), predecessors: ['a'], disabled: true },
+      ]),
+    );
+    const scheduled = solved.schedule.tasks.get('m')!;
+    expect(scheduled.start).toEqual(solved.schedule.tasks.get('a')!.end);
+    expect(scheduled.end).toEqual(scheduled.start);
+  });
+
+  it('lets an enabled milestone ignore a disabled predecessor', () => {
+    const solved = solve(
+      project([
+        { id: 'ghost', name: 'Ghost', nominalDays: 4, start: at(0), disabled: true },
+        { id: 'm', name: 'M', nominalDays: 0, start: at(1), predecessors: ['ghost'] },
+      ]),
+    );
+    // Nothing closes on it any more, so it sits on the morning it was dated to.
+    expect(solved.schedule.tasks.get('m')!.start).toEqual(at(1));
   });
 });
 
