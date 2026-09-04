@@ -1,0 +1,60 @@
+# Verifying UI from an agent (embedded browser)
+
+The app is developed and verified inside an embedded browser driven by an agent.
+Some APIs behave differently there; some verifications can't be trusted or made
+at all.
+
+## Dialogs
+
+- **`window.confirm` returns `false` instantly and shows nothing** — every
+  guarded action becomes a silent no-op. Use `ConfirmDialog` (App owns it, hands
+  it out as a promise; nested `<dialog>`s stack correctly).
+- **`window.print()` is the exception: it blocks.** Real modal dialog, invisible
+  while the pane is hidden; every script hangs until dismissed, which an agent
+  can't do (close and reopen the tab). Verify the print path by dispatching
+  `beforeprint` on `window` (what `printPlan` listens to); the paper needs a
+  person.
+
+## Popups closing on outside click
+
+Close-on-`pointerdown` + one-shot `click` eater does **not** work: React
+unmounts the popup between the two events and the cleanup disarms the eater, so
+the click opens an inline editor. `preventDefault` on pointerdown suppresses
+compatibility mouse events for touch/pen only, not mouse. Correct shape: **one
+`click` listener in the capture phase**, above dhtmlx's delegation root, that
+closes and stops the event in the same breath. `RowMenu` is the case in hand —
+and it is a non-modal `<dialog>` on purpose: `keystrokeIsCaptured` reads any
+open dialog as "keys not aimed at the plan", which keeps Del off the row the
+menu is about.
+
+## Driving React inputs
+
+A React-controlled field can't be filled from the browser tool's own context:
+plain assignment is ignored by the value tracker, and the native
+`HTMLInputElement.prototype` setter throws *Illegal invocation* from there.
+Inject a `<script>` element with the same code — it runs in the page context,
+the setter works, the `input` event reaches React. (How the details dialog's
+date field is driven in verifications.)
+
+## Synthetic keyboard events
+
+Keys pressed by the browser tool carry **no `keyCode`/`which`/`code`** (all
+`0`/empty); `event.key` is right and the event is trusted. Our handlers (reading
+`key`) see the keystroke; dhtmlx's (reading `keyCode`) do not — Escape closing
+an inline editor works under a real keyboard only and took a person to settle.
+Tool key naming ≠ DOM naming: `Return` arrives with an **empty** `key` (does
+nothing); `Enter` arrives as `Enter`. A dead key is two questions, not one.
+
+## Rules of thumb
+
+- **Verify visuals with `getComputedStyle`** — not the attribute, not the data
+  field. More than one bug was invisible from the code.
+- **Smart rendering**: off-screen bars have no DOM node. Read the task data, or
+  `showTask(id)` first.
+- A synthetic `wheel` doesn't reproduce the scroll/zoom capture-phase interplay
+  (see [dhtmlx.md](dhtmlx.md)), and a node cached before a zoom is detached by
+  the redraw — events dispatched to it reach nothing.
+- **Hover tests need two hovers a pixel apart**; hovering the pixel already
+  under the pointer fires no event.
+- `ResizeObserver` never fires here — code resizing the chart's container must
+  call `gantt.setSizes()` itself.
