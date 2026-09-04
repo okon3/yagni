@@ -2,7 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useRef, type Ref } from 'r
 import { gantt, type ZoomLevel } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { barFactsOf, renderBarTooltip } from './barTooltip';
-import { endToShow, formatDays } from './format';
+import { formatDays } from './format';
 import { escapeHtml } from './html';
 import { isShared, renderSegments } from './segmentBar';
 import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges, isContended } from '../scheduler';
@@ -294,10 +294,11 @@ function toGanttData(project: Project, solved: SolvedProject, chain: MarkedChain
         type: typeOf(task, solved),
         start_date: formatDate(scheduled?.start ?? task.start),
         end_date: formatDate(scheduled?.end ?? task.start),
-        // The end the grid prints, which is `end_date` everywhere except on a
-        // task of no length. `end_date` is the bar's geometry and stays the
-        // engine's, so the two are separate fields rather than one rounded off.
-        end_shown: scheduled ? endToShow(scheduled) : task.start,
+        // The end the grid prints. A field of ours rather than the `end_date`
+        // beside it, which dhtmlx owns and rewrites — on a milestone it pins it
+        // to the start to place the diamond, and the column would then be
+        // showing the library's geometry instead of the schedule's answer.
+        end_shown: scheduled?.end ?? task.start,
         elapsed_days: scheduled
           ? solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes)
           : 0,
@@ -594,7 +595,7 @@ export function GanttChart({
         ganttTask.type = typeOf(task, solved);
         ganttTask.start_date = scheduled.start;
         ganttTask.end_date = scheduled.end;
-        ganttTask.end_shown = endToShow(scheduled);
+        ganttTask.end_shown = scheduled.end;
         ganttTask.elapsed_days = solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes);
         ganttTask.nominal_days = task.nominalDays;
         ganttTask.rolled_effort_days = solved.calendar.minutesToDays(scheduled.effortMinutes);
@@ -682,7 +683,7 @@ export function GanttChart({
           name: task.name,
           nominalDays: task.nominalDays,
           start: scheduled.start,
-          end: endToShow(scheduled),
+          end: scheduled.end,
           resourceId: task.resourceId ?? '',
           color:
             effectiveColorOf(projectRef.current.tasks, solved.hierarchy, id) ?? DEFAULT_BAR_COLOR,

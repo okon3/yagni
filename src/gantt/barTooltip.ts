@@ -1,4 +1,4 @@
-import { endToShow, formatDays } from './format';
+import { formatDays } from './format';
 import { escapeHtml } from './html';
 import { isShared } from './segmentBar';
 import { isContended, type Resource, type ScheduledTask } from '../scheduler';
@@ -134,9 +134,13 @@ export function renderBarTooltip(facts: BarFacts): string {
     // Said as plainly as the dashed outline says it: a marking that reads as
     // measured while it is not is worse than none.
     const age = facts.chain.stale ? ' <em>(misurata prima dell’ultima modifica)</em>' : '';
+    // Nothing with no effort has a size to grow, so its criticality is purely
+    // positional — the engine does not even run the second probe on it, and
+    // offering growing as a cause would describe a measurement nobody made.
+    const grows = facts.effortDays > 0 ? ' o se cresce' : '';
     notes.push(
       `<strong class="gantt-tip__critical">Critica${reason}.</strong> ` +
-        `La fine del progetto si sposta se slitta o se cresce.${age}`,
+        `La fine del progetto si sposta se slitta${grows}.${age}`,
     );
   }
 
@@ -172,7 +176,7 @@ export function barFactsOf(
     isSummary: solved.summaryIds.has(task.id),
     descendantCount,
     start: scheduled.start,
-    end: endToShow(scheduled),
+    end: scheduled.end,
     effortDays: solved.calendar.minutesToDays(scheduled.effortMinutes),
     elapsedDays: solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes),
     resource: assigned ? { name: assigned.name, availability: assigned.availability ?? 1 } : null,
