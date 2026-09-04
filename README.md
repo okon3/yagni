@@ -7,6 +7,7 @@
 *The Gantt chart that knows people can't do two things at once.*
 
 [![Deploy](https://github.com/okon3/yagni/actions/workflows/deploy.yml/badge.svg)](https://github.com/okon3/yagni/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **[Try it live](https://okon3.github.io/yagni/)** — no install, no account, no backend.
 
@@ -113,3 +114,7 @@ scheduling semantics.
 
 CSV/Excel import, several resources on one task, per-task fixed or capped
 allocation. The name is a promise: nothing lands before it earns its place.
+
+## License
+
+[MIT](LICENSE).
