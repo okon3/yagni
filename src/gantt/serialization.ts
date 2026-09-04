@@ -40,6 +40,7 @@ function parseDayRanges(value: unknown, context: string): DayRange[] {
 }
 
 export function serializeProject(project: Project): string {
+  const parentIds = new Set(project.tasks.map((task) => task.parentId));
   return JSON.stringify(
     {
       format: FILE_FORMAT,
@@ -49,6 +50,11 @@ export function serializeProject(project: Project): string {
       tasks: project.tasks.map((task) => ({
         ...task,
         start: serializeDate(task.start),
+        // A summary may still hold the resource it had while it was a leaf.
+        // The engine ignores it, but nothing in the file says the field is
+        // inert, and a reader took it for an assignment. Dropped here rather
+        // than on parse, which refuses rather than repairs.
+        resourceId: parentIds.has(task.id) ? undefined : task.resourceId,
       })),
     },
     null,

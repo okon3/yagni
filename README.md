@@ -558,6 +558,11 @@ recomputed on load, so a file can never hold a schedule inconsistent with its ow
 premises. Dates are written as local wall-clock time; `toISOString` would shift them
 to UTC and move an 08:00 start to the previous day.
 
+A row with children is written **without a `resourceId`** for the same reason. A
+summary may still hold the person it had while it was a leaf; the engine ignores
+it, but nothing in the file says the field is inert, and a reader takes it for an
+assignment on which nobody actually works.
+
 **The order of the task list is the order of the rows**, and dragging a row to
 reorder it writes that order back. It is not a new field: the list has always been
 read back in the order it was written, so before it was kept in step a reorder

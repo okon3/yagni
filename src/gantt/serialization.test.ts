@@ -66,6 +66,32 @@ describe('round trip', () => {
     expect(restored.tasks[1].color).toBe('#2f9e6e');
   });
 
+  it('drops the resource a summary kept from before it had children', () => {
+    // The engine ignores a summary's own resourceId, but a reader of the file
+    // cannot tell the field is inert and takes it for an assignment.
+    const project: Project = {
+      calendar: DEFAULT_CALENDAR,
+      resources: [
+        { id: 'r1', name: 'Marta' },
+        { id: 'r2', name: 'Gino' },
+      ],
+      tasks: [
+        { id: 'group', name: 'Gruppo', nominalDays: 0, start: new Date(2026, 0, 5, 8, 0), resourceId: 'r1' },
+        {
+          id: 'work',
+          name: 'Lavoro',
+          nominalDays: 2,
+          start: new Date(2026, 0, 5, 8, 0),
+          parentId: 'group',
+          resourceId: 'r2',
+        },
+      ],
+    };
+    const restored = deserializeProject(serializeProject(project));
+    expect(restored.tasks[0].resourceId).toBeUndefined();
+    expect(restored.tasks[1].resourceId).toBe('r2');
+  });
+
   it('preserves company shutdowns and personal absences', () => {
     const project: Project = {
       calendar: {
