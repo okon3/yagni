@@ -269,11 +269,17 @@ the two figures a plan is actually read by: **end date and duration**, both deri
 The rule is not that a computed figure has to be hidden, only that it must not *look*
 editable. Those two columns are faint and italic on every row, which is the register a
 summary's rolled-up effort has always worn, and **no editor is declared on them at
-all** — which closes every way in at once rather than one at a time: the app's own
-double-click handler looks for the column's editor before opening one, and dhtmlx
-gates its click, <kbd>Enter</kbd>, <kbd>Spazio</kbd>, <kbd>Del</kbd> and
-type-to-edit on the same config. And past all of that, an end date has nowhere to
-land: the model has no field for one.
+all** — which closes every way in at once rather than one at a time: both the app's
+own double-click handler and dhtmlx's click look for the column's editor before
+opening one. And past all of that, an end date has nowhere to land: the model has no
+field for one.
+
+Inside an editor, <kbd>Tab</kbd> and <kbd>Maiusc+Tab</kbd> move along the editable
+cells of the row and on into the next, saving each cell as they leave it,
+<kbd>Invio</kbd> saves and closes, and <kbd>Esc</kbd> closes without saving. The
+field it lands in carries the same violet ring the rest of the app puts on a focused
+control, since with the keyboard that ring is the only thing saying where the typing
+is going.
 
 They cost the grid 146px, and it is the timeline that gives them up rather than the
 task name. The grid holds its configured width and squeezes its resizable columns to

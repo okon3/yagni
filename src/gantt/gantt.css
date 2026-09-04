@@ -88,6 +88,18 @@
   border-right: 0;
 }
 
+/* dhtmlx styles the inline editors not at all, so they arrive with the amber
+   ring the browser gives any focused field — which in this palette reads as a
+   warning, and which every engine draws differently. Tab now walks a row of
+   them, so the ring is the only thing saying which cell the typing is going
+   into: it is stated here rather than left to the browser, and drawn inside the
+   field, since the grid clips whatever leaves its cell. */
+.gantt_grid_editor_placeholder input:focus,
+.gantt_grid_editor_placeholder select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .gantt_layout_cell.gantt_grid,
 .gantt_layout_cell .gantt_grid {
   border-right: 1px solid var(--line);

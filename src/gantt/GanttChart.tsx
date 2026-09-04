@@ -1429,6 +1429,31 @@ export function GanttChart({
     // container, so a listener on the bubble phase never sees a real click.
     container.addEventListener('dblclick', openEditor, true);
 
+    // The keys that move between cells come from dhtmlx's keyboard navigation
+    // extension, which Community does not ship — `gantt.ext` holds no
+    // `keyboardNavigation`, so `keyboard_navigation_cells` configures nothing
+    // here. Left alone, Tab falls through to the browser and lands on the
+    // grid's scrollbar with the editor still open behind it, and Enter does
+    // nothing at all: the only way to commit a typed value is to click
+    // somewhere else. The moves themselves are on `inlineEditors`, which does
+    // ship, and each one saves the cell it leaves.
+    const editorKeys = (event: KeyboardEvent) => {
+      const editors = gantt.ext.inlineEditors;
+      if (!editors.isVisible()) return;
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        // Past the last editable cell of a row and on to the first of the next,
+        // which is the one thing a grid of cells is always expected to do.
+        if (event.shiftKey) editors.editPrevCell(true);
+        else editors.editNextCell(true);
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        editors.save();
+      }
+      // Escape is dhtmlx's own and already closes without saving.
+    };
+    container.addEventListener('keydown', editorKeys);
+
     // A click on a grid cell opens an inline editor but leaves the row
     // unselected, so Del would have nothing to act on unless the user went to
     // the timeline to click a bar first. The info button is excluded: it opens a
@@ -1643,6 +1668,7 @@ export function GanttChart({
       gantt.ext.zoom.detachEvent(zoomHandler);
       container.removeEventListener('wheel', zoomOnWheel, true);
       container.removeEventListener('dblclick', openEditor, true);
+      container.removeEventListener('keydown', editorKeys);
       container.removeEventListener('click', selectRow);
       document.removeEventListener('keydown', deleteSelected);
       handlers.forEach((handlerId) => gantt.detachEvent(handlerId));

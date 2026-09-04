@@ -264,6 +264,16 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   is still a descendant of `$grid`. Selecting first detaches it and the click is
   swallowed, and the expand/collapse arrow and the `+` button of a row that is
   not already selected then need a second click.
+- **The keyboard navigation extension is not in Community.** `gantt.ext` holds
+  `inlineEditors`, `zoom` and `tooltips` but no `keyboardNavigation`, so
+  `keyboard_navigation` and `keyboard_navigation_cells` configure nothing that
+  ships here and every key it would have bound is unbound: inside an open
+  editor, Tab fell through to the browser and landed on the grid's *scrollbar*
+  with the editor still open behind it, and Enter did nothing at all — the only
+  way to commit a typed value was to click elsewhere. The moves themselves are
+  on `inlineEditors` (`editNextCell`/`editPrevCell`, which take a
+  `canChangeRow`, and each saves the cell it leaves), so binding them is a
+  listener, not a reimplementation.
 - **Inline editors have no mouse trigger of their own.** Opening them needs
   `keyboard_navigation_cells`, a listener in the **capture** phase (dhtmlx stops
   the dblclick before it bubbles), and taking focus **one frame later** — the
@@ -363,6 +373,16 @@ scripting context**: the value tracker ignores a plain assignment, and calling
 invocation*. Injecting a `<script>` element with that same code runs it in the
 page's context, where the setter works and the `input` event reaches React —
 which is how the details dialog's date field gets driven in a verification.
+
+**A key pressed by the browser tool carries no `keyCode` and no `code`.** The
+event is trusted and `event.key` is right, but `keyCode` and `which` are `0` and
+`code` is empty — so a handler of ours reading `event.key` sees the keystroke
+while dhtmlx's own, which still reads `keyCode`, does not. Escape closing an
+inline editor is exactly that: it works under a real keyboard and cannot be made
+to work from here, which is why it took a person to settle. Nor is the tool's key
+naming the DOM's: `Return` arrives with an **empty** `key` and does nothing at
+all, while `Enter` arrives as `Enter`. A key that appears to do nothing is
+therefore two questions, not one.
 
 ## Undo and the draft
 
