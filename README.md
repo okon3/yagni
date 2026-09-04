@@ -42,6 +42,13 @@ construction: the simulation loop contains no calendar logic at all.
   effort, but they call for different moves — reassign a task, or change the
   person. Each segment therefore records the rate the task *would* have had with
   the resource to itself, and `isContended` compares the two.
+- **A task with no effort is a milestone.** Zero days of work is not a degenerate
+  task but the useful one: a date the plan reaches — a release, a sign-off, a gate
+  — rather than work it does. It closes the moment it is reachable, cascades into
+  whatever milestone follows it, and takes nothing from the person it is assigned
+  to. There is no second concept and nothing extra in the file: effort 0 is the
+  whole of it, so a task becomes a milestone and stops being one by editing the
+  same number every other task has.
 - **A summary task is never scheduled.** If it were, it would contend with its own
   children for the same person and halve their rate. Its effort and dates roll up
   from its leaves instead, and its elapsed time can exceed the sum of its
@@ -282,6 +289,25 @@ critical, and drawing it as the chain would claim more than was measured.
 
 Task names sit **beside** their bar, never inside it: the inside belongs to the
 allocation profile, and a one-day bar has no room for a name anyway.
+
+A **milestone is a diamond** on its date rather than a bar of no width, drawn by
+dhtmlx's own milestone type and carrying the same colour, the same critical ring
+— on the diamond, where positional criticality is exactly the point — and the
+same dimming as everything else. The grid says so too, by turning the row's
+colour dot into the same shape, and the details dialog changes its heading to
+*Milestone* the moment the effort reads zero, so the one concept behind the two
+appearances is visible while it is being typed.
+
+Which day a milestone lands on is **not** the ambiguity it looks like. Its start
+and its end are the same working minute, and a working minute on a day boundary
+is two wall-clock instants — 17:00 that day, 08:00 the next. A milestone that
+closes something is drawn where that something was drawn, or the diamond would
+sit a weekend away from the bar it marks the end of, and past the plan's own end,
+where dhtmlx draws nothing at all; a milestone nothing runs into sits on the
+morning of the date it was given, which is the date the grid shows. That is
+decided from the predecessors and not from the start date, because saving a task
+writes its solved start back as its constraint — and a rule reading the
+constraint would flip the diamond to the other side of the boundary on a rename.
 
 Today is a vertical line, exact at every zoom level, plus a pill on the scale cell
 holding it — the day at day scale, the week at month scale, the month at quarter

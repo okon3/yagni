@@ -113,6 +113,13 @@ export function TaskDialog({
     });
   };
 
+  // Read off the field being edited rather than off the task, so the dialog
+  // changes register while the zero is typed: that is the whole of what makes
+  // "effort 0" and "milestone" one concept rather than two. An empty field is not
+  // a zero — `Number('')` is — and would otherwise announce a milestone the user
+  // is in the middle of not typing.
+  const isMilestone = !task.isSummary && effort.trim() !== '' && Number(effort) === 0;
+
   const fromChildren = <span className="taskinfo__derived">dalle sottoattività</span>;
   const contendedWith = resources.find(
     (resource) => resource.id === slack?.contendedResourceId,
@@ -126,10 +133,22 @@ export function TaskDialog({
 
   return (
     <dialog ref={dialog} className="resources taskinfo" onCancel={onCancel} onClose={onCancel}>
-      <h2>{task.isSummary ? 'Attività di riepilogo' : 'Dettaglio attività'}</h2>
+      <h2>
+        {task.isSummary ? 'Attività di riepilogo' : isMilestone ? 'Milestone' : 'Dettaglio attività'}
+      </h2>
       <p className="resources__hint">
-        La <strong>fine</strong> e la <strong>durata</strong> non si impostano: le calcola il motore
-        da effort, inizio, calendario e dalla quota di risorsa che l&apos;attività riceve.
+        {isMilestone ? (
+          <>
+            Effort <strong>0</strong>: una milestone, cioè una data che il piano raggiunge e non
+            lavoro che consuma. Non occupa nessuno e sul diagramma è un rombo. Rimettere un effort
+            maggiore di zero la fa tornare un&apos;attività.
+          </>
+        ) : (
+          <>
+            La <strong>fine</strong> e la <strong>durata</strong> non si impostano: le calcola il
+            motore da effort, inizio, calendario e dalla quota di risorsa che l&apos;attività riceve.
+          </>
+        )}
       </p>
 
       <div className="taskinfo__grid">
@@ -159,17 +178,22 @@ export function TaskDialog({
           {task.isSummary ? (
             fromChildren
           ) : (
-            <span className="taskinfo__inline">
-              <input
-                type="number"
-                min={0}
-                max={999}
-                step={0.25}
-                value={effort}
-                onChange={(event) => setEffort(event.target.value)}
-              />
-              <span className="resources__unit">giorni</span>
-            </span>
+            <>
+              <span className="taskinfo__inline">
+                <input
+                  type="number"
+                  min={0}
+                  max={999}
+                  step={0.25}
+                  value={effort}
+                  onChange={(event) => setEffort(event.target.value)}
+                />
+                <span className="resources__unit">giorni</span>
+              </span>
+              {/* The only way to make a milestone, so the field has to say so:
+                  there is no second control, because there is no second concept. */}
+              {!isMilestone && <span className="taskinfo__hint">0 = milestone</span>}
+            </>
           )}
         </label>
 

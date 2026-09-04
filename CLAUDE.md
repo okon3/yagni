@@ -91,6 +91,17 @@ instants: 17:00 on the day it completes and 08:00 on the next working day. Hence
 working minutes. **Compare the working minutes, not the dates, to test adjacency** —
 two contiguous instants render as different wall-clock dates.
 
+A **milestone is one such value seen from both sides at once**: it starts and ends
+on the same minute, so the engine reports 08:00 for its start and 17:00 the day
+before for its end. `pinMilestones` in `project.ts` collapses it onto one of the
+two before anything downstream sees it — the diamond, the dialog and `getPlan()`
+would otherwise disagree, and a lone milestone would read as ending before it
+starts. It chooses from the **predecessors**, never from the start constraint:
+every save writes the solved start back as the constraint, so a rule reading the
+constraint moves the diamond across the boundary on a rename. `rollUp` takes a
+summary's dates from its children's own for the same reason — converting their
+extreme minutes again no longer agrees with them.
+
 ## dhtmlx-gantt traps
 
 The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
@@ -172,6 +183,19 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   `--dhx-gantt-task-background` in a rule fixes the default without breaking a
   task that carries a colour: dhtmlx sets that variable inline, which outranks
   the rule.
+- **A milestone's bar element is `visibility: hidden`.** `type:
+  gantt.config.types.milestone` exists in Community and does the whole job —
+  position, width, link routing — but what it paints is the `.gantt_task_content`
+  inside the line, rotated 45°, with the line itself hidden. So anything meant to
+  be seen has to sit on the *content*: the critical ring goes there, where it
+  rotates into a diamond of its own, and an outline left on the line paints
+  nothing at all. The content also inherits the line's `border-radius`, so the
+  pill radius this app puts on every bar rounds the diamond into a blob until it
+  is restated — and `--dhx-gantt-task-background` is repointed at dhtmlx's own
+  violet by `.gantt_milestone`, a rule of the same specificity as the app's
+  default on `.gantt_task_line`, which is why the default is restated on two
+  classes rather than left to the order the stylesheets are imported in. A task
+  that carries a colour still wins over both: dhtmlx sets that variable inline.
 - **When verifying anything visual, read `getComputedStyle`** — not the attribute,
   not the data field. Both of the bugs above were invisible from the code.
 - **Only the bars in view exist in the DOM.** Smart rendering leaves a bar out of

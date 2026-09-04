@@ -9,6 +9,7 @@ import {
   chainStateOf,
   effectiveColorOf,
   emptyProject,
+  isMilestone,
   rejectionForLink,
   resourcesByTask,
   slackByRow,
@@ -129,6 +130,122 @@ describe('rollup', () => {
     );
     expect(days(solved.schedule.tasks.get('c')!.elapsedWorkingMinutes)).toBe(2);
     expect(solved.schedule.tasks.get('c')!.segments[0].rate).toBe(1);
+  });
+});
+
+describe('milestones', () => {
+  const milestone: ProjectTask = { id: 'm', name: 'M', nominalDays: 0, start: at(0) };
+
+  it('is a leaf with no effort, and never a summary whatever its children sum to', () => {
+    const tasks: ProjectTask[] = [
+      { id: 'p', name: 'Rilascio', nominalDays: 0, start: at(0) },
+      { id: 'c', name: 'Firma', nominalDays: 0, start: at(0), parentId: 'p' },
+      { id: 'a', name: 'A', nominalDays: 2, start: at(0) },
+    ];
+    const { summaryIds } = solve(project(tasks));
+    const marked = tasks.filter((task) => isMilestone(task, summaryIds)).map((task) => task.id);
+    expect(marked).toEqual(['c']);
+  });
+
+  it('takes no capacity from the person it is assigned to', () => {
+    const solved = solve(
+      project([
+        { id: 'a', name: 'A', nominalDays: 2, start: at(0), resourceId: 'alice' },
+        { ...milestone, start: at(0), resourceId: 'alice' },
+      ]),
+    );
+    expect(days(solved.schedule.tasks.get('a')!.elapsedWorkingMinutes)).toBe(2);
+  });
+
+  it('sits on the morning of the date it was given', () => {
+    const solved = solve(
+      project([
+        { id: 'a', name: 'A', nominalDays: 1, start: at(0), resourceId: 'alice' },
+        { ...milestone, start: at(2) },
+      ]),
+    );
+    const scheduled = solved.schedule.tasks.get('m')!;
+    expect(scheduled.start).toEqual(at(2));
+    expect(scheduled.end).toEqual(at(2));
+  });
+
+  it('lands on its predecessor’s finish, not on the next morning', () => {
+    const solved = solve(
+      project([
+        { id: 'a', name: 'A', nominalDays: 2, start: at(0), resourceId: 'alice' },
+        { ...milestone, predecessors: ['a'] },
+      ]),
+    );
+    const scheduled = solved.schedule.tasks.get('m')!;
+    expect(scheduled.start).toEqual(solved.schedule.tasks.get('a')!.end);
+    expect(scheduled.end).toEqual(scheduled.start);
+  });
+
+  it('is inside the span the timeline fits itself to, however late it is dated', () => {
+    const solved = solve(
+      project([
+        { id: 'a', name: 'A', nominalDays: 1, start: at(0), resourceId: 'alice' },
+        { ...milestone, start: at(21) },
+      ]),
+    );
+    expect(solved.schedule.projectEnd).toEqual(solved.schedule.tasks.get('m')!.start);
+  });
+
+  it('sits exactly where the milestone it is chained to sits', () => {
+    const solved = solve(
+      project([
+        { id: 'a', name: 'A', nominalDays: 1, start: at(0), resourceId: 'alice' },
+        { ...milestone, id: 'm1', start: at(2) },
+        { ...milestone, id: 'm2', start: at(0), predecessors: ['m1'] },
+      ]),
+    );
+    // m1 is dated rather than gated, so it opens a morning; m2 must follow it
+    // there rather than pick the evening before off the same working minute.
+    expect(solved.schedule.tasks.get('m1')!.start).toEqual(at(2));
+    expect(solved.schedule.tasks.get('m2')!.start).toEqual(at(2));
+  });
+
+  it('stays put when the solved start is written back as its constraint', () => {
+    // Which is what saving a task does, from the dialog and from a script alike.
+    const tasks: ProjectTask[] = [
+      { id: 'a', name: 'A', nominalDays: 2, start: at(0), resourceId: 'alice' },
+      { ...milestone, predecessors: ['a'] },
+    ];
+    const once = solve(project(tasks)).schedule.tasks.get('m')!;
+    const again = solve(
+      project(tasks.map((task) => (task.id === 'm' ? { ...task, start: once.start } : task))),
+    ).schedule.tasks.get('m')!;
+    expect(again.start).toEqual(once.start);
+  });
+
+  it('is bracketed by its parent even when drawn past the last bar under it', () => {
+    // The bar closes at 17:00 and the milestone opens at 08:00 next morning on
+    // the very same working minute, so the summary cannot take either end from
+    // the minutes alone.
+    const solved = solve(
+      project([
+        { id: 'p', name: 'P', nominalDays: 0, start: at(0) },
+        { id: 'c', name: 'C', nominalDays: 1, start: at(0), parentId: 'p', resourceId: 'alice' },
+        { ...milestone, start: at(1), parentId: 'p' },
+      ]),
+    );
+    const summary = solved.schedule.tasks.get('p')!;
+    expect(summary.end).toEqual(solved.schedule.tasks.get('m')!.end);
+    expect(summary.end.getTime()).toBeGreaterThan(solved.schedule.tasks.get('c')!.end.getTime());
+  });
+
+  it('does not leave a summary of milestones ending before it starts', () => {
+    const solved = solve(
+      project([
+        { id: 'a', name: 'A', nominalDays: 1, start: at(0), resourceId: 'alice' },
+        { id: 'p', name: 'Traguardi', nominalDays: 0, start: at(0) },
+        { id: 'm1', name: 'M1', nominalDays: 0, start: at(1), parentId: 'p' },
+        { id: 'm2', name: 'M2', nominalDays: 0, start: at(1), parentId: 'p' },
+      ]),
+    );
+    const summary = solved.schedule.tasks.get('p')!;
+    expect(summary.start).toEqual(at(1));
+    expect(summary.end).toEqual(at(1));
   });
 });
 

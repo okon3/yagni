@@ -155,13 +155,17 @@
 }
 
 /* A task with no colour of its own must match the dot in its name cell, and
-   dhtmlx would otherwise paint it its own shade of blue. Setting the variable in
-   a rule leaves a task that does carry a colour in charge: dhtmlx sets it inline,
-   which outranks this. */
-.gantt_task_line {
+   dhtmlx would otherwise paint it its own shade of blue — its own violet for a
+   milestone, through a `.gantt_milestone` rule that takes the second class to
+   beat. Setting the variable in a rule leaves a task that does carry a colour in
+   charge: dhtmlx sets it inline, which outranks this. */
+.gantt_task_line,
+.gantt_task_line.gantt_milestone {
   --dhx-gantt-task-background: #3b74d6;
   --dhx-gantt-task-border: #2a539a;
+}
 
+.gantt_task_line {
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-raised);
 }
@@ -224,6 +228,41 @@
 .gantt_task_line.gantt-bar--critical-old {
   outline-style: dashed;
   outline-color: color-mix(in srgb, var(--critical) 55%, transparent);
+}
+
+/* A zero-effort task is a point on the plan, and dhtmlx draws it as a square
+   rotated 45°. The bar element itself is `visibility: hidden` there — only its
+   content shows — so anything meant to be seen has to sit on the content, the
+   shadow below and the critical ring included.
+
+   The radius has to be restated: the content inherits it from the line, and the
+   pill above would round the diamond into a blob. */
+.gantt_task_line.gantt_milestone {
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+.gantt_task_line.gantt_milestone .gantt_task_content {
+  box-shadow: var(--shadow-raised);
+}
+
+/* The critical ring likewise, where it rotates with the content into a diamond.
+   A milestone is the case positional criticality is about: it has no size to
+   grow, so sitting on the plan's end is the whole of what marks it. */
+.gantt_task_line.gantt_milestone.gantt-bar--critical .gantt_task_content {
+  outline: 2px solid var(--critical);
+  outline-offset: 1px;
+}
+
+.gantt_task_line.gantt_milestone.gantt-bar--critical-old .gantt_task_content {
+  outline-style: dashed;
+  outline-color: color-mix(in srgb, var(--critical) 55%, transparent);
+}
+
+/* The diamond's vertex reaches half its diagonal past the element dhtmlx lays
+   the label out after, so the name needs more room than a bar's does. */
+.gantt_task_line.gantt_milestone .gantt_side_content.gantt_right {
+  padding-left: 16px;
 }
 
 .seg-track {
@@ -327,6 +366,15 @@
   margin-right: 7px;
   border-radius: 50%;
   vertical-align: baseline;
+}
+
+/* The shape the chart draws the row as, so the grid answers the question without
+   the timeline having to be scrolled to the date. */
+.gantt-dot--milestone {
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  transform: rotate(45deg);
 }
 
 /* Initials instead of a name: the column costs a third of what it did, and the

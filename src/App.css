@@ -764,6 +764,13 @@
   font-style: italic;
 }
 
+/* A note about what a field accepts, not about the value it holds — hence not
+   italic, which in this dialog means "derived, and not yours to edit". */
+.taskinfo__hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
 .taskinfo__subhead {
   font-size: 12px;
   font-weight: 600;

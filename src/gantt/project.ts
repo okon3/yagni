@@ -158,6 +158,18 @@ export function subtreeOf(tasks: ProjectTask[], id: string): Set<string> {
   return inside;
 }
 
+/**
+ * A leaf with no effort: a date the plan reaches rather than work it does.
+ *
+ * Not a second kind of task. There is nothing to store that `nominalDays` does
+ * not already say, and a flag beside the effort is a flag that can disagree with
+ * it. A summary is excluded whatever its children happen to sum to: it is never
+ * scheduled, so it brackets a span rather than marking an instant.
+ */
+export function isMilestone(task: ProjectTask, summaryIds: Set<string>): boolean {
+  return task.nominalDays === 0 && !summaryIds.has(task.id);
+}
+
 export function effectiveColorOf(
   tasks: ProjectTask[],
   hierarchy: Hierarchy,
@@ -249,7 +261,13 @@ export function solve(project: Project): SolvedProject {
 
   const result = schedule(engineTasks, project.resources, { origin, calendar: project.calendar });
 
-  rollUp(project, hierarchy, result, calendar);
+  // Before the rollup, which reads its children's dates back out.
+  pinMilestones(
+    engineTasks,
+    new Set(leaves.filter((task) => isMilestone(task, summaryIds)).map((task) => task.id)),
+    result,
+  );
+  rollUp(project, hierarchy, result);
   return {
     schedule: result,
     calendar,
@@ -427,19 +445,79 @@ export function chainStateOf(
 }
 
 /**
+ * Collapses each milestone onto the single instant it happens at.
+ *
+ * A milestone starts and ends on the same working minute, and a working minute
+ * on a day boundary denotes two wall-clock instants — 17:00 that day and 08:00
+ * the next — of which the engine reports one at each end. Left as they are, a
+ * milestone dated to a Wednesday reads as ending on the Tuesday.
+ *
+ * Which of the two it means is decided by what closes on it. A milestone marking
+ * the end of something is drawn where that something was drawn, or the diamond
+ * would sit a night — a weekend, at the wrong end of a week — away from the bar
+ * it closes, and past the plan's own end, where nothing is drawn at all. A
+ * milestone nothing runs into belongs on the morning of the date it was given,
+ * which is the date the grid shows for it.
+ *
+ * The predecessors decide it rather than the start constraint, although at a tie
+ * the two agree: every path that saves a task writes the solved start back as
+ * its constraint, and a rule reading the constraint would flip the diamond to
+ * the other side of the boundary on a rename.
+ *
+ * The plan's span is widened over the choice, or a milestone dated later than
+ * the last piece of work would fall outside the range the timeline fits itself
+ * to — and dhtmlx draws nothing outside that range.
+ */
+function pinMilestones(engineTasks: Task[], milestoneIds: Set<string>, result: Schedule): void {
+  const predecessorsOf = new Map(engineTasks.map((task) => [task.id, task.predecessors ?? []]));
+  const pinned = new Map<string, Date>();
+
+  const instantOf = (id: string): Date => {
+    const known = pinned.get(id);
+    if (known) return known;
+    const scheduled = result.tasks.get(id)!;
+    // A milestone chained onto another takes that one's answer instead of
+    // choosing again, or the two would land on either side of the same boundary
+    // and the successor would be drawn before its predecessor.
+    const closing = (predecessorsOf.get(id) ?? [])
+      .map((predecessorId) => result.tasks.get(predecessorId))
+      .filter((predecessor) => predecessor?.endWorkingMinutes === scheduled.startWorkingMinutes)
+      .map((predecessor) =>
+        milestoneIds.has(predecessor!.id) ? instantOf(predecessor!.id) : predecessor!.end,
+      );
+    const instant =
+      closing.length > 0
+        ? closing.reduce((latest, date) => (date > latest ? date : latest))
+        : scheduled.start;
+    pinned.set(id, instant);
+    return instant;
+  };
+
+  for (const id of milestoneIds) {
+    const scheduled = result.tasks.get(id);
+    if (!scheduled) continue;
+    const instant = instantOf(id);
+    result.tasks.set(id, { ...scheduled, start: instant, end: instant });
+    if (instant < result.projectStart) result.projectStart = instant;
+    if (instant > result.projectEnd) result.projectEnd = instant;
+  }
+}
+
+/**
  * Fills in the summary rows bottom-up.
  *
  * A summary spans from its earliest descendant to its latest, and its effort is
  * the sum of the leaves below it — so its elapsed time can exceed the sum of its
  * children's when they do not run back to back. It gets no allocation segments:
  * a bar aggregating several people has no single allocation rate to draw.
+ *
+ * Its dates come from the children's own rather than from converting their
+ * extreme working minutes back, which no longer agrees with them once a
+ * milestone is involved: two rows on the same working minute can be drawn at
+ * either side of a day boundary, and a summary has to bracket both. Converting
+ * again would give a group of milestones an end before its start.
  */
-function rollUp(
-  project: Project,
-  hierarchy: Hierarchy,
-  result: Schedule,
-  calendar: WorkingCalendar,
-): void {
+function rollUp(project: Project, hierarchy: Hierarchy, result: Schedule): void {
   const depthOf = (id: string) => hierarchy.ancestorsOf(id).length;
   const summaries = project.tasks
     .filter((task) => hierarchy.isSummary(task.id))
@@ -457,8 +535,14 @@ function rollUp(
     const endMinutes = Math.max(...children.map((child) => child.endWorkingMinutes));
     result.tasks.set(summary.id, {
       id: summary.id,
-      start: calendar.fromWorkingMinutes(startMinutes, 'start'),
-      end: calendar.fromWorkingMinutes(endMinutes, 'end'),
+      start: children.reduce(
+        (earliest, child) => (child.start < earliest ? child.start : earliest),
+        children[0].start,
+      ),
+      end: children.reduce(
+        (latest, child) => (child.end > latest ? child.end : latest),
+        children[0].end,
+      ),
       startWorkingMinutes: startMinutes,
       endWorkingMinutes: endMinutes,
       elapsedWorkingMinutes: endMinutes - startMinutes,

@@ -11,6 +11,7 @@ import {
   chainStateOf,
   effectiveColorOf,
   isChainMeasurable,
+  isMilestone,
   rejectionForLink,
   slackByRow,
   solve,
@@ -19,6 +20,7 @@ import {
   type MarkedChain,
   type MeasuredSlack,
   type Project,
+  type ProjectTask,
   type SolvedProject,
 } from './project';
 import { keystrokeIsCaptured } from './shortcuts';
@@ -27,6 +29,14 @@ import './gantt.css';
 
 /** dhtmlx link type for finish-to-start. */
 const FINISH_TO_START = '0';
+
+/**
+ * The two dhtmlx task types the app writes, through `String` because the
+ * typings allow `config.types` to hold numbers. A row of the first kind is drawn
+ * as a diamond on its date, a row of the second as a bar.
+ */
+const MILESTONE_TYPE = String(gantt.config.types.milestone);
+const BAR_TYPE = String(gantt.config.types.task);
 
 /**
  * Pixels below which a run of non-working days is left unshaded.
@@ -279,6 +289,10 @@ export interface GanttHandle {
   scrollToToday(): void;
 }
 
+function typeOf(task: ProjectTask, solved: SolvedProject): string {
+  return isMilestone(task, solved.summaryIds) ? MILESTONE_TYPE : BAR_TYPE;
+}
+
 function toGanttData(project: Project, solved: SolvedProject, chain: MarkedChain | null) {
   const formatDate = gantt.date.date_to_str(gantt.config.date_format);
   return {
@@ -292,6 +306,7 @@ function toGanttData(project: Project, solved: SolvedProject, chain: MarkedChain
         // dhtmlx uses 0 for the root of the tree.
         parent: task.parentId ?? 0,
         open: true,
+        type: typeOf(task, solved),
         start_date: formatDate(scheduled?.start ?? task.start),
         end_date: formatDate(scheduled?.end ?? task.start),
         progress: task.progress ?? 0,
@@ -552,6 +567,7 @@ export function GanttChart({
         const scheduled = solved.schedule.tasks.get(task.id);
         if (!scheduled || !gantt.isTaskExists(task.id)) continue;
         const ganttTask = gantt.getTask(task.id);
+        ganttTask.type = typeOf(task, solved);
         ganttTask.start_date = scheduled.start;
         ganttTask.end_date = scheduled.end;
         ganttTask.nominal_days = task.nominalDays;
@@ -854,8 +870,12 @@ export function GanttChart({
         resize: true,
         // The colour no longer has a column of its own: it rides along with the
         // name, and the details dialog is where it is picked.
+        // The dot turns into a diamond on a milestone, the shape the chart draws
+        // it as: the grid says nothing else about effort 0 that a "0g" in the
+        // next column does not already say.
         template: (task) =>
-          `<span class="gantt-dot" style="background:${String(task.bar_color || DEFAULT_BAR_COLOR)}"></span>` +
+          `<span class="gantt-dot${task.type === MILESTONE_TYPE ? ' gantt-dot--milestone' : ''}"` +
+          ` style="background:${String(task.bar_color || DEFAULT_BAR_COLOR)}"></span>` +
           `<span class="${task.is_summary ? 'gantt-name gantt-name--summary' : 'gantt-name'}">${escapeHtml(String(task.text ?? ''))}</span>`,
         editor: { type: 'text', map_to: 'text' },
       },
