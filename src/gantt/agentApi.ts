@@ -276,7 +276,12 @@ export function createAgentApi(host: AgentHost): AgentApi {
 
     getResources: () => copy(chart().getResources()),
     getCalendar: () => copy(chart().getCalendar()),
-    toText: () => serializeProject(chart().getProject()),
+    toText: () => {
+      const handle = chart();
+      // The same text the Save button writes, solved report included: what a
+      // script snapshots is what a file of the plan would say.
+      return serializeProject(handle.getProject(), handle.getSolved());
+    },
     getFilename: host.filename,
     isDirty: host.dirty,
 

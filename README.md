@@ -553,10 +553,20 @@ screen the one thing they already know.
 Projects are saved as `.gantt` (JSON). Open them from the toolbar or by dragging the
 file onto the window.
 
-The file stores **inputs only**: computed end dates and durations are left out and
-recomputed on load, so a file can never hold a schedule inconsistent with its own
-premises. Dates are written as local wall-clock time; `toISOString` would shift them
-to UTC and move an 08:00 start to the previous day.
+The **inputs alone decide the schedule**: computed dates and durations are
+recomputed on load, so opening a file can never produce a schedule inconsistent
+with its own premises. Dates are written as local wall-clock time; `toISOString`
+would shift them to UTC and move an 08:00 start to the previous day.
+
+Beside the inputs, a save also writes the solved schedule as a **report**: a
+`solved` block on every task — solved start and end, effort, elapsed days,
+whether contention stretched it — and one for the project, with `projectStart`,
+`projectEnd` and `solvedAt`. It comes from the same solve as the inputs it sits
+next to, so the two cannot disagree at the moment of writing, and it is
+**ignored entirely on load**. It exists for whoever reads the file without the
+app — an agent first of all: the input `start` says what was asked, the report
+says where the plan put it, and `solvedAt` dates the answer as a snapshot
+instead of letting it pass for current.
 
 A row with children is written **without a `resourceId`** for the same reason. A
 summary may still hold the person it had while it was a leaf; the engine ignores

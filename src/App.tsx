@@ -292,9 +292,11 @@ export default function App() {
   const handleSave = useCallback(() => {
     const project = chart.current?.getProject();
     if (!project) return;
-    const text = serializeProject(project);
-    downloadText(filename, text);
-    setSavedText(text);
+    // The file carries the solved report for whoever reads it; `savedText` must
+    // not — it is compared against the history's input-only snapshots, and a
+    // report in the comparison would keep the project dirty forever.
+    downloadText(filename, serializeProject(project, chart.current?.getSolved()));
+    setSavedText(serializeProject(project));
   }, [filename]);
 
   /**

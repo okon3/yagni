@@ -7,7 +7,8 @@ import {
   type Resource,
 } from '../scheduler';
 import { parseWallClock, serializeDate } from './dates';
-import type { Project, ProjectTask } from './project';
+import { buildPlan } from './plan';
+import type { Project, ProjectTask, SolvedProject } from './project';
 import { validateResources } from './resources';
 
 export const FILE_FORMAT = 'gantt-effort-split';
@@ -39,12 +40,44 @@ function parseDayRanges(value: unknown, context: string): DayRange[] {
   });
 }
 
-export function serializeProject(project: Project): string {
+/**
+ * With `solved`, the file also carries the schedule as a **report**: a `solved`
+ * block per task and one for the project, written from the same solve as the
+ * inputs beside them, so the two cannot disagree at the moment of writing.
+ * Loading ignores every one of them and recomputes — the inputs alone decide
+ * the schedule — which is why the report is for a reader of the file, an agent
+ * first of all, and dates it as a snapshot with `solvedAt` rather than
+ * pretending to be current. The history, the draft and the dirty comparison
+ * stay on the input-only form: a report in an undo snapshot is noise.
+ */
+export function serializeProject(project: Project, solved?: SolvedProject): string {
   const parentIds = new Set(project.tasks.map((task) => task.parentId));
+  // The plan is the shape already documented for agents; reusing it keeps the
+  // file's report and getPlan() one mapping, not two.
+  const plan = solved ? buildPlan(solved) : null;
+  const planByTask = new Map(plan?.tasks.map((task) => [task.id, task]));
+  const reportFor = (id: string) => {
+    const row = planByTask.get(id);
+    if (!row) return undefined;
+    return {
+      start: row.start,
+      end: row.end,
+      effortDays: row.effortDays,
+      elapsedDays: row.elapsedDays,
+      shared: row.shared,
+    };
+  };
   return JSON.stringify(
     {
       format: FILE_FORMAT,
       version: FILE_VERSION,
+      solved: plan
+        ? {
+            solvedAt: serializeDate(new Date()),
+            projectStart: plan.projectStart,
+            projectEnd: plan.projectEnd,
+          }
+        : undefined,
       calendar: project.calendar,
       resources: project.resources,
       tasks: project.tasks.map((task) => ({
@@ -55,6 +88,7 @@ export function serializeProject(project: Project): string {
         // inert, and a reader took it for an assignment. Dropped here rather
         // than on parse, which refuses rather than repairs.
         resourceId: parentIds.has(task.id) ? undefined : task.resourceId,
+        solved: reportFor(task.id),
       })),
     },
     null,

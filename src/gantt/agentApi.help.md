@@ -46,7 +46,7 @@ yagni.loadText(before); // changed my mind
 | `getResourceLoad()` | the plan per person: what is booked on them, and what is free |
 | `getResources()` | `Resource[]`, `availability` as a fraction `0..1` |
 | `getCalendar()` | `{ workingDays, windows, holidays? }` |
-| `toText()` | the project as `.gantt`, byte for byte what Save downloads |
+| `toText()` | the project as `.gantt`, what Save downloads: the inputs plus a `solved` report per task and per project — same fields as `getPlan()`, ignored on load |
 | `getFilename()`, `isDirty()` | what the toolbar shows |
 
 A `getPlan()` task:
@@ -243,7 +243,9 @@ absence; there is no separate concept.
 
 Parsing refuses rather than repairs — unknown resources, duplicate ids, dangling
 predecessors, circular hierarchy, availability outside `0..1`, a future format
-version.
+version. The `solved` report blocks are ignored on load: the inputs alone decide
+the schedule, so editing the text and reloading it never needs the report kept
+in step.
 
 ## Navigation
 

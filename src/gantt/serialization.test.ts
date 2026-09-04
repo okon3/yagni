@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CALENDAR } from '../scheduler';
-import { sampleProject, type Project } from './project';
+import { sampleProject, solve, type Project } from './project';
 import {
   FILE_VERSION,
   ProjectFileError,
@@ -14,6 +14,32 @@ describe('round trip', () => {
     expect(restored.tasks).toEqual(sampleProject.tasks);
     expect(restored.resources).toEqual(sampleProject.resources);
     expect(restored.calendar).toEqual(sampleProject.calendar);
+  });
+
+  it('writes the solved schedule as a report beside the inputs', () => {
+    const text = serializeProject(sampleProject, solve(sampleProject));
+    const file = JSON.parse(text);
+    expect(file.solved.projectStart).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+    expect(file.solved.projectEnd).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+    expect(file.solved.solvedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+    for (const task of file.tasks) {
+      expect(task.solved.start).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+      expect(task.solved.end).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+      expect(typeof task.solved.shared).toBe('boolean');
+    }
+    // A summary's report is the rollup the file's inputs cannot express.
+    const summary = file.tasks.find((task: { id: string }) => task.id === '7');
+    expect(summary.solved.effortDays).toBeCloseTo(3);
+  });
+
+  it('ignores the report on load: the inputs alone decide the schedule', () => {
+    const enriched = deserializeProject(serializeProject(sampleProject, solve(sampleProject)));
+    const plain = deserializeProject(serializeProject(sampleProject));
+    expect(enriched).toEqual(plain);
+  });
+
+  it('leaves the report out without a solve, for the history and the draft', () => {
+    expect(serializeProject(sampleProject)).not.toContain('"solved"');
   });
 
   it('keeps the local wall-clock date, not the UTC instant', () => {

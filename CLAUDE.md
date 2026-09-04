@@ -456,9 +456,15 @@ screen — until it is answered, storage holds the only copy of that work.
 
 ## File format
 
-`.gantt` is JSON, currently **version 2**, and stores **inputs only** — computed
-ends and durations are recomputed on load, so a file can never hold a schedule
-inconsistent with its own premises.
+`.gantt` is JSON, currently **version 2**. The **inputs alone decide the
+schedule** — computed dates are recomputed on load, so a file can never produce
+a schedule inconsistent with its own premises. Beside them a save writes the
+solved schedule as a **report** (`solved` per task and per project, with
+`solvedAt`): same solve as the inputs it sits next to, ignored entirely on
+load, there for an agent reading the file without the app. The history, the
+draft and the `dirty` comparison stay on the input-only serialization — a
+report inside an undo snapshot is noise, and `dirty` would compare mismatched
+shapes.
 
 Parsing is deliberately strict and refuses rather than repairs: unknown resources,
 duplicate ids, dangling predecessors, circular hierarchy, availability outside
