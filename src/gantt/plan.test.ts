@@ -54,6 +54,26 @@ describe('buildPlan', () => {
     expect(summary?.effortDays).toBeCloseTo(3);
   });
 
+  it('hides the resource a summary kept from before it had children', () => {
+    // A leaf assigned to r1 that later gained a child keeps its own resourceId
+    // in the model, where it is inert; reading it out would report an
+    // assignment nobody is working.
+    const project: Project = {
+      calendar: DEFAULT_CALENDAR,
+      resources: [
+        { id: 'r1', name: 'Marta' },
+        { id: 'r2', name: 'Gino' },
+      ],
+      tasks: [
+        { id: 'group', name: 'Gruppo', nominalDays: 0, start: at(0), resourceId: 'r1' },
+        { id: 'work', name: 'Lavoro', nominalDays: 2, start: at(0), resourceId: 'r2', parentId: 'group' },
+      ],
+    };
+    const [group, work] = planOf(project).tasks;
+    expect(group).toMatchObject({ id: 'group', isSummary: true, resourceId: null });
+    expect(work).toMatchObject({ id: 'work', resourceId: 'r2' });
+  });
+
   it('reports contention as shared, with elapsed above effort', () => {
     const project: Project = {
       calendar: DEFAULT_CALENDAR,

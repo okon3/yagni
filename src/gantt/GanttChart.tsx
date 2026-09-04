@@ -706,18 +706,23 @@ export function GanttChart({
         const scheduled = solvedRef.current.schedule.tasks.get(id);
         if (!task || !scheduled) return null;
         const solved = solvedRef.current;
+        const summary = solved.summaryIds.has(id);
         return {
           id,
           name: task.name,
           nominalDays: task.nominalDays,
           start: scheduled.start,
           end: scheduled.end,
-          resourceId: task.resourceId ?? '',
+          // The model may still hold the resource a summary had while it was a
+          // leaf. The engine ignores it and every write here discards it, so
+          // reading it out would report an assignment nobody is working —
+          // buildPlan already answers null for the same reason.
+          resourceId: summary ? '' : task.resourceId ?? '',
           color:
             effectiveColorOf(projectRef.current.tasks, solved.hierarchy, id) ?? DEFAULT_BAR_COLOR,
           ownsColor: task.parentId === undefined,
           progress: task.progress ?? 0,
-          isSummary: solved.summaryIds.has(id),
+          isSummary: summary,
           descendantCount: subtreeOf(projectRef.current.tasks, id).size - 1,
           elapsedDays: solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes),
           effortDays: solved.calendar.minutesToDays(scheduled.effortMinutes),
