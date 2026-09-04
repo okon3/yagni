@@ -5,3 +5,4 @@ export * from './calendar';
 export * from './allocation';
 export * from './simulate';
 export * from './float';
+export * from './load';

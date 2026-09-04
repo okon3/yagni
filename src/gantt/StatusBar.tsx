@@ -6,9 +6,12 @@ export interface StatusBarProps {
   scale: string;
   /** What the chart is showing of the critical chain, which decides what the control offers. */
   chainState: ChainState;
+  /** Whether the per-person load lanes are open under the chart. */
+  loadShown: boolean;
   onCollapseAll(): void;
   onExpandAll(): void;
   onCriticalChain(): void;
+  onToggleLoad(): void;
   onToday(): void;
   onZoomIn(): void;
   onZoomOut(): void;
@@ -52,9 +55,11 @@ export function StatusBar({
   taskCount,
   scale,
   chainState,
+  loadShown,
   onCollapseAll,
   onExpandAll,
   onCriticalChain,
+  onToggleLoad,
   onToday,
   onZoomIn,
   onZoomOut,
@@ -85,6 +90,17 @@ export function StatusBar({
         onClick={onCriticalChain}
       >
         {CHAIN_LABEL[chainState]}
+      </button>
+      {/* Beside the critical chain, and not with the zoom: both answer a question
+          about the plan rather than about the view of it. */}
+      <button
+        type="button"
+        className={'statusbar__load' + (loadShown ? ' statusbar__load--on' : '')}
+        aria-pressed={loadShown}
+        title="Mostra quanto è impegnata ogni persona e dove le resta capacità"
+        onClick={onToggleLoad}
+      >
+        Carico risorse
       </button>
       {/* An agent reads the page text and the accessibility tree before it reads
           anything else, so the scripting surface has to be named there. */}

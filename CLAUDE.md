@@ -241,6 +241,20 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   to the scheduled date on its own, and the drag lands in the undo history twice,
   the first Ctrl+Z appearing to do nothing. `pullFromView` accepts the row's
   start only while it differs from the solved one.
+- **`onGanttScroll`'s `left` is not where the chart is.** One scroll fires the
+  handler three times, and two of the three report the position the chart has
+  just left rather than the one it reached — so anything following the timeline
+  from the argument settles wherever the last stale report happened to land, off
+  by the length of the scroll. `gantt.getScrollState().x` is already correct in
+  all three, and is what the load lanes read.
+- **`ResizeObserver` never fires in the embedded browser**, not even the initial
+  callback the spec mandates — a probe on a plain div resized by hand sees
+  nothing. So the observer that calls `gantt.setSizes()` when the container
+  changes size does nothing there, and dhtmlx measures its container at `init`
+  and on a window resize only. Anything of ours that changes the chart's height,
+  such as opening the load panel under it, has to call `setSizes()` itself:
+  otherwise the layout keeps the height it had, and the horizontal scrollbar sits
+  below the container where it cannot be reached.
 - **A link has to be refused in `onBeforeLinkAdd`.** By `onAfterLinkAdd`,
   `syncLinks()` has already written the predecessors into the model, so `solve()`
   throws inside the handler and leaves the project holding a schedule it cannot

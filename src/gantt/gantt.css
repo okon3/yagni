@@ -1,6 +1,9 @@
 .gantt-host {
-  position: absolute;
-  inset: 0;
+  /* Takes whatever the load panel below it leaves, and no more: its height must
+     not follow the rows it renders, or the chart would grow past the window. */
+  position: relative;
+  flex: 1;
+  min-height: 0;
 
   /* How faint the rest of the plan goes while one person is highlighted. Read
      by a rule the chart injects, which is what names the classes to spare: they
@@ -433,4 +436,177 @@
 /* A group is a heading for the rows under it, so its name carries the weight. */
 .gantt-name--summary {
   font-weight: 650;
+}
+
+/* The same plan read from the other side: one lane per person, under the chart
+   and on the chart's own time axis.
+
+   Its own strip below the container rather than a layer inside it — dhtmlx sizes
+   the data area to the rows and scrolls its contents, so a lane put in there
+   would scroll away with them. It never takes more than a third of the pane: the
+   plan is what is being worked on, the load is what is being checked. */
+.loadpanel {
+  position: relative;
+  flex: none;
+  max-height: 34%;
+  overflow-y: auto;
+  border-top: 1px solid var(--line-strong);
+  background: var(--surface-sunken);
+}
+
+.loadpanel[hidden] {
+  display: none;
+}
+
+.loadpanel__empty {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.loadlane {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  border-bottom: 1px solid var(--line);
+}
+
+.loadlane:last-child {
+  border-bottom: 0;
+}
+
+/* As wide as the grid, so a lane starts exactly where the bars above it do. The
+   width is written inline on every paint: the grid's edge can be dragged. */
+.loadlane__label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  box-sizing: border-box;
+  padding: 0 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 12px;
+  border-right: 1px solid var(--line);
+}
+
+.loadlane__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+
+.loadlane__totals {
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Capacity nobody claimed is the one thing a lane can report — the engine
+   divides a person rather than overbooking them — so it is called out in the
+   label as well as drawn. */
+.loadlane__idle {
+  color: var(--warn);
+}
+
+.loadlane__track {
+  position: relative;
+  flex: 1;
+  height: 26px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+/* Moved rather than redrawn as the chart scrolls; `left` and not a transform so
+   the hover can read the offset back without parsing a matrix. */
+.loadlane__scroll {
+  position: absolute;
+  top: 0;
+  height: 100%;
+}
+
+/* The same translucent grey the timeline bands use, and the same runs, so a
+   weekend cannot read one way on the chart and another way below it. */
+.loadlane__off {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--line-strong) 55%, transparent);
+}
+
+.loadlane__plot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+}
+
+/* The ceiling, as a line and not a fill: what matters is the room left between
+   it and the commitment below, and a fill would cover the weekend shading that
+   explains half of it. */
+.loadlane__capacity {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.loadlane__committed {
+  /* No fill here: every lane carries its own person's colour inline, and a rule
+     would outrank an SVG presentation attribute. */
+  fill-opacity: 0.85;
+}
+
+/* Follows the pointer along a lane, because a level on its own does not say
+   which tasks make it up — which is the question a lane is looked at with. */
+.loadtip {
+  /* Fixed, not absolute: the panel scrolls its lanes, and a tooltip taller than
+     the strip it belongs to would be clipped away by that overflow. */
+  position: fixed;
+  z-index: 40;
+  min-width: 170px;
+  max-width: 280px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.45;
+  pointer-events: none;
+  box-shadow: var(--shadow-dialog);
+}
+
+.loadtip[hidden] {
+  display: none;
+}
+
+.loadtip__when {
+  color: #c6ccd8;
+}
+
+.loadtip__headline {
+  font-weight: 650;
+  margin-bottom: 2px;
+}
+
+.loadtip__free {
+  color: #c6ccd8;
+  font-style: italic;
+}
+
+.loadtip__task {
+  display: flex;
+  gap: 10px;
+}
+
+.loadtip__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loadtip__rate {
+  font-variant-numeric: tabular-nums;
 }

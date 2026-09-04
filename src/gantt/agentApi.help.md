@@ -43,6 +43,7 @@ yagni.loadText(before); // changed my mind
 | `getPlan()` | `{ projectStart, projectEnd, tasks[] }` — the solved schedule |
 | `getTask(id)` | one task in full, derived figures included |
 | `getCriticalChain()` | float and criticality per row. **Expensive** — see below |
+| `getResourceLoad()` | the plan per person: what is booked on them, and what is free |
 | `getResources()` | `Resource[]`, `availability` as a fraction `0..1` |
 | `getCalendar()` | `{ workingDays, windows, holidays? }` |
 | `toText()` | the project as `.gantt`, byte for byte what Save downloads |
@@ -77,6 +78,44 @@ A `getPlan()` task:
 Allocation segments are deliberately absent: they exist to draw a bar, and
 `shared` answers the same question. Groups are not a concept here — "one
 person's tasks" or "this subtree" is a filter over the flat list.
+
+## The plan per person
+
+```json
+{ "resourceId": "r1", "committedDays": 5, "idleDays": 7,
+  "stretches": [
+    { "start": "2026-09-07T08:00", "end": "2026-09-10T17:00",
+      "committed": 1, "capacity": 1,
+      "tasks": [{ "id": "1", "rate": 0.5 }, { "id": "2", "rate": 0.5 }] },
+    { "start": "2026-09-11T08:00", "end": "2026-09-21T17:00",
+      "committed": 0, "capacity": 1, "tasks": [] } ] }
+```
+
+`getResourceLoad()` returns one of these per resource, in `getResources()` order,
+and it is cheap: it reads the schedule already solved.
+
+- **`committed` can never exceed `capacity`.** The engine divides a person rather
+  than overbooking them, so there is no such thing as over-allocation to look
+  for. The signal is `idleDays` and the room between the two figures.
+- `capacity` is a fraction of a full working day: `1` full time, `0.5` part time
+  or an override at a half, `0` an absence. A stretch at `committed: 0.5,
+  capacity: 0.5` is somebody working flat out, not somebody half idle.
+- **`stretches` tile the plan end to end**, so a gap in the work is a stretch
+  with an empty `tasks`, and the first and last stretch reach the plan's own
+  edges. A resource with nothing assigned still gets a lane, with one stretch at
+  zero.
+- `rate` is the same figure the bar's allocation profile draws — the fraction of
+  a full-time person that task is getting right then.
+- A **summary contributes nothing** (it is never scheduled, and counting it would
+  book its children twice) and an **unassigned task appears nowhere**, since it
+  never contends for anybody's capacity.
+- Two stretches are one stretch when they are contiguous in *working* minutes:
+  the wall-clock dates of a single stretch cross nights, weekends and shutdowns,
+  which are no time at all on the engine's axis.
+
+This is the one reading that cannot be assembled from `getPlan()`, which leaves
+the allocation segments out. The chart shows the same thing under *Carico
+risorse* in the status bar.
 
 ## Why the end date is what it is
 

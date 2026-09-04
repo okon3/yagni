@@ -64,6 +64,9 @@ export default function App() {
   // What the chart is actually able to show, which past the limit is not the
   // same as what is wanted: the chart reports it after every write.
   const [chainState, setChainState] = useState<ChainState>('live');
+  // Off by default: the chart is what the plan is edited in, and the lanes are
+  // what it is checked against — asked for, and taking room only then.
+  const [showLoad, setShowLoad] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [people, setPeople] = useState<Resource[]>(initialProject.resources);
@@ -572,6 +575,7 @@ export default function App() {
           project={initialProject}
           highlighted={hoveredResource ?? pinnedResource}
           markCritical={markCritical}
+          showLoad={showLoad}
           onChainState={setChainState}
           onChange={() => {
             syncFromChart();
@@ -596,9 +600,11 @@ export default function App() {
         taskCount={taskCount}
         scale={scale}
         chainState={chainState}
+        loadShown={showLoad}
         onCollapseAll={() => chart.current?.collapseAll()}
         onExpandAll={() => chart.current?.expandAll()}
         onCriticalChain={handleCriticalChain}
+        onToggleLoad={() => setShowLoad((shown) => !shown)}
         onToday={() => chart.current?.scrollToToday()}
         onZoomIn={() => chart.current?.zoomIn()}
         onZoomOut={() => chart.current?.zoomOut()}

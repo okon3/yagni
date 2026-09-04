@@ -2,7 +2,7 @@ import helpMarkdown from './agentApi.help.md?raw';
 import { parseWallClock, serializeDate } from './dates';
 import type { GanttHandle } from './GanttChart';
 import { buildPlan, type Plan } from './plan';
-import { rejectionForLink, slackByRow, subtreeOf } from './project';
+import { loadByResource, rejectionForLink, slackByRow, subtreeOf } from './project';
 import {
   nextResourceId,
   releasedBy,
@@ -69,12 +69,36 @@ export interface ChainTask {
   contendedOn: string | null;
 }
 
+/** A stretch of one person's calendar over which nothing about it changes. */
+export interface LoadStretch {
+  /** `YYYY-MM-DDTHH:mm`, local wall clock, as everywhere else on this surface. */
+  start: string;
+  end: string;
+  /** Fraction of a full-time person actually booked. Never above `capacity`. */
+  committed: number;
+  /** Fraction the person had to give, part-time and absences included. */
+  capacity: number;
+  tasks: { id: string; rate: number }[];
+}
+
+/** One person's plan from their own side, in `getResources()` order. */
+export interface ResourceLoadInfo {
+  resourceId: string;
+  /** Working days booked on them, which is the sum of their tasks' efforts. */
+  committedDays: number;
+  /** Working days they had over the plan that nothing claimed. */
+  idleDays: number;
+  /** Tiles the plan end to end, so an idle stretch is a stretch at zero. */
+  stretches: LoadStretch[];
+}
+
 export interface AgentApi {
   help(): string;
 
   getPlan(): Plan;
   getTask(id: string): TaskInfo;
   getCriticalChain(): ChainTask[];
+  getResourceLoad(): ResourceLoadInfo[];
   getResources(): Resource[];
   getCalendar(): CalendarSpec;
   toText(): string;
@@ -218,6 +242,28 @@ export function createAgentApi(host: AgentHost): AgentApi {
           },
         ];
       });
+    },
+
+    /**
+     * The one reading a script cannot assemble for itself: `getPlan()` leaves
+     * out the allocation segments, so there is nothing to aggregate by person.
+     * Cheap, unlike the chain — it reads the schedule already solved.
+     */
+    getResourceLoad: () => {
+      const handle = chart();
+      const solved = handle.getSolved();
+      return loadByResource(handle.getProject(), solved).map((load) => ({
+        resourceId: load.resourceId,
+        committedDays: solved.calendar.minutesToDays(load.committedMinutes),
+        idleDays: solved.calendar.minutesToDays(load.idleMinutes),
+        stretches: load.segments.map((segment) => ({
+          start: serializeDate(segment.start),
+          end: serializeDate(segment.end),
+          committed: segment.committed,
+          capacity: segment.capacity,
+          tasks: segment.shares.map((share) => ({ id: share.taskId, rate: share.rate })),
+        })),
+      }));
     },
 
     getResources: () => copy(chart().getResources()),

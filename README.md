@@ -352,6 +352,50 @@ the natural mechanism for it and for the time-off bands, is a PRO feature. Both
 place their own elements instead, and in the data area rather than inside the
 layers dhtmlx rewrites on every render.
 
+## What one person's week looks like
+
+Every question the chart answers is a question about a task: how long does this
+take, and why. The other half of the same plan is a question about a person —
+when am I working, on what, at what rate, and where is my capacity going unused
+— and no row of the grid answers it. *Carico risorse* in the status bar opens a
+lane per person under the chart, on the chart's own time axis.
+
+**Over-allocation cannot happen here**, so a lane is not a warning light. The
+simulation divides a person's capacity between whatever overlaps on them and
+never grants more than they have: two tasks on one person read as one person
+fully booked, not as 200%. What a lane can report is the opposite — **the
+capacity nobody claimed**. So it is drawn as a ceiling and a fill: the dashed
+line is what the person had, the solid band is what the plan booked, and the
+room between them is the answer. The ceiling is not flat. It sits at half for
+somebody at 50%, follows an override, and drops to the floor for an absence,
+which is why a part-timer working flat out reads as full rather than as trouble.
+
+The lanes tile the plan end to end rather than covering only the stretches with
+work on them, and everybody gets one whether or not anything is booked on them —
+a name with nothing under it is precisely what one comes here to look for. The
+label says the days booked and the days left over; hovering a lane says which
+tasks make up the level at that point and at what rate, since a level on its own
+does not say who is in it. Hovering the avatar beside it borrows the chart's
+highlight, exactly as the toolbar's avatars do.
+
+**A summary never contributes.** It is not scheduled and has no allocation of its
+own, and counting it would book its children's work a second time under their
+parent. A task with nobody assigned appears in no lane at all: it never contends,
+so there is no capacity to account for.
+
+The aggregation is the engine's (`src/scheduler/load.ts`) and works on the same
+allocation segments the bars draw, keyed by resource instead of by task. Two
+segments contiguous in *working* minutes are one stretch however far apart their
+wall-clock dates read, and the capacity a person had at a moment is taken back
+from what the simulation granted rather than resolved a second time from the
+calendar — a lane disagreeing with the schedule it describes would be worse than
+no lane.
+
+Every x comes from the chart's own `posFromDate` and the strip follows its
+horizontal scroll, so a zoom moves both together and a filled band is exactly as
+wide as the bars it accounts for. The weekends it shades are the same runs, with
+the same threshold, that the timeline shades.
+
 ## Explaining it in the app
 
 The one thing this Gantt shows that an ordinary one does not is a bar whose fill
@@ -449,6 +493,7 @@ const before = yagni.toText();                   // a snapshot of its own
 const id = yagni.addTask({ name: 'Analisi', nominalDays: 5, resourceId: 'r1' });
 yagni.getPlan().tasks;                           // tree order, dates as text
 yagni.getCriticalChain();                        // float per row, the expensive call
+yagni.getResourceLoad();                         // the same plan, one person at a time
 yagni.loadText(before);                          // changed my mind
 ```
 
@@ -486,6 +531,6 @@ they document the semantics above, including the invariant that the sum of
 
 ## Not implemented
 
-Resource View with a load histogram, CSV/Excel import-export, several resources on
-one task, and per-task fixed or capped allocation — the extension point for the
-last one is `src/scheduler/allocation.ts`.
+CSV/Excel import-export, several resources on one task, and per-task fixed or
+capped allocation — the extension point for the last one is
+`src/scheduler/allocation.ts`.

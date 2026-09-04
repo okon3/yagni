@@ -1,7 +1,6 @@
 import { equalSplit, type AllocationPolicy } from './allocation';
-import { availabilityOnDay } from './availability';
+import { capacityAt, capacityIntervals, type CapacityInterval } from './availability';
 import { DEFAULT_CALENDAR, WorkingCalendar, type CalendarSpec } from './calendar';
-import { expandRanges } from './dayRange';
 import { assertAcyclic, buildSuccessorIndex } from './topology';
 import type {
   AllocationSegment,
@@ -77,46 +76,20 @@ export function schedule(
   const allocate = options.allocate ?? equalSplit;
   const resourceById = new Map(resources.map((resource) => [resource.id, resource]));
 
-  /**
-   * Availability overrides projected onto the working-minute axis.
-   *
-   * Every day any override touches is resolved once, so overlapping periods
-   * become a single disjoint interval each and the query below has no ordering
-   * rule of its own to get wrong.
-   *
-   * Days that are not working days collapse to the same coordinate, so a period
-   * falling entirely on a weekend or inside a company shutdown becomes a
-   * zero-width interval and correctly costs nothing.
-   */
-  const overrides = new Map<ResourceId, { from: number; to: number; availability: number }[]>();
+  const overrides = new Map<ResourceId, CapacityInterval[]>();
   const capacityEdges: number[] = [];
   for (const resource of resources) {
-    const intervals: { from: number; to: number; availability: number }[] = [];
-    const days = [...expandRanges(resource.availabilityOverrides)].sort((a, b) => a - b);
-    for (const day of days) {
-      const from = calendar.dayStartInWorkingMinutes(day);
-      const to = calendar.dayStartInWorkingMinutes(day + 1);
-      if (to <= from) continue;
-      const availability = availabilityOnDay(resource, day);
-      // Consecutive days at the same rate merge into one interval, keeping the
-      // event list short for a two-week period.
-      const last = intervals[intervals.length - 1];
-      if (last && last.to === from && last.availability === availability) last.to = to;
-      else intervals.push({ from, to, availability });
-    }
+    const intervals = capacityIntervals(resource, calendar);
     if (intervals.length === 0) continue;
     overrides.set(resource.id, intervals);
     for (const interval of intervals) capacityEdges.push(interval.from, interval.to);
   }
   capacityEdges.sort((a, b) => a - b);
 
-  const capacityAt = (resourceId: ResourceId, at: number): number => {
+  const capacityOf = (resourceId: ResourceId, at: number): number => {
     const resource = resourceById.get(resourceId);
     if (!resource) return 0;
-    const covering = (overrides.get(resourceId) ?? []).find(
-      (interval) => at >= interval.from && at < interval.to,
-    );
-    return covering ? covering.availability : resource.availability ?? 1;
+    return capacityAt(resource, overrides.get(resourceId) ?? [], at);
   };
 
   const nextCapacityEdge = (after: number): number | undefined =>
@@ -240,7 +213,7 @@ export function schedule(
     for (const [key, group] of groups) {
       const resource = key === null ? undefined : resourceById.get(key);
       // Unassigned tasks have no owner to share, so each one gets a full rate.
-      const capacity = key === null ? group.length : capacityAt(key, clock);
+      const capacity = key === null ? group.length : capacityOf(key, clock);
       const granted = allocate({
         resource,
         capacity,

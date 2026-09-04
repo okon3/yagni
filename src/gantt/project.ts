@@ -3,6 +3,7 @@ import {
   DEFAULT_CALENDAR,
   WorkingCalendar,
   criticalTasks,
+  resourceLoad,
   schedule,
   totalFloat,
   type CalendarSpec,
@@ -10,6 +11,7 @@ import {
   type Resource,
   type Schedule,
   type ScheduledTask,
+  type ResourceLoad,
   type Task,
   type TaskCriticality,
 } from '../scheduler';
@@ -276,6 +278,19 @@ export function solve(project: Project): SolvedProject {
     resourcesByTask: resourcesByTask(project.tasks, hierarchy),
     engineTasks,
   };
+}
+
+/**
+ * The plan seen one person at a time instead of one task at a time.
+ *
+ * `engineTasks` are the leaves the schedule was solved from, which is what keeps
+ * a summary out of it: it is never scheduled, and joining in would book its own
+ * children's work a second time under their parent. The lanes and the scripting
+ * surface both come through here, so the panel and a script cannot disagree
+ * about what somebody's week looks like.
+ */
+export function loadByResource(project: Project, solved: SolvedProject): ResourceLoad[] {
+  return resourceLoad(solved.engineTasks, project.resources, solved.schedule, solved.calendar);
 }
 
 /**

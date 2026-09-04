@@ -67,10 +67,13 @@
   opacity: 1;
 }
 
-/* Fills whatever is left below the bar; the chart is absolute inside it so its
-   height never depends on the content it renders. */
+/* Fills whatever is left below the bar, and shares it between the chart and the
+   load panel under it. Still positioned, for the overlays that cover the whole
+   body: the empty state and the drop zone. */
 .app__body {
   position: relative;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
 }
@@ -942,6 +945,12 @@
 .statusbar__critical--old::before {
   background: none;
   border-style: dashed;
+}
+
+/* A toggle like the one beside it, so it shows its state the same way. */
+.statusbar__load--on {
+  color: var(--ink) !important;
+  background: var(--surface-hover);
 }
 
 /* Set apart from the rest of the row: nothing else in a dialog is irreversible,

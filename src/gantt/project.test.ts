@@ -10,6 +10,7 @@ import {
   effectiveColorOf,
   emptyProject,
   isMilestone,
+  loadByResource,
   rejectionForLink,
   resourcesByTask,
   slackByRow,
@@ -246,6 +247,32 @@ describe('milestones', () => {
     const summary = solved.schedule.tasks.get('p')!;
     expect(summary.start).toEqual(at(1));
     expect(summary.end).toEqual(at(1));
+  });
+});
+
+describe('load by resource', () => {
+  it('books the work of a branch once, under its leaves', () => {
+    const plan = project([
+      { id: 'p', name: 'Parent', nominalDays: 99, start: at(9), resourceId: 'alice' },
+      { id: 'c1', name: 'C1', nominalDays: 2, start: at(0), parentId: 'p', resourceId: 'alice' },
+      { id: 'c2', name: 'C2', nominalDays: 3, start: at(5), parentId: 'p', resourceId: 'alice' },
+    ]);
+    const alice = loadByResource(plan, solve(plan)).find((load) => load.resourceId === 'alice')!;
+    // Five days of leaves, and never the parent's own effort on top of them.
+    expect(days(alice.committedMinutes)).toBe(5);
+    for (const segment of alice.segments) {
+      expect(segment.committed).toBeLessThanOrEqual(segment.capacity);
+      expect(segment.shares.map((share) => share.taskId)).not.toContain('p');
+    }
+  });
+
+  it('answers for everybody, over the plan and no further', () => {
+    const plan = project([
+      { id: 't', name: 'T', nominalDays: 2, start: at(0), resourceId: 'alice' },
+    ]);
+    const loads = loadByResource(plan, solve(plan));
+    expect(loads.map((load) => load.resourceId)).toEqual(['alice', 'bob']);
+    expect(days(loads[1].idleMinutes)).toBe(2);
   });
 });
 

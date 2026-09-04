@@ -4,6 +4,7 @@ import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { isShared, renderSegments } from './segmentBar';
 import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges, isContended } from '../scheduler';
 import type { CalendarSpec, DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
+import { renderLoadPanel, scrollLoadPanel, type LoadLane } from './loadPanel';
 import { DEFAULT_BAR_COLOR, avatarColorOf, initialsOf } from './colors';
 import {
   chainAfterEdit,
@@ -12,6 +13,7 @@ import {
   effectiveColorOf,
   isChainMeasurable,
   isMilestone,
+  loadByResource,
   rejectionForLink,
   slackByRow,
   solve,
@@ -479,6 +481,23 @@ function writeChainOntoRows(project: Project, chain: MarkedChain | null): void {
   }
 }
 
+/** One lane per person, whether or not anything is booked on them. */
+function loadLanes(project: Project, solved: SolvedProject): LoadLane[] {
+  const byId = new Map(project.resources.map((resource) => [resource.id, resource]));
+  return loadByResource(project, solved).flatMap((load) => {
+    const resource = byId.get(load.resourceId);
+    if (!resource) return [];
+    return [
+      {
+        resource,
+        load,
+        committedDays: solved.calendar.minutesToDays(load.committedMinutes),
+        idleDays: solved.calendar.minutesToDays(load.idleMinutes),
+      },
+    ];
+  });
+}
+
 function nextTaskId(project: Project): string {
   const highest = project.tasks.reduce((max, task) => {
     const numeric = Number(task.id);
@@ -491,6 +510,7 @@ export function GanttChart({
   project,
   highlighted,
   markCritical = true,
+  showLoad = false,
   onChange,
   onOpenTask,
   onDeleteTask,
@@ -504,6 +524,8 @@ export function GanttChart({
   highlighted?: string | null;
   /** Outlines the tasks the plan's end depends on. Costs a measurement per edit. */
   markCritical?: boolean;
+  /** Opens the per-person load lanes under the chart, on its own time axis. */
+  showLoad?: boolean;
   onChange?: () => void;
   onOpenTask?: (id: string) => void;
   /** Asked, not done: the confirmation belongs with the rest of the dialogs. */
@@ -516,6 +538,7 @@ export function GanttChart({
   ref?: Ref<GanttHandle>;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  const loadHost = useRef<HTMLDivElement>(null);
   // Held in a ref because the dhtmlx handlers are registered once, in an effect
   // that must not re-run when a callback identity changes.
   const openTaskRef = useRef(onOpenTask);
@@ -533,6 +556,12 @@ export function GanttChart({
   // was measured before stays on the rows marked as old.
   const chainRef = useRef<MarkedChain | null>(null);
   const chainStateRef = useRef(onChainState);
+  const showLoadRef = useRef(showLoad);
+  // The lanes are aggregated from the schedule, so they are recomputed once per
+  // solve and not once per redraw — a zoom or a scroll only moves the geometry.
+  const lanesRef = useRef<{ solved: SolvedProject; lanes: LoadLane[] } | null>(null);
+  // Owned by the effect that builds the panel, called by the toggle below it.
+  const repaintLoadRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     openTaskRef.current = onOpenTask;
@@ -1023,14 +1052,58 @@ export function GanttChart({
     bandsAbove.className = 'gantt-bands';
     gantt.$task_data.appendChild(bandsAbove);
 
-    const paintBands = () => {
-      const { calendar } = solvedRef.current;
+    /** The rendered range in day indices, or null before the first render. */
+    const renderedDays = (): { firstDay: number; lastDay: number } | null => {
       const { min_date: from, max_date: to } = gantt.getState();
-      if (!(from instanceof Date) || !(to instanceof Date)) return;
-      const firstDay = dayIndexOf(from);
+      if (!(from instanceof Date) || !(to instanceof Date)) return null;
       // max_date is the far edge of the last column, so the last day drawn is
       // the one before it.
-      const lastDay = dayIndexOf(to) - 1;
+      return { firstDay: dayIndexOf(from), lastDay: dayIndexOf(to) - 1 };
+    };
+
+    /**
+     * The non-working runs as pixel spans, wide enough to be worth shading.
+     *
+     * The chart's own bands and the load lanes below it both draw from this, or
+     * a weekend could be shaded on one and not on the other.
+     */
+    const nonWorkingSpans = (): { left: number; width: number }[] => {
+      const range = renderedDays();
+      if (!range) return [];
+      const { firstDay, lastDay } = range;
+      const { calendar } = solvedRef.current;
+      // The threshold becomes a number of days once, off a single
+      // pixels-per-day for the whole range. Measuring each band on its own put
+      // the same weekend on either side of the threshold from one month to the
+      // next — a month column is one width but holds 28 to 31 days — and the
+      // chart showed bands blinking in and out along its length.
+      const spanDays = lastDay - firstDay + 1;
+      const dayWidth =
+        spanDays > 0
+          ? (gantt.posFromDate(dateOfDay(lastDay + 1)) - gantt.posFromDate(dateOfDay(firstDay))) /
+            spanDays
+          : 0;
+      const minDays = dayWidth > 0 ? MIN_NONWORKING_BAND / dayWidth : Infinity;
+      const runs = runsOf(daysBetween(firstDay, lastDay), (day) => {
+        const date = dateOfDay(day);
+        // A shutdown is not a working day either, and gets the louder band.
+        return !calendar.isWorkingDate(date) && !calendar.isShutdownDate(date);
+      });
+      // Measured before clipping, so a weekend the range cuts in half is still
+      // judged as the weekend it is rather than as the sliver drawn.
+      return runs
+        .filter(([runFrom, runTo]) => runTo - runFrom + 1 >= minDays)
+        .map(([runFrom, runTo]) => {
+          const left = gantt.posFromDate(dateOfDay(runFrom));
+          return { left, width: gantt.posFromDate(dateOfDay(runTo + 1)) - left };
+        });
+    };
+
+    const paintBands = () => {
+      const { calendar } = solvedRef.current;
+      const range = renderedDays();
+      if (!range) return;
+      const { firstDay, lastDay } = range;
       type Band = {
         left: number;
         width: number;
@@ -1044,12 +1117,8 @@ export function GanttChart({
         top: number,
         height: number,
         kind: Band['kind'],
-        minDays = 0,
       ) => {
         for (const [runFrom, runTo] of runs) {
-          // Measured before clipping, so a weekend the range cuts in half is
-          // still judged as the weekend it is rather than as the sliver drawn.
-          if (runTo - runFrom + 1 < minDays) continue;
           // Outside the rendered range posFromDate extrapolates, which would
           // stretch the scrollable area, so a run is clipped to it instead.
           const start = Math.max(runFrom, firstDay);
@@ -1070,28 +1139,9 @@ export function GanttChart({
       // the background layer is the one dhtmlx sizes to hold every row.
       const fullHeight = gantt.$task_bg.offsetHeight;
 
-      // The threshold becomes a number of days once, off a single
-      // pixels-per-day for the whole range. Measuring each band on its own put
-      // the same weekend on either side of the threshold from one month to the
-      // next — a month column is one width but holds 28 to 31 days — and the
-      // chart showed bands blinking in and out along its length.
-      const spanDays = lastDay - firstDay + 1;
-      const dayWidth =
-        spanDays > 0
-          ? (gantt.posFromDate(dateOfDay(lastDay + 1)) - gantt.posFromDate(dateOfDay(firstDay))) /
-            spanDays
-          : 0;
-      addBands(
-        runsOf(daysBetween(firstDay, lastDay), (day) => {
-          const date = dateOfDay(day);
-          // A shutdown is not a working day either, and gets the louder band.
-          return !calendar.isWorkingDate(date) && !calendar.isShutdownDate(date);
-        }),
-        0,
-        fullHeight,
-        'nonworking',
-        dayWidth > 0 ? MIN_NONWORKING_BAND / dayWidth : Infinity,
-      );
+      for (const span of nonWorkingSpans()) {
+        bands.push({ ...span, top: 0, height: fullHeight, kind: 'nonworking' });
+      }
 
       addBands(
         runsOf(daysOf(projectRef.current.calendar.holidays), (day) =>
@@ -1143,6 +1193,45 @@ export function GanttChart({
       );
     };
     paintBands();
+
+    /**
+     * The lanes under the chart, on the chart's own axis.
+     *
+     * Its own DOM below the container rather than a layer inside it: dhtmlx
+     * sizes the data area to the rows and scrolls its contents, so lanes put in
+     * there would either scroll away with the rows or be rewritten on the next
+     * render. The alignment is bought back by taking every x from
+     * `posFromDate` and following the chart's horizontal scroll.
+     */
+    const paintLoad = () => {
+      const panel = loadHost.current;
+      if (!panel) return;
+      panel.hidden = !showLoadRef.current;
+      if (!showLoadRef.current) {
+        // Nothing to keep alive while the panel is closed, listeners included.
+        panel.replaceChildren();
+        return;
+      }
+      const { max_date: to } = gantt.getState();
+      if (!(to instanceof Date)) return;
+      const solved = solvedRef.current;
+      if (lanesRef.current?.solved !== solved) {
+        lanesRef.current = { solved, lanes: loadLanes(projectRef.current, solved) };
+      }
+      const names = new Map(projectRef.current.tasks.map((task) => [task.id, task.name]));
+      renderLoadPanel(panel, lanesRef.current.lanes, {
+        // Read every time: the grid can be resized by dragging its edge, and a
+        // lane starting anywhere else than the bars do is worse than no lane.
+        gridWidth: gantt.$grid.offsetWidth,
+        timelineWidth: gantt.posFromDate(to),
+        scrollX: gantt.getScrollState().x,
+        posOf: (date) => gantt.posFromDate(date),
+        nonWorking: nonWorkingSpans(),
+        nameOf: (id) => names.get(id) ?? id,
+      });
+    };
+    repaintLoadRef.current = paintLoad;
+    paintLoad();
 
     const pullFromView = (id: string | number) => {
       const ganttTask = gantt.getTask(id);
@@ -1255,6 +1344,7 @@ export function GanttChart({
       gantt.attachEvent('onGanttRender', () => {
         placeTodayLine();
         paintBands();
+        paintLoad();
         return true;
       }, undefined),
       // onGanttRender alone leaves the line and the bands a render behind:
@@ -1263,7 +1353,19 @@ export function GanttChart({
       gantt.attachEvent('onDataRender', () => {
         placeTodayLine();
         paintBands();
+        paintLoad();
         return true;
+      }, undefined),
+      // The lanes are as wide as the whole timeline and are moved rather than
+      // redrawn, so following the chart costs nothing per scrolled pixel.
+      //
+      // The offset comes from getScrollState and deliberately not from the
+      // event's own `left`: one scroll fires this three times, and two of them
+      // carry the position the chart has just left rather than the one it
+      // reached, so a lane driven by the argument settles wherever the last
+      // stale report happened to land. The state is already correct in all three.
+      gantt.attachEvent('onGanttScroll', () => {
+        if (loadHost.current) scrollLoadPanel(loadHost.current, gantt.getScrollState().x);
       }, undefined),
       gantt.attachEvent('onTaskClick', (id, event) => {
         if (!(event?.target as HTMLElement | null)?.closest?.('[data-task-info]')) return true;
@@ -1437,6 +1539,19 @@ export function GanttChart({
     applySolution(false);
   }, [applySolution, markCritical]);
 
+  // A view switch like the one above, and cheaper: the panel is drawn from the
+  // schedule that is already solved, so opening it costs an aggregation and a
+  // paint rather than a re-solve — and never marks the file dirty.
+  useEffect(() => {
+    showLoadRef.current = showLoad;
+    repaintLoadRef.current();
+    // The chart has just gained or lost the strip's height, and dhtmlx measures
+    // its container at init and on a window resize only. Without this its
+    // horizontal scrollbar stays where the taller layout put it, behind the
+    // panel — the chart looks right and cannot be scrolled sideways any more.
+    gantt.setSizes();
+  }, [showLoad]);
+
   // A stylesheet rule rather than a class written onto the rows: dhtmlx rebuilds
   // them on every redraw and would drop it, and redrawing on hover would replace
   // the very node the pointer is on. How faint the rest of the plan goes is the
@@ -1456,5 +1571,12 @@ export function GanttChart({
     return () => rule.remove();
   }, [highlighted]);
 
-  return <div ref={host} className="gantt-host" />;
+  return (
+    <>
+      <div ref={host} className="gantt-host" />
+      {/* Painted imperatively, like the today line and the bands: it follows
+          dhtmlx's geometry and has to be redrawn from the same events. */}
+      <div ref={loadHost} className="loadpanel" hidden />
+    </>
+  );
 }
