@@ -98,6 +98,23 @@ know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
   re-measured after every edit; the current match keeps its place while it still
   matches.
 
+## Disabled tasks
+
+- Toggled from the row menu (leaf or summary — *Disattiva*/*Riattiva*, label
+  read off the row's own flag) and from the details dialog's *Disattivata*
+  checkbox, on both leaves and summaries. Both go through `updateTask`'s
+  `TaskPatch` — no pathway of their own, so undo and the dirty check come free.
+- What is drawn is the **effective** state (`solved.disabledIds`): a leaf's own
+  flag or one inherited from a disabled ancestor. The row menu and the dialog
+  show the row's **own** flag instead — a child inside a disabled group renders
+  dimmed with its own checkbox still unticked, since the group is what carries
+  the flag.
+- Bar dimmed (opacity + desaturating filter, so a coloured bar fades too — bar
+  colours are inline, see [dhtmlx.md](dhtmlx.md)); grid name in the existing
+  muted ink. Milestones share `task_class`, so the diamond dims for free.
+- Never coexists with critical or shared (the engine guarantees it), so the
+  three classes are independent — no ordering rules needed between them.
+
 ## Bar decorations
 
 - **Critical chain = outline, never fill** (bar colour is the user's; a

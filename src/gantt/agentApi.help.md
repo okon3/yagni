@@ -166,8 +166,8 @@ which is exactly the task a planner has to move.
 
 | Call | Notes |
 | --- | --- |
-| `addTask(patch?) → id` | `{ name, nominalDays, start, resourceId, color, parentId, after }`, all optional. The start is normalised to the opening of a working day. |
-| `updateTask(id, patch)` | Any subset of `{ name, nominalDays, start, resourceId, color, progress }`. Throws on `nominalDays`, `start` or `resourceId` for a summary. |
+| `addTask(patch?) → id` | `{ name, nominalDays, start, resourceId, color, disabled, parentId, after }`, all optional. The start is normalised to the opening of a working day. |
+| `updateTask(id, patch)` | Any subset of `{ name, nominalDays, start, resourceId, color, progress, disabled }`. Throws on `nominalDays`, `start` or `resourceId` for a summary. |
 | `deleteTask(id)` | Takes the subtree with it and clears dependencies on any of it. |
 | `setParent(id, parentId \| null)` | `null` moves it to the top level. Refuses a parent from inside `id`'s own subtree. |
 | `link(from, to)` | Finish-to-start. **Refuses a cycle before mutating.** |
@@ -216,6 +216,16 @@ that carries none is the app's default, and with a `progress` of `0` for a task
 that has none. Handing either straight back declares nothing, on the same
 bargain `start` makes: a default is what the view had to invent to show the
 task, not something the task says.
+
+`disabled: true` marks placeholder work — positioned but weightless, same
+semantics as `getPlan()`'s field above. `false` clears it (never stored),
+omitting it leaves it as it was. It works on a summary as well as a leaf: a
+summary is disabled once every leaf under it is, but the flag can be set on
+the summary itself, which disables the whole subtree at once. **`getTask()`
+reports the task's own flag here, not the effective one** — a leaf under a
+disabled group reads `disabled: false` from `getTask()` while `getPlan()`
+reports it `true` for the same row, since the plan is asking what the engine
+actually sees.
 
 ## Writing — people
 

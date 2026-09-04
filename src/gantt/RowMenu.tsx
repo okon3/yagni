@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 /** What a creation from the menu means, resolved against the row it opened on. */
-export type RowMenuAction = 'sibling' | 'child' | 'milestone';
+export type RowMenuAction = 'sibling' | 'child' | 'milestone' | 'toggle-disabled';
 
 export interface RowMenuTarget {
   taskId: string;
@@ -19,12 +19,15 @@ export interface RowMenuTarget {
    * the menu is about lends its own start instead.
    */
   start?: Date;
+  /** The task's own flag, not the effective (inherited) state — decides the label. */
+  disabled: boolean;
 }
 
 const ITEMS: { action: RowMenuAction; label: string }[] = [
   { action: 'sibling', label: 'Nuova attività sotto' },
   { action: 'child', label: 'Nuova sottoattività' },
   { action: 'milestone', label: 'Nuovo traguardo sotto' },
+  { action: 'toggle-disabled', label: 'Disattiva' },
 ];
 
 /**
@@ -126,7 +129,13 @@ export function RowMenu({
                 }
               }}
             >
-              {action === 'child' && target.isSummary ? 'Nuova attività dentro' : label}
+              {action === 'toggle-disabled'
+                ? target.disabled
+                  ? 'Riattiva'
+                  : 'Disattiva'
+                : action === 'child' && target.isSummary
+                  ? 'Nuova attività dentro'
+                  : label}
             </button>
           </li>
         ))}

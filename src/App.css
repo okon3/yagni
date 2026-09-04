@@ -779,6 +779,13 @@
   text-align: right;
 }
 
+.taskinfo__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0;
+}
+
 /* Values a summary rolls up from its children: shown as prose, not as a field
    the user could mistake for editable. */
 .taskinfo__derived {

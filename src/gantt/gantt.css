@@ -254,6 +254,19 @@
   outline-color: color-mix(in srgb, var(--critical) 55%, transparent);
 }
 
+/* Positioned but weightless: still on the plan, but taking no capacity and
+   out of roll-up, load and the critical chain — the engine never marks a
+   disabled task critical or shared, so this never has to compose with either.
+   Opacity alone would leave a saturated colour looking merely translucent
+   rather than switched off, hence the desaturating filter alongside it. Both
+   apply to the whole bar element, so a milestone's diamond — content painted
+   by an inner node dhtmlx keeps visible while the bar itself is hidden —
+   dims with it for free. */
+.gantt_task_line.gantt-bar--disabled {
+  opacity: 0.45;
+  filter: saturate(0.3);
+}
+
 /* A zero-effort task is a point on the plan, and dhtmlx draws it as a square
    rotated 45°. The bar element itself is `visibility: hidden` there — only its
    content shows — so anything meant to be seen has to sit on the content, the
@@ -525,6 +538,13 @@
 /* A group is a heading for the rows under it, so its name carries the weight. */
 .gantt-name--summary {
   font-weight: 650;
+}
+
+/* Effective state, same as the bar's own dimming: the row is still there, just
+   not counted. The existing muted ink rather than a new colour, since this is
+   a row reading as "off", not a different kind of row. */
+.gantt-host .gantt_grid_data .gantt_row.gantt-row--disabled .gantt-name {
+  color: var(--ink-muted);
 }
 
 /* The same plan read from the other side: one lane per person, under the chart

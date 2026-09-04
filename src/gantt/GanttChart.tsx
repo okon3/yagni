@@ -212,6 +212,7 @@ export interface NewTask {
   start?: Date;
   resourceId?: string;
   color?: string;
+  disabled?: boolean;
   parentId?: string;
   /**
    * Placed straight below this row, as its sibling, instead of at the end of a
@@ -330,6 +331,9 @@ function toGanttData(project: Project, solved: SolvedProject, chain: MarkedChain
         // pale on a shared task: there the colour belongs to the profile inside.
         color: barBackground(inherited, scheduled, summary),
         shared: scheduled ? isShared(scheduled) : false,
+        // Effective state, from the solved project — a leaf's own flag or an
+        // inherited one, and a summary once every leaf under it is.
+        disabled: solved.disabledIds.has(task.id),
         critical: chain?.rows.get(task.id)?.isCritical ?? false,
         critical_stale: chain !== null && !chain.fresh,
         // Rendered on every row whether or not anyone is highlighted: the
@@ -544,6 +548,8 @@ export function GanttChart({
     isSummary: boolean;
     /** The day the pointer was over, when it was over the timeline. */
     start?: Date;
+    /** The task's own flag, not the effective (inherited) state. */
+    disabled: boolean;
   }) => void;
   /** Asked, not done: the confirmation belongs with the rest of the dialogs. */
   onDeleteTask?: (id: string) => void;
@@ -633,6 +639,7 @@ export function GanttChart({
         ganttTask.bar_color = inherited ?? '';
         ganttTask.color = barBackground(inherited, scheduled, summary);
         ganttTask.shared = isShared(scheduled);
+        ganttTask.disabled = solved.disabledIds.has(task.id);
         ganttTask.resource_classes = resourceClassesOf(solved, task.id);
       }
       writeChainOntoRows(projectRef.current, chainRef.current);
@@ -728,6 +735,7 @@ export function GanttChart({
           effortDays: solved.calendar.minutesToDays(scheduled.effortMinutes),
           shared: isShared(scheduled),
           contended: isContended(scheduled),
+          disabled: task.disabled === true,
         };
       },
       getTaskSlack: (id) => {
@@ -780,6 +788,14 @@ export function GanttChart({
           // an omitted one from it, so most saves hand back a date nobody chose.
           task.start = constraintStart(task, patch.start, solvedRef.current);
           task.resourceId = patch.resourceId;
+        }
+        // Not derived from the leaves — a summary can be disabled on its own,
+        // same as a leaf. Undefined means the caller left it alone; only `true`
+        // and `false` write, and `false` deletes the key rather than storing it,
+        // since absence is the only spelling of "enabled" the file format knows.
+        if (patch.disabled !== undefined) {
+          if (patch.disabled) task.disabled = true;
+          else delete task.disabled;
         }
         applyingRef.current = true;
         const ganttTask = gantt.getTask(id);
@@ -854,6 +870,7 @@ export function GanttChart({
               is_summary: false,
               bar_color: task?.color ?? '',
               shared: false,
+              disabled: task?.disabled ?? false,
             },
             parent,
             index,
@@ -1157,7 +1174,13 @@ export function GanttChart({
     // Every row, bar and link says whose work it is, so that highlighting a
     // person is a stylesheet rule and not a redraw.
     gantt.templates.grid_row_class = (_start, _end, task) =>
-      [String(task.resource_classes ?? ''), found(task)].filter(Boolean).join(' ');
+      [
+        String(task.resource_classes ?? ''),
+        found(task),
+        task.disabled ? 'gantt-row--disabled' : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
     // A band across the chart rather than a mark on the bar: the outline is the
     // critical chain's and the fill is the user's colour, so a match has to
     // read on the row it is on without touching either.
@@ -1166,6 +1189,9 @@ export function GanttChart({
       const classes = [String(task.resource_classes ?? '')];
       if (task.is_summary) classes.push('gantt-bar--summary');
       else if (task.shared) classes.push('gantt-bar--shared');
+      // Positioned but weightless — the engine guarantees a disabled task is
+      // never also critical or shared, so this never has to compose with them.
+      if (task.disabled) classes.push('gantt-bar--disabled');
       // An outline, so it composes with whatever colour the bar carries: the
       // colour belongs to the user, and dhtmlx sets it inline anyway.
       if (task.critical) {
@@ -1623,6 +1649,7 @@ export function GanttChart({
       if (!anchor || !id || !gantt.isTaskExists(id)) return;
       event.preventDefault();
       gantt.selectTask(id);
+      const task = projectRef.current.tasks.find((candidate) => candidate.id === id);
       rowMenuRef.current?.({
         taskId: id,
         name: String(gantt.getTask(id).text ?? ''),
@@ -1630,6 +1657,7 @@ export function GanttChart({
         y: event.clientY,
         isSummary: solvedRef.current.summaryIds.has(id),
         start: dateUnder(anchor, event.clientX),
+        disabled: task?.disabled === true,
       });
     };
     container.addEventListener('contextmenu', openRowMenu);
@@ -1725,6 +1753,8 @@ export function GanttChart({
             // Only a top-level task owns a colour; a subtask inherits its
             // parent's, and a copy frozen here would stop following it.
             color: parent ? undefined : (item.bar_color as string | undefined) || undefined,
+            // Never stored as false — see updateTask's own comment.
+            disabled: item.disabled === true ? true : undefined,
           });
         }
         // Pushed at the end of the list, while the grid put it next to its

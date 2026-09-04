@@ -393,6 +393,26 @@ export default function App() {
     syncFromChart();
   }, [syncFromChart]);
 
+  /**
+   * Flips the row's own flag through the one patch funnel every other edit
+   * uses — undo, the effective (inherited) redraw and the dirty check all come
+   * free from `updateTask`'s own `applySolution`, same as `saveTaskDetails`.
+   */
+  const toggleDisabled = useCallback((target: RowMenuTarget) => {
+    const handle = chart.current;
+    const details = handle?.getTaskDetails(target.taskId);
+    if (!handle || !details) return;
+    handle.updateTask(target.taskId, {
+      name: details.name,
+      nominalDays: details.nominalDays,
+      start: details.start,
+      resourceId: details.resourceId || undefined,
+      color: details.ownsColor ? details.color : undefined,
+      progress: details.progress,
+      disabled: !target.disabled,
+    });
+  }, []);
+
   const openTaskDetails = useCallback((id: string) => {
     const handle = chart.current;
     const details = handle?.getTaskDetails(id);
@@ -854,7 +874,8 @@ export default function App() {
           onDismiss={() => setRowMenu(null)}
           onPick={(action) => {
             setRowMenu(null);
-            createFromMenu(rowMenu, action);
+            if (action === 'toggle-disabled') toggleDisabled(rowMenu);
+            else createFromMenu(rowMenu, action);
           }}
         />
       )}

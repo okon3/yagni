@@ -22,6 +22,7 @@ const details = (overrides: Partial<TaskDetails> = {}): TaskDetails => ({
   effortDays: 2,
   shared: false,
   contended: false,
+  disabled: false,
   ...overrides,
 });
 
@@ -78,5 +79,25 @@ describe('agent API resource assignment', () => {
     api.updateTask('t1', { resourceId: null });
     expect(handle.addTask).toHaveBeenCalledWith(expect.objectContaining({ resourceId: undefined }));
     expect(handle.updateTask).toHaveBeenCalledWith('t1', expect.objectContaining({ resourceId: undefined }));
+  });
+});
+
+describe('agent API disabled flag', () => {
+  it('passes a disabled write through to the patch', () => {
+    const { api, handle } = harness();
+    api.updateTask('t1', { disabled: true });
+    expect(handle.updateTask).toHaveBeenCalledWith('t1', expect.objectContaining({ disabled: true }));
+  });
+
+  it('keeps the current flag when the caller leaves it out', () => {
+    const { api, handle } = harness(details({ disabled: true }));
+    api.updateTask('t1', { name: 'Rinominata' });
+    expect(handle.updateTask).toHaveBeenCalledWith('t1', expect.objectContaining({ disabled: true }));
+  });
+
+  it('passes it through addTask too', () => {
+    const { api, handle } = harness();
+    api.addTask({ name: 'T', disabled: true });
+    expect(handle.addTask).toHaveBeenCalledWith(expect.objectContaining({ disabled: true }));
   });
 });

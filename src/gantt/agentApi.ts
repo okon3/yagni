@@ -46,6 +46,13 @@ export interface TaskInput {
   color?: string | null;
   /** 0..1. */
   progress?: number;
+  /**
+   * Placeholder work: positioned but weightless. Own flag, not the effective
+   * (inherited) state `getPlan()` reports — a leaf under a disabled group
+   * reads `true` there while its own flag here can still be `false`. Omitted
+   * leaves it as it was; `false` clears it, never storing it.
+   */
+  disabled?: boolean;
 }
 
 export interface NewTaskInput extends TaskInput {
@@ -296,6 +303,7 @@ export function createAgentApi(host: AgentHost): AgentApi {
         start: patch?.start ? asDate(patch.start, 'start') : undefined,
         resourceId: patch?.resourceId ?? undefined,
         color: patch?.color ?? undefined,
+        disabled: patch?.disabled ?? undefined,
         parentId: patch?.parentId ?? undefined,
         after: patch?.after ?? undefined,
       });
@@ -325,6 +333,7 @@ export function createAgentApi(host: AgentHost): AgentApi {
           patch.resourceId === undefined ? current.resourceId || undefined : patch.resourceId || undefined,
         color: patch.color === undefined ? current.color : patch.color || undefined,
         progress: patch.progress ?? current.progress,
+        disabled: patch.disabled ?? current.disabled,
       });
     },
 

@@ -37,6 +37,8 @@ export interface BarFacts {
   contended: boolean;
   /** Ran below full rate at all — part-time and absence included. */
   shared: boolean;
+  /** Effective state: a leaf's own flag or inherited, a summary once every leaf under it is. */
+  disabled: boolean;
   /**
    * What the chart is marking, or null when it is marking nothing.
    *
@@ -132,6 +134,9 @@ export function renderBarTooltip(facts: BarFacts): string {
 
   const namesContention = Boolean(facts.chain?.isCritical && facts.chain.contendedOn);
   const notes: string[] = [];
+  if (facts.disabled) {
+    notes.push('Disattivata — non pesa sul piano.');
+  }
   if (facts.isSummary) {
     const subtasks =
       facts.descendantCount === 1
@@ -205,6 +210,7 @@ export function barFactsOf(
     rates: scheduled.segments.map((segment) => segment.rate),
     contended: isContended(scheduled),
     shared: isShared(scheduled),
+    disabled: solved.disabledIds.has(task.id),
     chain: chain
       ? {
           isCritical: row?.isCritical ?? false,

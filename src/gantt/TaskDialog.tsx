@@ -26,6 +26,8 @@ export interface TaskDetails {
   shared: boolean;
   /** Ran below full rate *because* the resource was split with another task. */
   contended: boolean;
+  /** The task's own flag — not the effective (inherited) state a group shows. */
+  disabled: boolean;
 }
 
 export interface TaskPatch {
@@ -35,6 +37,11 @@ export interface TaskPatch {
   resourceId: string | undefined;
   color: string | undefined;
   progress: number;
+  /**
+   * Optional: absent means the caller left it alone. `false` deletes the
+   * stored flag rather than writing it — see `GanttChart.updateTask`.
+   */
+  disabled?: boolean;
 }
 
 const dayFormat = new Intl.DateTimeFormat('it-IT', {
@@ -74,6 +81,7 @@ export function TaskDialog({
   const [resourceId, setResourceId] = useState(task.resourceId);
   const [color, setColor] = useState(task.color);
   const [progress, setProgress] = useState(String(Math.round(task.progress * 100)));
+  const [disabled, setDisabled] = useState(task.disabled);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -111,6 +119,7 @@ export function TaskDialog({
       resourceId: resourceId || undefined,
       color: task.ownsColor ? color || undefined : undefined,
       progress: percentage / 100,
+      disabled,
     });
   };
 
@@ -255,6 +264,21 @@ export function TaskDialog({
             <span className="taskinfo__derived">ereditato dall&apos;attività principale</span>
           )}
         </div>
+
+        <label className="taskinfo__field taskinfo__field--wide">
+          <span>Stato</span>
+          <span className="taskinfo__checkbox">
+            <input
+              type="checkbox"
+              checked={disabled}
+              onChange={(event) => setDisabled(event.target.checked)}
+            />
+            Disattivata
+          </span>
+          <span className="taskinfo__hint">
+            Resta sul piano ma non pesa: niente capacità, fuori da roll-up e catena critica.
+          </span>
+        </label>
       </div>
 
       <h3 className="taskinfo__subhead">Calcolato</h3>

@@ -14,6 +14,7 @@ const facts = (patch: Partial<BarFacts> = {}): BarFacts => ({
   rates: [1],
   contended: false,
   shared: false,
+  disabled: false,
   chain: null,
   ...patch,
 });
@@ -156,6 +157,16 @@ describe('renderBarTooltip', () => {
       facts({ chain: { isCritical: true, contendedOn: null, stale: true } }),
     );
     expect(html).toContain('prima dell’ultima modifica');
+  });
+
+  it('says a disabled task does not weigh on the plan', () => {
+    const html = renderBarTooltip(facts({ disabled: true }));
+    expect(html).toContain('Disattivata');
+    expect(html).toContain('non pesa sul piano');
+  });
+
+  it('says nothing about being disabled when it is not', () => {
+    expect(renderBarTooltip(facts())).not.toContain('Disattivata');
   });
 
   it('names the contention once, in the line that explains the criticality', () => {
