@@ -12,6 +12,13 @@ export interface RowMenuTarget {
   y: number;
   /** A summary already has children; "inside" reads differently on a leaf. */
   isSummary: boolean;
+  /**
+   * The day the pointer was over, when the menu was opened on the timeline.
+   *
+   * Absent from the grid, which has no date axis to point at — there the row
+   * the menu is about lends its own start instead.
+   */
+  start?: Date;
 }
 
 const ITEMS: { action: RowMenuAction; label: string }[] = [

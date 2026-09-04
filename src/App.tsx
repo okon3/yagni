@@ -353,24 +353,25 @@ export default function App() {
   }, [chainState]);
 
   /**
-   * A creation placed against the row the pointer was on.
+   * A creation placed against whatever the pointer was on.
    *
-   * The start comes from the anchor rather than from today: adding a row beside
-   * one that runs in March and having it land on this morning is a date nobody
-   * chose, and it drags the whole plan's origin back with it. Which start it is
-   * — the row's own, or a summary's rolled-up earliest — is already what the
-   * details answer with.
+   * Opened on the timeline the menu carries the day under the pointer, which is
+   * a start said out loud; opened on a grid row there is no date axis to point
+   * at, and the row lends its own — a summary's being its rolled-up earliest.
+   * Never today: a date nobody chose, beside a plan that runs in March, drags
+   * the plan's own start back with it.
    */
   const createFromMenu = useCallback((target: RowMenuTarget, action: RowMenuAction) => {
     const handle = chart.current;
     const anchor = handle?.getTaskDetails(target.taskId);
     if (!handle || !anchor) return;
+    const start = target.start ?? anchor.start;
     const created =
       action === 'child'
-        ? handle.addTask({ parentId: target.taskId, start: anchor.start })
+        ? handle.addTask({ parentId: target.taskId, start })
         : handle.addTask({
             after: target.taskId,
-            start: anchor.start,
+            start,
             ...(action === 'milestone' ? { name: 'Nuovo traguardo', nominalDays: 0 } : {}),
           });
     handle.revealTask(created);

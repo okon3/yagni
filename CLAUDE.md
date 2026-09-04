@@ -331,6 +331,15 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   to the scheduled date on its own, and the drag lands in the undo history twice,
   the first Ctrl+Z appearing to do nothing. `pullFromView` accepts the row's
   start only while it differs from the solved one.
+- **`$task_data` moves with the scroll, so do not add the scroll to it.**
+  Turning a pointer's `clientX` into a date is `dateFromPos(clientX -
+  gantt.$task_data.getBoundingClientRect().left)` and nothing else: that element
+  is the one the chart translates, and its rect has already slid by the scrolled
+  amount — measured at 673, 613 and 549 for scrolls of 0, 60 and 125. Adding
+  `getScrollState().x` counts it twice, which at day scale placed a task a
+  fortnight from the pointer, and is invisible until something is scrolled. The
+  load lanes *do* add it and are not a precedent: they draw into a panel of
+  their own, which does not move with the chart.
 - **`onGanttScroll`'s `left` is not where the chart is.** One scroll fires the
   handler three times, and two of the three report the position the chart has
   just left rather than the one it reached — so anything following the timeline

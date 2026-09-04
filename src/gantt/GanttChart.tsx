@@ -536,7 +536,15 @@ export function GanttChart({
   onChange?: () => void;
   onOpenTask?: (id: string) => void;
   /** A right-click on a row, for the caller to answer with a menu of its own. */
-  onRowMenu?: (target: { taskId: string; name: string; x: number; y: number; isSummary: boolean }) => void;
+  onRowMenu?: (target: {
+    taskId: string;
+    name: string;
+    x: number;
+    y: number;
+    isSummary: boolean;
+    /** The day the pointer was over, when it was over the timeline. */
+    start?: Date;
+  }) => void;
   /** Asked, not done: the confirmation belongs with the rest of the dialogs. */
   onDeleteTask?: (id: string) => void;
   onScaleChange?: (label: string) => void;
@@ -1552,15 +1560,47 @@ export function GanttChart({
     };
     container.addEventListener('keydown', editorKeys);
 
-    // The only pointer gesture the grid had left: a single click opens the
-    // inline editor and selects the row, a double click the same, a drag
-    // reorders. The row is selected too, so the plan says which one the menu
-    // that opens is about even after the pointer has moved off it.
+    /**
+     * The day the pointer is over, for an anchor that is on the timeline.
+     *
+     * The date axis is the one thing the timeline has and the grid has not, so
+     * pointing at a week there says a start out loud — while a grid row says
+     * only which row, and the caller falls back to that row's own day.
+     *
+     * Measured against `$task_data`, and **without** adding the scroll: that
+     * element is the one the chart translates, so its own rect has already
+     * moved by however far the timeline is scrolled — adding `getScrollState().x`
+     * counts it twice and lands the task a fortnight out. The load lanes do add
+     * it, and are not a precedent: they are drawn in a panel of their own that
+     * does not move with the chart.
+     *
+     * `startOfWorkingDay` then takes the arbitrary minute off it, as it does for
+     * a drop.
+     */
+    const dateUnder = (anchor: Element, clientX: number): Date | undefined => {
+      const onTimeline =
+        anchor.classList.contains('gantt_task_line') ||
+        anchor.classList.contains('gantt_task_row');
+      if (!onTimeline) return undefined;
+      const left = gantt.$task_data.getBoundingClientRect().left;
+      return gantt.dateFromPos(clientX - left) ?? undefined;
+    };
+
+    // The only pointer gesture either half of the chart had left: a single
+    // click opens the inline editor and selects the row, a double click the
+    // same, a drag reorders in the grid and moves the bar in the timeline. The
+    // row is selected too, so the plan says which one the menu is about even
+    // after the pointer has moved off it.
+    //
+    // Three anchors, one menu: a grid row, a bar, and the empty stretch of a
+    // bar's own lane — which resolves to the `.gantt_task_row` behind it, the
+    // bars being drawn in a layer of their own above it.
     const openRowMenu = (event: MouseEvent) => {
-      const id = (event.target as HTMLElement | null)
-        ?.closest?.('.gantt_grid_data .gantt_row')
-        ?.getAttribute('data-task-id');
-      if (!id || !gantt.isTaskExists(id)) return;
+      const anchor = (event.target as HTMLElement | null)?.closest?.(
+        '.gantt_grid_data .gantt_row, .gantt_task_line, .gantt_task_row',
+      );
+      const id = anchor?.getAttribute('data-task-id');
+      if (!anchor || !id || !gantt.isTaskExists(id)) return;
       event.preventDefault();
       gantt.selectTask(id);
       rowMenuRef.current?.({
@@ -1569,6 +1609,7 @@ export function GanttChart({
         x: event.clientX,
         y: event.clientY,
         isSummary: solvedRef.current.summaryIds.has(id),
+        start: dateUnder(anchor, event.clientX),
       });
     };
     container.addEventListener('contextmenu', openRowMenu);
