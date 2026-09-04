@@ -251,11 +251,12 @@ The grid carries the **inputs** — name, resource, effort and start — and bes
 the two figures a plan is actually read by: **end date and duration**, both derived.
 The rule is not that a computed figure has to be hidden, only that it must not *look*
 editable. Those two columns are faint and italic on every row, which is the register a
-summary's rolled-up effort has always worn, and no editor is attached to them at all —
-so the double-click that opens a field on Effort opens nothing on Fine, and neither
-does <kbd>Enter</kbd> from the keyboard, since both paths end in the same call and it
-refuses a column with no editor. Nothing there can write an end date back: the model
-has no field for one.
+summary's rolled-up effort has always worn, and **no editor is declared on them at
+all** — which closes every way in at once rather than one at a time: the app's own
+double-click handler looks for the column's editor before opening one, and dhtmlx
+gates its click, <kbd>Enter</kbd>, <kbd>Spazio</kbd>, <kbd>Del</kbd> and
+type-to-edit on the same config. And past all of that, an end date has nowhere to
+land: the model has no field for one.
 
 They cost the grid 146px, and it is the timeline that gives them up rather than the
 task name. The grid holds its configured width and squeezes its resizable columns to
