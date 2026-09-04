@@ -49,6 +49,7 @@ import {
   writeDraft,
   type Draft,
 } from './gantt/draft';
+import { announces, readSeenVersion, writeSeenVersion } from './gantt/seenVersion';
 import { wrapIndex } from './gantt/search';
 import { keystrokeIsCaptured } from './gantt/shortcuts';
 import './App.css';
@@ -71,6 +72,8 @@ export default function App() {
   // the draft in step with the plan clears it as soon as nothing is unsaved,
   // which on mount is the case.
   const [pendingDraft, setPendingDraft] = useState<Draft | null>(() => readDraft(draftStore));
+  // Read once, before the auto-open effect can write today's version over it.
+  const [seenVersionAtStart] = useState<string | null>(() => readSeenVersion(draftStore));
   const [error, setError] = useState<string | null>(null);
   const [taskCount, setTaskCount] = useState(initialProject.tasks.length);
   const [dragging, setDragging] = useState(false);
@@ -595,6 +598,29 @@ export default function App() {
     })();
   }, [adopt, ask, pendingDraft, reportFailure]);
 
+  // Once, and only after the draft question is settled: stacking the changelog
+  // on top of the ConfirmDialog would bury the question the user has to answer
+  // first. A first-ever visit records the current version silently instead of
+  // greeting a new user with release notes.
+  //
+  // Deferred a tick on purpose: this fires at most once per load (guarded by
+  // the ref), so it is the settle event, not a value an earlier render could
+  // have derived — the microtask just keeps the state write out of the
+  // effect's own synchronous pass.
+  const changelogChecked = useRef(false);
+  useEffect(() => {
+    if (pendingDraft !== null || changelogChecked.current) return;
+    changelogChecked.current = true;
+    queueMicrotask(() => {
+      const latest = CHANGELOG_ENTRIES[0]?.version;
+      if (announces(seenVersionAtStart, latest)) {
+        setChangelogOpen(true);
+      } else if (latest !== undefined) {
+        writeSeenVersion(draftStore, latest);
+      }
+    });
+  }, [pendingDraft, seenVersionAtStart]);
+
   // The scripting surface mounts here rather than in the chart: filename, dirty
   // and the task count are this component's state, and every write has to leave
   // them as honest as a dialog callback does.
@@ -835,7 +861,16 @@ export default function App() {
 
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
 
-      {changelogOpen && <ChangelogDialog onClose={() => setChangelogOpen(false)} />}
+      {changelogOpen && (
+        <ChangelogDialog
+          onClose={() => {
+            // Reachable only through the badge or the auto-open effect, both
+            // gated on there being a top entry.
+            writeSeenVersion(draftStore, CHANGELOG_ENTRIES[0].version);
+            setChangelogOpen(false);
+          }}
+        />
+      )}
 
       {calendarOpen && (
         <CalendarDialog

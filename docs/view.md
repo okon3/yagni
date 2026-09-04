@@ -166,7 +166,12 @@ know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
 - Empty state is minimal (name, one line, two buttons, help link) — the old
   5-step explainer stood between the user and their first task.
 - Header version badge: the top `CHANGELOG.md` entry, clickable to open the
-  changelog dialog.
+  changelog dialog. The last version seen lives in `localStorage`
+  (`yagni.seenVersion`); on startup, if the top entry differs from it, the
+  dialog opens on its own, once, and closing it (however opened) records the
+  current version. First-ever visit (nothing stored) records silently instead
+  of greeting a new user with release notes. Waits for the unsaved-draft
+  question to be settled first — never stacks on that dialog.
 
 ## Undo and the draft
 
