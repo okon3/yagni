@@ -14,6 +14,7 @@ export interface ToolbarProps {
   onOpen(): void;
   onSave(): void;
   onExportCsv(): void;
+  onExportPng(): void;
   onUndo(): void;
   onRedo(): void;
   onAddTask(): void;
@@ -33,6 +34,7 @@ export function Toolbar({
   onOpen,
   onSave,
   onExportCsv,
+  onExportPng,
   onUndo,
   onRedo,
   onAddTask,
@@ -64,6 +66,13 @@ export function Toolbar({
           title="Esporta il piano risolto in CSV (date, effort e durate)"
         >
           CSV
+        </button>
+        <button
+          type="button"
+          onClick={onExportPng}
+          title="Esporta il piano come immagine PNG"
+        >
+          PNG
         </button>
       </div>
       <div className="toolbar__group">

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Resource } from '../scheduler';
 import { buildPlan } from './plan';
-import { csvFilename, planToCsv } from './planCsv';
+import { planToCsv } from './planCsv';
 import { solve, type Project } from './project';
 
 const people: Resource[] = [
@@ -173,16 +173,5 @@ describe('planToCsv', () => {
   it('holds a header and nothing else for an empty plan', () => {
     const empty = planToCsv(buildPlan(solve({ ...project, tasks: [] })), people);
     expect(empty.slice(1).split('\r\n').filter((line) => line.length > 0)).toHaveLength(1);
-  });
-});
-
-describe('csvFilename', () => {
-  it('swaps the project extension', () => {
-    expect(csvFilename('progetto.gantt')).toBe('progetto.csv');
-    expect(csvFilename('Piano 2026.GANTT')).toBe('Piano 2026.csv');
-  });
-
-  it('appends to a name that carries no extension', () => {
-    expect(csvFilename('progetto')).toBe('progetto.csv');
   });
 });

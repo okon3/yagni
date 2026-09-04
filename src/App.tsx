@@ -10,10 +10,17 @@ import { ResourceDialog } from './gantt/ResourceDialog';
 import { TaskDialog, type TaskDetails, type TaskPatch } from './gantt/TaskDialog';
 import { createAgentApi } from './gantt/agentApi';
 import { buildPlan } from './gantt/plan';
-import { csvFilename, planToCsv } from './gantt/planCsv';
+import { planToCsv } from './gantt/planCsv';
+import { planFigure } from './gantt/planFigure';
 import { StatusBar } from './gantt/StatusBar';
 import { Toolbar } from './gantt/Toolbar';
-import { PROJECT_EXTENSION, downloadText, pickTextFile } from './gantt/files';
+import {
+  PROJECT_EXTENSION,
+  downloadSvgAsPng,
+  downloadText,
+  exportFilename,
+  pickTextFile,
+} from './gantt/files';
 import { DEFAULT_CALENDAR } from './scheduler';
 import { emptyProject, type ChainState, type MeasuredSlack } from './gantt/project';
 import { ProjectFileError, deserializeProject, serializeProject } from './gantt/serialization';
@@ -294,10 +301,29 @@ export default function App() {
     const project = chart.current?.getProject();
     if (!solved || !project) return;
     downloadText(
-      csvFilename(filename),
+      exportFilename(filename, 'csv'),
       planToCsv(buildPlan(solved), project.resources),
       'text/csv;charset=utf-8',
     );
+  }, [filename]);
+
+  /**
+   * A picture of the whole plan, drawn from the schedule rather than captured
+   * from the chart: only the rows in view are in the DOM, so a screenshot of it
+   * would be a screenful.
+   */
+  const handleExportPng = useCallback(async () => {
+    const solved = chart.current?.getSolved();
+    const project = chart.current?.getProject();
+    if (!solved || !project) return;
+    try {
+      await downloadSvgAsPng(
+        exportFilename(filename, 'png'),
+        planFigure(project, solved, { title: filename, today: new Date() }),
+      );
+    } catch (cause) {
+      setError(`Impossibile creare l'immagine del piano: ${String(cause)}`);
+    }
   }, [filename]);
 
   const handleAddTask = useCallback(() => {
@@ -635,6 +661,7 @@ export default function App() {
           onOpen={() => void handleOpen()}
           onSave={handleSave}
           onExportCsv={handleExportCsv}
+          onExportPng={() => void handleExportPng()}
           onUndo={() => travel(undone)}
           onRedo={() => travel(redone)}
           onAddTask={handleAddTask}

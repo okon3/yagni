@@ -521,6 +521,15 @@ The dates are the ones the schedule carries, never converted a second time from 
 working minutes, so a milestone lands in the file on the same instant its diamond
 is drawn on.
 
+The `PNG` button writes a picture of the same plan: the outline, the people, a
+calendar axis and every bar, drawn from the schedule rather than captured from the
+chart. It has to be drawn rather than captured because only the rows in view are
+in the DOM and the chart's data area is a scrolling viewport — a screenshot of it
+is a screenful of a plan, whatever its height. The figure instead grows with the
+plan, shows the weekends and the shutdowns behind the bars, marks today when the
+plan covers it, and keeps a summary's flatter shade and a milestone's diamond so
+it reads like the chart it came from.
+
 ## Not losing work
 
 Every change to the model is undoable: <kbd>Ctrl</kbd>+<kbd>Z</kbd>, and

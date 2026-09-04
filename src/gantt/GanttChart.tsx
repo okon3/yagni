@@ -8,7 +8,7 @@ import { isShared, renderSegments } from './segmentBar';
 import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges, isContended } from '../scheduler';
 import type { CalendarSpec, DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
 import { renderLoadPanel, scrollLoadPanel, type LoadLane } from './loadPanel';
-import { DEFAULT_BAR_COLOR, avatarColorOf, initialsOf, resourceClass } from './colors';
+import { DEFAULT_BAR_COLOR, avatarColorOf, initialsOf, resourceClass, shade } from './colors';
 import {
   chainAfterEdit,
   chainOnRequest,
@@ -84,15 +84,6 @@ const INFO_ICON =
   '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
   '<circle cx="8" cy="4.6" r="0.95" fill="currentColor"/>' +
   '<rect x="7.25" y="6.7" width="1.5" height="4.9" rx="0.75" fill="currentColor"/></svg>';
-
-/** Darkens a hex colour for borders and outlines. */
-function shade(hex: string, factor = 0.72): string {
-  const match = /^#([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!match) return hex;
-  const value = Number.parseInt(match[1], 16);
-  const channel = (shift: number) => Math.round(((value >> shift) & 255) * factor);
-  return `#${((channel(16) << 16) | (channel(8) << 8) | channel(0)).toString(16).padStart(6, '0')}`;
-}
 
 /**
  * Marks the scale cell holding today, whatever span that cell covers.

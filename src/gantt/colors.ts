@@ -57,3 +57,18 @@ export function initialsOf(name: string): string {
   const first = words[0][0];
   return (words.length > 1 ? first + words[words.length - 1][0] : first).toUpperCase();
 }
+
+/**
+ * Darkens a hex colour, for a border, an outline, or the flatter shade a
+ * summary takes.
+ *
+ * Here rather than in the chart because the printable figure paints the same
+ * bars: one rule for what a darker shade of a task's colour is.
+ */
+export function shade(hex: string, factor = 0.72): string {
+  const match = /^#([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match) return hex;
+  const value = Number.parseInt(match[1], 16);
+  const channel = (shift: number) => Math.round(((value >> shift) & 255) * factor);
+  return `#${((channel(16) << 16) | (channel(8) << 8) | channel(0)).toString(16).padStart(6, '0')}`;
+}

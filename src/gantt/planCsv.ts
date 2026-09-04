@@ -79,8 +79,3 @@ export function planToCsv(plan: Plan, resources: Resource[]): string {
   const lines = [HEADERS, ...plan.tasks.map((task) => row(task, nameOfResource))];
   return BOM + lines.map((line) => line.map(escape).join(SEPARATOR)).join(NEWLINE) + NEWLINE;
 }
-
-/** `progetto.gantt` → `progetto.csv`, and anything else gets the suffix added. */
-export function csvFilename(projectFilename: string): string {
-  return `${projectFilename.replace(/\.gantt$/i, '')}.csv`;
-}
