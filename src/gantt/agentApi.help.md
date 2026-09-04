@@ -200,6 +200,12 @@ would be scheduled against no capacity at all. `color` is `#rrggbb` and only a
 top-level task owns one — a subtask inherits its parent's, so the whole subtree
 stays one visual block.
 
+`getTask()` answers with the colour the bar is **painted**, which for a task
+that carries none is the app's default, and with a `progress` of `0` for a task
+that has none. Handing either straight back declares nothing, on the same
+bargain `start` makes: a default is what the view had to invent to show the
+task, not something the task says.
+
 ## Writing — people
 
 | Call | Notes |

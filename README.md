@@ -269,10 +269,12 @@ the two figures a plan is actually read by: **end date and duration**, both deri
 The rule is not that a computed figure has to be hidden, only that it must not *look*
 editable. Those two columns are faint and italic on every row, which is the register a
 summary's rolled-up effort has always worn, and **no editor is declared on them at
-all** — which closes every way in at once rather than one at a time: both the app's
-own double-click handler and dhtmlx's click look for the column's editor before
-opening one. And past all of that, an end date has nowhere to land: the model has no
-field for one.
+all** — which closes every way in at once rather than one at a time, since a cell
+without an editor declared on it has nothing to open. And past all of that, an end
+date has nowhere to land: the model has no field for one.
+
+A summary's effort, resource and start are refused the same way, because they are
+rolled up from its children: the row shows the figures and no cell on it opens.
 
 Inside an editor, <kbd>Tab</kbd> and <kbd>Maiusc+Tab</kbd> move along the editable
 cells of the row and on into the next, saving each cell as they leave it,

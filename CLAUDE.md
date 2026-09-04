@@ -274,10 +274,17 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   on `inlineEditors` (`editNextCell`/`editPrevCell`, which take a
   `canChangeRow`, and each saves the cell it leaves), so binding them is a
   listener, not a reimplementation.
-- **Inline editors have no mouse trigger of their own.** Opening them needs
-  `keyboard_navigation_cells`, a listener in the **capture** phase (dhtmlx stops
-  the dblclick before it bubbles), and taking focus **one frame later** — the
-  click settles focus after the handler returns.
+- **An inline editor opens on a single click**, focuses its field and selects
+  its text, with no help and no configuration — `keyboard_navigation` and
+  `keyboard_navigation_cells` both `false` at init change none of it. So a
+  double-click listener of ours was a second way to the same thing, and worse
+  than redundant: the guard it carried against editing a summary's rolled-up
+  columns was one dhtmlx's own click walked straight past, which is how a
+  summary came to offer an editor holding its raw effort of 1 beside a cell
+  reading the 5 its children sum to. **A rule about editing goes on
+  `inlineEditors.attachEvent('onBeforeEditStart')`**, which every way in passes
+  through — the click, Tab arriving from the cell before, a script, and the
+  double click a person makes out of the first of those.
 - `resource` is a reserved field name in the task type; the custom field is
   `resource_id`.
 - **`moveTask(id, -1, parent)` appends** at the end of the new parent's children.

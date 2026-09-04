@@ -719,10 +719,20 @@ export function GanttChart({
         const task = projectRef.current.tasks.find((candidate) => candidate.id === id);
         if (!task || !gantt.isTaskExists(id)) return;
         task.name = patch.name;
-        task.progress = patch.progress;
+        // No progress and no progress are the same thing, and the dialog opens
+        // on the colour the bar is painted — which for a task that has none is
+        // the app's default. Both come back on every save, so writing them
+        // through would turn what the view had to invent to show the task into
+        // something the task declares: a plan whose bars all became explicitly
+        // default-coloured, and an edit that changed nothing reporting itself
+        // as unsaved work. It is the bargain `constraintStart` makes for the
+        // start, for the two other fields the dialog cannot show as empty.
+        task.progress = patch.progress || undefined;
         // Same rules the grid enforces: a summary derives its effort, start and
         // resource from the leaves, and a subtask inherits its parent's colour.
-        if (task.parentId === undefined) task.color = patch.color;
+        if (task.parentId === undefined) {
+          task.color = patch.color === DEFAULT_BAR_COLOR ? undefined : patch.color;
+        }
         if (!solvedRef.current.summaryIds.has(id)) {
           task.nominalDays = patch.nominalDays;
           // The dialog's date field opens on the solved start and a script fills
@@ -733,7 +743,7 @@ export function GanttChart({
         applyingRef.current = true;
         const ganttTask = gantt.getTask(id);
         ganttTask.text = task.name;
-        ganttTask.progress = task.progress;
+        ganttTask.progress = task.progress ?? 0;
         ganttTask.resource_id = task.resourceId ?? '';
         applyingRef.current = false;
         applySolution();
@@ -919,10 +929,6 @@ export function GanttChart({
     // is built.
     gantt.config.order_branch = true;
     gantt.config.order_branch_free = true;
-    // Grid inline editors only open when cell-level keyboard navigation is on;
-    // without it the editable columns are silently read-only.
-    gantt.config.keyboard_navigation = true;
-    gantt.config.keyboard_navigation_cells = true;
     gantt.config.row_height = 36;
     gantt.config.bar_height = 24;
     gantt.config.columns = [
@@ -984,8 +990,8 @@ export function GanttChart({
       },
       // The two derived columns. Every cell wears the register a summary's
       // rolled-up figures already wear, and neither column carries an editor —
-      // which is what `openEditor` tests before it opens one, so a double-click
-      // here cannot even reach a field. The end date is never an input.
+      // a cell without one has nothing for a click to open. The end date is
+      // never an input.
       {
         name: 'end_shown',
         label: 'Fine',
@@ -1358,7 +1364,9 @@ export function GanttChart({
       const task = projectRef.current.tasks.find((candidate) => candidate.id === String(id));
       if (!task) return;
       task.name = String(ganttTask.text ?? task.name);
-      task.progress = Number(ganttTask.progress ?? 0);
+      // Absent rather than zero, so a rename does not add a key the task never
+      // had — see `updateTask`, which reads the same value from the dialog.
+      task.progress = Number(ganttTask.progress) || undefined;
       // Subtasks display an inherited colour; writing it back would freeze a copy
       // that stops following the parent.
       if (task.parentId === undefined) {
@@ -1396,47 +1404,31 @@ export function GanttChart({
       }
     };
 
-    // dhtmlx fires onTaskDblClick for the bars but not for grid cells, so the
-    // inline editors get no mouse trigger at all. A native listener on the
-    // container is both deterministic and better informed: the rendered cells
-    // carry data-task-id and data-column-name, so nothing has to be inferred.
-    const openEditor = (event: MouseEvent) => {
-      const cell = (event.target as HTMLElement | null)?.closest?.('.gantt_cell');
-      const columnName = cell?.getAttribute('data-column-name');
-      const taskId = cell?.closest('.gantt_row')?.getAttribute('data-task-id');
-      if (!columnName || !taskId) return;
-      if (!gantt.config.columns?.some((column) => column.name === columnName && column.editor)) {
-        return;
-      }
-      // On a summary these columns show rolled-up figures. Opening the editor
-      // would accept a value that the rollup then discards, so refuse instead of
-      // silently ignoring what the user typed.
-      if (solvedRef.current.summaryIds.has(taskId) && DERIVED_ON_SUMMARY.has(columnName)) return;
-      gantt.ext.inlineEditors.startEdit(taskId, columnName);
-      // startEdit renders the field but leaves focus on the body, and the click
-      // that opened it settles focus only after this handler returns — so claim
-      // the field one frame later, else typing goes nowhere and a stray blur
-      // closes the editor again.
-      requestAnimationFrame(() => {
-        const field = document.querySelector<HTMLInputElement | HTMLSelectElement>(
-          '.gantt_grid_editor_placeholder input, .gantt_grid_editor_placeholder select',
-        );
-        field?.focus();
-        if (field instanceof HTMLInputElement) field.select();
-      });
-    };
-    // Capture phase: dhtmlx stops the dblclick before it bubbles up to the
-    // container, so a listener on the bubble phase never sees a real click.
-    container.addEventListener('dblclick', openEditor, true);
+    // On a summary these columns show rolled-up figures, so an editor would
+    // accept a value the rollup then discards — and one of them would not even
+    // show the figure the cell does: the column templates roll up, the editor
+    // reads the raw field, so a summary whose children sum to five days offers
+    // its own untouched one.
+    //
+    // Refused here rather than at the gesture that opened it. Every way in ends
+    // at `startEdit`, and there are four: dhtmlx's own click, Tab arriving from
+    // the cell before, a script, and the double click a person makes out of the
+    // first of those. A guard on any one of them is a guard the other three
+    // walk past.
+    const derivedGuard = gantt.ext.inlineEditors.attachEvent(
+      'onBeforeEditStart',
+      (state) =>
+        !(solvedRef.current.summaryIds.has(String(state.id)) &&
+          DERIVED_ON_SUMMARY.has(state.columnName)),
+    );
 
     // The keys that move between cells come from dhtmlx's keyboard navigation
     // extension, which Community does not ship — `gantt.ext` holds no
-    // `keyboardNavigation`, so `keyboard_navigation_cells` configures nothing
-    // here. Left alone, Tab falls through to the browser and lands on the
-    // grid's scrollbar with the editor still open behind it, and Enter does
-    // nothing at all: the only way to commit a typed value is to click
-    // somewhere else. The moves themselves are on `inlineEditors`, which does
-    // ship, and each one saves the cell it leaves.
+    // `keyboardNavigation` at all. Left alone, Tab falls through to the browser
+    // and lands on the grid's scrollbar with the editor still open behind it,
+    // and Enter does nothing at all: the only way to commit a typed value is
+    // to click somewhere else. The moves themselves are on `inlineEditors`,
+    // which does ship, and each one saves the cell it leaves.
     const editorKeys = (event: KeyboardEvent) => {
       const editors = gantt.ext.inlineEditors;
       if (!editors.isVisible()) return;
@@ -1667,7 +1659,7 @@ export function GanttChart({
       bandsAbove.remove();
       gantt.ext.zoom.detachEvent(zoomHandler);
       container.removeEventListener('wheel', zoomOnWheel, true);
-      container.removeEventListener('dblclick', openEditor, true);
+      gantt.ext.inlineEditors.detachEvent(derivedGuard);
       container.removeEventListener('keydown', editorKeys);
       container.removeEventListener('click', selectRow);
       document.removeEventListener('keydown', deleteSelected);
