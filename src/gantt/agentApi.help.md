@@ -71,9 +71,9 @@ A `getPlan()` task:
   subtree) and identically between calls, so two snapshots diff row by row.
   Dragging a row on screen reorders siblings visually but not in the model, so
   the screen order may differ.
-- A task with **no effort spans nothing**, so its `end` is its `start`. Every
-  other end is the last worked minute — 17:00 of the day the work finished, not
-  08:00 of the next.
+- An `end` is the **last worked minute** — 17:00 of the day the work finished,
+  not 08:00 of the next. A task with no effort spans nothing, so its `end` is
+  its `start`; which instant that is, see milestones below.
 - **Dates are `YYYY-MM-DDTHH:mm` local wall clock**, never `Date` objects and
   never UTC. Pass them back in the same form. `new Date('…T08:00Z')` moves an
   08:00 start to the previous day.

@@ -5,8 +5,6 @@
  * and none of it is a second opinion about the schedule.
  */
 
-import type { ScheduledTask } from '../scheduler';
-
 /**
  * A figure of days as the UI prints it, wherever it prints one.
  *
@@ -22,22 +20,4 @@ import type { ScheduledTask } from '../scheduler';
  */
 export function formatDays(days: number): string {
   return String(Number(days.toFixed(2)));
-}
-
-/**
- * The end to show for a task, which on a task of no length is not the end the
- * engine reports.
- *
- * A working-minute value landing on a day boundary denotes two wall-clock
- * instants, and an end deliberately takes the earlier one — 17:00 of the day the
- * work finished rather than 08:00 of the next — or every whole-day task would
- * look a day too long. A task that consumes no time at all starts and ends on
- * that same boundary, so the convention hands its end back as the *previous*
- * working day and a milestone reads "Inizio 28/09, Fine 25/09": one instant
- * printed as two dates that look the wrong way round.
- */
-export function endToShow(scheduled: ScheduledTask): Date {
-  return scheduled.endWorkingMinutes === scheduled.startWorkingMinutes
-    ? scheduled.start
-    : scheduled.end;
 }
