@@ -102,6 +102,15 @@ constraint moves the diamond across the boundary on a rename. `rollUp` takes a
 summary's dates from its children's own for the same reason — converting their
 extreme minutes again no longer agrees with them.
 
+So `start` is no longer `fromWorkingMinutes(startWorkingMinutes, 'start')` for
+every row, and the general rule follows: **to show or export an instant, read the
+`Date` the schedule carries; never convert its minutes a second time.** Whoever
+built the schedule has already chosen a side of the boundary, and a second
+conversion is free to choose the other one — silently, since both answers are
+valid dates. `rollUp` and the load lanes' horizon each cost a debugging session
+to this; the lanes read `projectEnd` for the plan's last minute rather than
+converting it.
+
 ## dhtmlx-gantt traps
 
 The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:

@@ -5,7 +5,7 @@ import { isShared, renderSegments } from './segmentBar';
 import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges, isContended } from '../scheduler';
 import type { CalendarSpec, DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
 import { renderLoadPanel, scrollLoadPanel, type LoadLane } from './loadPanel';
-import { DEFAULT_BAR_COLOR, avatarColorOf, initialsOf } from './colors';
+import { DEFAULT_BAR_COLOR, avatarColorOf, initialsOf, resourceClass } from './colors';
 import {
   chainAfterEdit,
   chainOnRequest,
@@ -68,19 +68,6 @@ const shortDate = (value: Date) => (value ? dayMonth.format(new Date(value)) : '
 
 /** Columns whose value a summary derives from its children. */
 const DERIVED_ON_SUMMARY = new Set(['nominal_days', 'resource_id', 'start_date']);
-
-/**
- * A resource id as a class token, carried by every row, bar and link that
- * person appears on.
- *
- * Ids come from the file and may hold anything, a space included, which would
- * split into two class names. The escape is injective — the escape character
- * escapes itself — so two people can never land on the same class.
- */
-function resourceClass(id: string): string {
-  const safe = id.replace(/[^a-zA-Z0-9-]/g, (char) => `_${char.charCodeAt(0).toString(16)}_`);
-  return `gantt-res-${safe}`;
-}
 
 /** Class tokens for whoever works on the task, or anywhere below it. */
 function resourceClassesOf(solved: SolvedProject, id: string): string {
@@ -1565,7 +1552,11 @@ export function GanttChart({
     rule.textContent =
       `.gantt-host .gantt_row${others},` +
       `.gantt-host .gantt_task_line${others},` +
-      `.gantt-host .gantt_task_link${others}` +
+      `.gantt-host .gantt_task_link${others},` +
+      // The load panel is not inside the chart, so it needs a selector of its
+      // own — and it is the view arranged by person, where dimming the others
+      // is most of the point.
+      `.loadlane${others}` +
       `{opacity:var(--gantt-dimmed)}`;
     document.head.appendChild(rule);
     return () => rule.remove();

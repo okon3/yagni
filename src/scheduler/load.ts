@@ -70,6 +70,21 @@ export function resourceLoad(
     0,
   );
 
+  /**
+   * The wall-clock instant of a boundary on the working-minute axis.
+   *
+   * The plan's last minute is the one boundary where converting is not enough.
+   * A minute on a day boundary denotes two instants — 17:00 and 08:00 the next
+   * morning — and whoever assembled this schedule has already chosen between
+   * them for whatever ends there: a milestone dated to a morning is drawn on
+   * that morning. Converting again would answer 17:00 the day before, and close
+   * every lane a day short of the plan it is drawn under.
+   */
+  const instantOf = (minutes: number, edge: 'start' | 'end'): Date =>
+    edge === 'end' && minutes === horizon
+      ? schedule.projectEnd
+      : calendar.fromWorkingMinutes(minutes, edge);
+
   /** Every allocation segment of the plan, tagged with whose it is. */
   const booked = new Map<ResourceId, (LoadShare & { from: number; to: number; solo: number })[]>();
   const known = new Set(resources.map((resource) => resource.id));
@@ -122,12 +137,12 @@ export function resourceLoad(
       // so a lane would otherwise fragment into slices that say nothing.
       if (last && last.capacity === capacity && sameShares(last.shares, shares)) {
         last.endWorkingMinutes = to;
-        last.end = calendar.fromWorkingMinutes(to, 'end');
+        last.end = instantOf(to, 'end');
         continue;
       }
       segments.push({
-        start: calendar.fromWorkingMinutes(from, 'start'),
-        end: calendar.fromWorkingMinutes(to, 'end'),
+        start: instantOf(from, 'start'),
+        end: instantOf(to, 'end'),
         startWorkingMinutes: from,
         endWorkingMinutes: to,
         committed,

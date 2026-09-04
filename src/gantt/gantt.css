@@ -4,12 +4,21 @@
   position: relative;
   flex: 1;
   min-height: 0;
+}
 
-  /* How faint the rest of the plan goes while one person is highlighted. Read
-     by a rule the chart injects, which is what names the classes to spare: they
-     are one per person and cannot be written here. Faint enough to read as
-     background at a glance, opaque enough that the plan stays legible — the
-     point is to highlight, not to filter rows out of sight. */
+/* How faint the rest of the plan goes while one person is highlighted. Read
+   by a rule the chart injects, which is what names the classes to spare: they
+   are one per person and cannot be written here. Faint enough to read as
+   background at a glance, opaque enough that the plan stays legible — the
+   point is to highlight, not to filter rows out of sight.
+
+   Declared on the panel as well as the chart, and not on one enclosing both:
+   the lanes are siblings of the chart, so a value left on `.gantt-host` alone
+   would leave `var()` unresolved there — and an unresolved opacity is not an
+   error, it is simply full opacity, which is the highlight quietly not
+   happening. */
+.gantt-host,
+.loadpanel {
   --gantt-dimmed: 0.24;
 }
 

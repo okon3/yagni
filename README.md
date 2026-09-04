@@ -268,7 +268,9 @@ their work gates, is part of reading it. The avatars in the toolbar pin a person
 until they are unpinned; hovering an avatar — there, or in the grid's resource
 column — borrows the highlight for as long as the pointer stays on it. Nothing is
 spared, the selected row included: one row left bright in somebody else's colour
-reads as part of the highlight rather than as a selection.
+reads as part of the highlight rather than as a selection. The load lanes below
+follow along, so picking a person leaves their row, their bars and their week
+standing out together.
 
 That is a stylesheet rule rather than a class per highlighted row. Every row already
 carries one class per person working on it or anywhere below it, and highlighting

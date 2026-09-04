@@ -274,6 +274,19 @@ describe('load by resource', () => {
     expect(loads.map((load) => load.resourceId)).toEqual(['alice', 'bob']);
     expect(days(loads[1].idleMinutes)).toBe(2);
   });
+
+  it('closes the lanes where the plan closes, not the evening before', () => {
+    const plan = project([
+      { id: 't', name: 'T', nominalDays: 2, start: at(0), resourceId: 'alice' },
+      { id: 'm', name: 'Rilascio', nominalDays: 0, start: at(4) },
+    ]);
+    const alice = loadByResource(plan, solve(plan)).find((load) => load.resourceId === 'alice')!;
+    // The milestone sets the plan's last minute, which falls on a day boundary,
+    // and it has already settled which of the two instants that is. Converting
+    // the minute again answers 17:00 the evening before, leaving every lane a day
+    // short of the diamond drawn above it.
+    expect(alice.segments[alice.segments.length - 1].end).toEqual(at(4));
+  });
 });
 
 describe('slack by row', () => {

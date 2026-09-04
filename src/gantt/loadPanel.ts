@@ -1,5 +1,5 @@
 import type { LoadSegment, Resource, ResourceLoad } from '../scheduler';
-import { avatarColorOf, initialsOf } from './colors';
+import { avatarColorOf, initialsOf, resourceClass } from './colors';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -247,7 +247,9 @@ export function renderLoadPanel(
   tip.hidden = true;
   const list = element('div', 'loadpanel__lanes');
   for (const lane of lanes) {
-    const row = element('div', 'loadlane');
+    // The same class the rows and bars carry, so highlighting one person
+    // reaches their lane through the very rule that dims the chart.
+    const row = element('div', `loadlane ${resourceClass(lane.resource.id)}`);
     row.append(laneLabel(lane, geometry.gridWidth), laneTrack(lane, geometry, tip));
     list.append(row);
   }

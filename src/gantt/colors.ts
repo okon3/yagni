@@ -37,6 +37,19 @@ export function avatarColorOf(name: string): string {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
 
+/**
+ * A resource id as a class token, carried by every row, bar and link that
+ * person appears on, and by their lane in the load panel.
+ *
+ * Ids come from the file and may hold anything, a space included, which would
+ * split into two class names. The escape is injective — the escape character
+ * escapes itself — so two people can never land on the same class.
+ */
+export function resourceClass(id: string): string {
+  const safe = id.replace(/[^a-zA-Z0-9-]/g, (char) => `_${char.charCodeAt(0).toString(16)}_`);
+  return `gantt-res-${safe}`;
+}
+
 /** Up to two initials, so "Marta Rossi" reads as MR and "Marta" as M. */
 export function initialsOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
