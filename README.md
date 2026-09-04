@@ -49,6 +49,14 @@ construction: the simulation loop contains no calendar logic at all.
   to. There is no second concept and nothing extra in the file: effort 0 is the
   whole of it, so a task becomes a milestone and stops being one by editing the
   same number every other task has.
+- **The start you set stays the start you set.** Every row, every bar and the
+  dialog's date field show the *solved* start, which on a task held by a
+  predecessor is later than the date it was given. Saving a task hands that date
+  back, so accepting it would let a rename walk the constraint forward to
+  wherever the plan currently puts the task — and the plan would then change on
+  the day that predecessor is removed. A start is therefore only taken as a
+  constraint when it differs from the solved one, which is also why dropping a
+  bar exactly where it already sits declares nothing.
 - **A summary task is never scheduled.** If it were, it would contend with its own
   children for the same person and halve their rate. Its effort and dates roll up
   from its leaves instead, and its elapsed time can exceed the sum of its
@@ -364,9 +372,9 @@ closes something is drawn where that something was drawn, or the diamond would
 sit a weekend away from the bar it marks the end of, and past the plan's own end,
 where dhtmlx draws nothing at all; a milestone nothing runs into sits on the
 morning of the date it was given, which is the date the grid shows. That is
-decided from the predecessors and not from the start date, because saving a task
-writes its solved start back as its constraint — and a rule reading the
-constraint would flip the diamond to the other side of the boundary on a rename.
+decided from the predecessors and not from the start date: the start date says
+where the milestone was asked to be, and only whatever closes on it can say which
+of the two instants it ended up on.
 
 Today is a vertical line, exact at every zoom level, plus a pill on the scale cell
 holding it — the day at day scale, the week at month scale, the month at quarter

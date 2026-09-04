@@ -172,6 +172,28 @@ export function isMilestone(task: ProjectTask, summaryIds: Set<string>): boolean
   return task.nominalDays === 0 && !summaryIds.has(task.id);
 }
 
+/**
+ * The start to keep as a task's constraint, given the one a caller hands back.
+ *
+ * Everything that shows a start shows the solved one — the grid rows, the bars,
+ * the dialog's date field — and on a task held by a predecessor that is later
+ * than the constraint behind it. Writing it back turns a derived value into an
+ * input: the declared start creeps forward to wherever the plan currently puts
+ * the task, so **renaming** a task is enough to move its constraint, and the
+ * plan then changes on the day that predecessor is removed, because the task no
+ * longer falls back to where it was asked to start.
+ *
+ * So a start that is the solved one is not a constraint at all: it is the view
+ * handing back what it was given. The cost is that a caller cannot pin a
+ * constraint *onto* the date the plan already computed — asking for the date it
+ * already has changes nothing — which is the same bargain a drag has always
+ * made: dropping a bar where it already sits declares nothing.
+ */
+export function constraintStart(task: ProjectTask, offered: Date, solved: SolvedProject): Date {
+  const scheduled = solved.schedule.tasks.get(task.id);
+  return scheduled && offered.getTime() === scheduled.start.getTime() ? task.start : offered;
+}
+
 export function effectiveColorOf(
   tasks: ProjectTask[],
   hierarchy: Hierarchy,
@@ -475,9 +497,9 @@ export function chainStateOf(
  * which is the date the grid shows for it.
  *
  * The predecessors decide it rather than the start constraint, although at a tie
- * the two agree: every path that saves a task writes the solved start back as
- * its constraint, and a rule reading the constraint would flip the diamond to
- * the other side of the boundary on a rename.
+ * the two agree: the constraint says where the milestone was *asked* to be, and
+ * a milestone held later than that is drawn where it ended up — an instant only
+ * whatever closes on it can place on a side of the boundary.
  *
  * The plan's span is widened over the choice, or a milestone dated later than
  * the last piece of work would fall outside the range the timeline fits itself

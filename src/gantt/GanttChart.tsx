@@ -13,6 +13,7 @@ import {
   chainAfterEdit,
   chainOnRequest,
   chainStateOf,
+  constraintStart,
   effectiveColorOf,
   isChainMeasurable,
   isMilestone,
@@ -724,7 +725,9 @@ export function GanttChart({
         if (task.parentId === undefined) task.color = patch.color;
         if (!solvedRef.current.summaryIds.has(id)) {
           task.nominalDays = patch.nominalDays;
-          task.start = patch.start;
+          // The dialog's date field opens on the solved start and a script fills
+          // an omitted one from it, so most saves hand back a date nobody chose.
+          task.start = constraintStart(task, patch.start, solvedRef.current);
           task.resourceId = patch.resourceId;
         }
         applyingRef.current = true;
@@ -1358,15 +1361,16 @@ export function GanttChart({
       // so writing them back would overwrite the user's leaf data with derived
       // figures the moment dhtmlx refreshes the parent row.
       if (solvedRef.current.summaryIds.has(task.id)) return;
-      // The row is drawn at the start the engine computed, which can be later
-      // than the constraint the user set — a bar dropped on a Sunday is drawn
-      // on the Monday. Reading that back would turn a derived value into an
-      // input, and dhtmlx reports one drag twice: the second report arrives
-      // after the solved start has been written onto the row, so it would move
-      // the constraint on its own and cost a second, invisible undo step.
-      const shown = new Date(ganttTask.start_date as Date);
-      const scheduled = solvedRef.current.schedule.tasks.get(task.id);
-      if (!scheduled || shown.getTime() !== scheduled.start.getTime()) task.start = shown;
+      // Only a start the drag actually moved is a constraint — see
+      // `constraintStart`. dhtmlx reports one drag twice, and the second report
+      // arrives after the solved start has been written onto the row, so
+      // reading it back unconditionally would move the constraint on its own
+      // and cost a second, invisible undo step.
+      task.start = constraintStart(
+        task,
+        new Date(ganttTask.start_date as Date),
+        solvedRef.current,
+      );
       task.resourceId = (ganttTask.resource_id as string | undefined) || undefined;
       const nominal = Number(ganttTask.nominal_days);
       if (Number.isFinite(nominal) && nominal >= 0) task.nominalDays = nominal;

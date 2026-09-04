@@ -69,6 +69,12 @@ not the test.
   Someone at 50% with a period at 25% works at 25%.
 - **Where overrides overlap, the last declared wins**, so a narrow exception can be
   carved out of a broad period.
+- **A derived start is never taken as a constraint.** Every view shows the
+  solved start, and every save hands it back, so `constraintStart` in
+  `project.ts` accepts a start only while it differs from the solved one — the
+  rule `pullFromView` had for the drag, applied to every write. Without it a
+  rename walks the declared start forward to wherever the plan currently puts
+  the task, and the plan changes on the day the predecessor holding it goes.
 - **A task with no resource never contends** and runs at full rate.
 - The split between concurrent tasks applies **on top** of whatever capacity the
   resource has at that moment.
@@ -97,10 +103,10 @@ before for its end. `pinMilestones` in `project.ts` collapses it onto one of the
 two before anything downstream sees it — the diamond, the dialog and `getPlan()`
 would otherwise disagree, and a lone milestone would read as ending before it
 starts. It chooses from the **predecessors**, never from the start constraint:
-every save writes the solved start back as the constraint, so a rule reading the
-constraint moves the diamond across the boundary on a rename. `rollUp` takes a
-summary's dates from its children's own for the same reason — converting their
-extreme minutes again no longer agrees with them.
+the constraint says where the milestone was asked to be, and only what closes on
+it can say which of the two instants it ended up on. `rollUp` takes a summary's
+dates from its children's own for the same reason — converting their extreme
+minutes again no longer agrees with them.
 
 So `start` is no longer `fromWorkingMinutes(startWorkingMinutes, 'start')` for
 every row, and the general rule follows: **to show or export an instant, read the
@@ -336,6 +342,13 @@ until it is dismissed, which cannot be done from here: the tab has to be closed
 and reopened. So the print path is verified by dispatching `beforeprint` on
 `window`, which is what the browser itself dispatches and what `printPlan`
 listens to; the sheet of paper needs a person.
+
+And **a React-controlled field cannot be filled from the browser tool's own
+scripting context**: the value tracker ignores a plain assignment, and calling
+`HTMLInputElement.prototype`'s native setter from there throws *Illegal
+invocation*. Injecting a `<script>` element with that same code runs it in the
+page's context, where the setter works and the `input` event reaches React —
+which is how the details dialog's date field gets driven in a verification.
 
 ## Undo and the draft
 

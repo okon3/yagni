@@ -7,6 +7,7 @@ import {
   chainAfterEdit,
   chainOnRequest,
   chainStateOf,
+  constraintStart,
   effectiveColorOf,
   emptyProject,
   isMilestone,
@@ -247,6 +248,47 @@ describe('milestones', () => {
     const summary = solved.schedule.tasks.get('p')!;
     expect(summary.start).toEqual(at(1));
     expect(summary.end).toEqual(at(1));
+  });
+});
+
+describe('the start constraint', () => {
+  const held: ProjectTask[] = [
+    { id: 'a', name: 'A', nominalDays: 5, start: at(0), resourceId: 'alice' },
+    // Asked to start on the first day, held to the sixth by A.
+    { id: 'b', name: 'B', nominalDays: 2, start: at(0), resourceId: 'bob', predecessors: ['a'] },
+  ];
+
+  it('keeps the declared start when the caller hands back the solved one', () => {
+    const solved = solve(project(held));
+    const task = held[1];
+    const scheduled = solved.schedule.tasks.get('b')!;
+    // What the dialog shows and what a drag reports: later than the constraint.
+    expect(scheduled.start).not.toEqual(task.start);
+    expect(constraintStart(task, scheduled.start, solved)).toEqual(at(0));
+  });
+
+  it('takes a start the caller actually chose', () => {
+    const solved = solve(project(held));
+    expect(constraintStart(held[1], at(3), solved)).toEqual(at(3));
+  });
+
+  it('keeps a milestone on the side of the boundary it was pinned to', () => {
+    const tasks: ProjectTask[] = [
+      { id: 'a', name: 'A', nominalDays: 2, start: at(0), resourceId: 'alice' },
+      { id: 'm', name: 'M', nominalDays: 0, start: at(0), predecessors: ['a'] },
+    ];
+    const solved = solve(project(tasks));
+    const scheduled = solved.schedule.tasks.get('m')!;
+    // The diamond sits on A's finish, 17:00 of the second day; writing that back
+    // as the constraint is what used to move it across the boundary on a rename.
+    expect(scheduled.start.getHours()).toBe(17);
+    expect(constraintStart(tasks[1], scheduled.start, solved)).toEqual(at(0));
+  });
+
+  it('takes the offered start for a task the schedule does not hold', () => {
+    const solved = solve(project(held));
+    const stranger: ProjectTask = { id: 'z', name: 'Z', nominalDays: 1, start: at(0) };
+    expect(constraintStart(stranger, at(4), solved)).toEqual(at(4));
   });
 });
 

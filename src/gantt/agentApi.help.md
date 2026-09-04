@@ -180,6 +180,14 @@ was given when nothing runs into it. Reading one back is `effortDays === 0 &&
 !isSummary`, not `start === end`, which a summary holding a single milestone
 satisfies too.
 
+`start` is the **earliest** start, and it is only taken as one when it differs
+from the start the plan solved. `getTask()` reports the solved start, so handing
+that value straight back — or omitting `start` entirely, which is the same thing —
+leaves the declared constraint where it was: otherwise a rename would walk it
+forward to wherever the plan currently puts the task, and the plan would change
+the day its predecessor went away. To move a task, ask for the date you want; to
+pin it to the date it already has, there is nothing to ask for.
+
 `resourceId: null` unassigns, and an unassigned task never contends: it runs at
 full rate. **An id no resource carries is refused before anything is written**,
 like a cyclic `link`: assigned to a person the project does not have, a task
