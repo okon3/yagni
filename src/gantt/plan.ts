@@ -1,4 +1,5 @@
 import { serializeDate } from './dates';
+import { endToShow } from './format';
 import { isContended } from '../scheduler';
 import type { SolvedProject } from './project';
 
@@ -20,6 +21,7 @@ export interface PlanTask {
   isSummary: boolean;
   /** `YYYY-MM-DDTHH:mm`, local wall clock. */
   start: string;
+  /** Equal to `start` on a task with no effort, which spans nothing. */
   end: string;
   /** Declared effort on a leaf, the rollup of the leaves on a summary. */
   effortDays: number;
@@ -63,7 +65,7 @@ export function buildPlan(solved: SolvedProject): Plan {
         depth,
         isSummary: summaryIds.has(task.id),
         start: serializeDate(scheduled?.start ?? task.start),
-        end: serializeDate(scheduled?.end ?? task.start),
+        end: serializeDate(scheduled ? endToShow(scheduled) : task.start),
         effortDays: scheduled ? calendar.minutesToDays(scheduled.effortMinutes) : task.nominalDays,
         elapsedDays: scheduled ? calendar.minutesToDays(scheduled.elapsedWorkingMinutes) : 0,
         shared: scheduled ? isContended(scheduled) : false,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Resource } from '../scheduler';
+import { formatDays } from './format';
 import { CRITICAL_CHAIN_LIMIT, type MeasuredSlack } from './project';
 
 /** Everything the dialog shows, resolved by the chart: inputs and derived alike. */
@@ -128,7 +129,7 @@ export function TaskDialog({
   const namesContention = Boolean(slack?.isCritical && contendedWith);
   /** Reads on from either opening, so it starts lower case. */
   const whatCostsWhat = slack?.floatDays
-    ? `può iniziare fino a ${slack.floatDays} g più tardi, ma un giorno di lavoro in più sposta la fine del progetto`
+    ? `può iniziare fino a ${formatDays(slack.floatDays)} g più tardi, ma un giorno di lavoro in più sposta la fine del progetto`
     : 'ogni ritardo qui sposta la fine del progetto';
 
   return (
@@ -265,12 +266,12 @@ export function TaskDialog({
         <div>
           <dt>Durata</dt>
           <dd className={task.shared ? 'gantt-stretched' : undefined}>
-            {task.elapsedDays.toFixed(2)} g
+            {formatDays(task.elapsedDays)} g
           </dd>
         </div>
         <div>
           <dt>Effort totale</dt>
-          <dd>{task.effortDays.toFixed(2)} g</dd>
+          <dd>{formatDays(task.effortDays)} g</dd>
         </div>
         <div>
           {/* The figure, whatever else is true of the task: criticality is a
@@ -280,7 +281,7 @@ export function TaskDialog({
             {slack === null ? (
               <span className="taskinfo__derived">&mdash;</span>
             ) : (
-              `${slack.floatDays} g`
+              `${formatDays(slack.floatDays)} g`
             )}
           </dd>
         </div>
@@ -315,7 +316,7 @@ export function TaskDialog({
         </p>
       ) : (
         <p className="taskinfo__note">
-          Può slittare fino a {slack.floatDays} g senza spostare la fine del progetto.
+          Può slittare fino a {formatDays(slack.floatDays)} g senza spostare la fine del progetto.
         </p>
       )}
 

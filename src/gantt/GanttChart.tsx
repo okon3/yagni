@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, type Ref } from 'react';
 import { gantt, type ZoomLevel } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
+import { endToShow, formatDays } from './format';
 import { isShared, renderSegments } from './segmentBar';
 import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges, isContended } from '../scheduler';
 import type { CalendarSpec, DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
@@ -672,7 +673,7 @@ export function GanttChart({
           name: task.name,
           nominalDays: task.nominalDays,
           start: scheduled.start,
-          end: scheduled.end,
+          end: endToShow(scheduled),
           resourceId: task.resourceId ?? '',
           color:
             effectiveColorOf(projectRef.current.tasks, solved.hierarchy, id) ?? DEFAULT_BAR_COLOR,
@@ -914,10 +915,12 @@ export function GanttChart({
         width: 62,
         align: 'center',
         resize: true,
+        // One format for both branches, or a summary's 9g reads as a different
+        // kind of figure from the 5g of the leaf under it.
         template: (task) =>
           task.is_summary
-            ? `<span class="gantt-derived">${Number(task.rolled_effort_days).toFixed(2)}g</span>`
-            : `${task.nominal_days}g`,
+            ? `<span class="gantt-derived">${formatDays(Number(task.rolled_effort_days))}g</span>`
+            : `${formatDays(Number(task.nominal_days))}g`,
         editor: { type: 'number', map_to: 'nominal_days', min: 0, max: 999 },
       },
       {
