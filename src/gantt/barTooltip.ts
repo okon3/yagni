@@ -2,7 +2,7 @@ import { formatDays } from './format';
 import { escapeHtml } from './html';
 import { isShared } from './segmentBar';
 import { isContended, type Resource, type ScheduledTask } from '../scheduler';
-import type { MarkedChain, ProjectTask, SolvedProject } from './project';
+import { peopleUnder, type MarkedChain, type ProjectTask, type SolvedProject } from './project';
 
 /**
  * Everything the hover has to answer, resolved before any of it is rendered.
@@ -22,6 +22,15 @@ export interface BarFacts {
   elapsedDays: number;
   /** Absent on a summary, which aggregates several people, and on nobody assigned. */
   resource: { name: string; availability: number } | null;
+  /**
+   * Everyone working under a summary, in the order their faces are stacked on
+   * the row. Empty on a leaf, which names its one resource instead.
+   *
+   * The stack stops at four and says "+n" for the rest, so the row alone cannot
+   * answer who they are — this is where it is answered, and the shared order is
+   * what lets the two be read against each other.
+   */
+  people: { name: string; availability: number }[];
   /** The rates the task actually ran at, in the order it ran them. */
   rates: number[];
   /** Ran below full rate *because* the resource was split with another task. */
@@ -110,7 +119,12 @@ export function renderBarTooltip(facts: BarFacts): string {
     'Durata',
     `<span class="${stretched ? 'gantt-stretched' : ''}">${formatDays(facts.elapsedDays)} g</span>`,
   ]);
-  if (!facts.isSummary) {
+  if (facts.isSummary) {
+    rows.push([
+      facts.people.length === 1 ? 'Persona' : 'Persone',
+      facts.people.length > 0 ? facts.people.map(resourceLabel).join(', ') : '&mdash;',
+    ]);
+  } else {
     rows.push(['Risorsa', resourceLabel(facts.resource)]);
     const rate = rateRange(facts.rates);
     if (rate) rows.push(['Quota', rate]);
@@ -180,6 +194,14 @@ export function barFactsOf(
     effortDays: solved.calendar.minutesToDays(scheduled.effortMinutes),
     elapsedDays: solved.calendar.minutesToDays(scheduled.elapsedWorkingMinutes),
     resource: assigned ? { name: assigned.name, availability: assigned.availability ?? 1 } : null,
+    // Read through the same helper the row's faces are, so the names and the
+    // stack cannot fall into different orders.
+    people: solved.summaryIds.has(task.id)
+      ? peopleUnder(solved, resources, task.id).map((person) => ({
+          name: person.name,
+          availability: person.availability ?? 1,
+        }))
+      : [],
     rates: scheduled.segments.map((segment) => segment.rate),
     contended: isContended(scheduled),
     shared: isShared(scheduled),

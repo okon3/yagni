@@ -198,7 +198,10 @@ The view wraps dhtmlx-gantt Community (MIT). These cost real debugging time:
   attaches a tooltip of its own on `onGanttReady`, over
   `[data-task-id]:not(.gantt_task_row)` — the **grid rows** as much as the bars.
   Replacing it means `detach` on that exact selector string, since the listeners
-  are keyed by it, and then a `tooltipFor` of one's own.
+  are keyed by it, and then a `tooltipFor` of one's own. **The app's replacement
+  is on `.gantt_task_line` only**, so the rich tooltip exists on the bars and
+  nowhere in the grid — where the idiom is the native `title` the avatars carry.
+  Hovering a grid cell and finding nothing is the design, not a broken hover.
 - **`tooltip_timeout` above `tooltip_hide_timeout` cancels the tooltip** on a move
   from one bar straight to another: leaving schedules the hide, entering schedules
   the show, and the hide fires first and cancels it. A real pointer keeps firing

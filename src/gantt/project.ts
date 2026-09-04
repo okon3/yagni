@@ -238,6 +238,24 @@ export function resourcesByTask(
   return owners;
 }
 
+/**
+ * The people working under a task, in the project's own order.
+ *
+ * `resourcesByTask` answers with a set, which has no order to agree about — and
+ * a summary states its people twice, as the faces stacked on its row and as the
+ * names in its tooltip. Reading both from here is what keeps the third face and
+ * the third name the same person, and keeps somebody in the same position on
+ * every row they appear on.
+ */
+export function peopleUnder(
+  solved: SolvedProject,
+  resources: Resource[],
+  taskId: string,
+): Resource[] {
+  const working = solved.resourcesByTask.get(taskId);
+  return working ? resources.filter((entry) => working.has(entry.id)) : [];
+}
+
 function projectOrigin(tasks: ProjectTask[]): Date {
   return (
     tasks.reduce<Date | undefined>(

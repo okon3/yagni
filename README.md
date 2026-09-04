@@ -276,6 +276,18 @@ date has nowhere to land: the model has no field for one.
 A summary's effort, resource and start are refused the same way, because they are
 rolled up from its children: the row shows the figures and no cell on it opens.
 
+The **resource column on a summary** shows the branch rather than the empty field:
+the faces of everyone working anywhere below it, overlapping, up to the four the
+column holds, and then a `+n` for the rest. The native tooltip on the stack names
+them all, the ones behind the `+n` included, in the order the faces are in — and the
+summary's bar carries the same list, so the hover answers wherever it happens.
+
+Those faces do **not** highlight, and the highlight elsewhere is unchanged. A face
+covered down to a sliver is not one a pointer can claim to have chosen, and the
+people past the limit have no face to point at. A branch that one person carries
+draws the ordinary avatar instead, and that one highlights like any other: there is
+no ambiguity to protect against.
+
 Inside an editor, <kbd>Tab</kbd> and <kbd>Maiusc+Tab</kbd> move along the editable
 cells of the row and on into the next, saving each cell as they leave it,
 <kbd>Invio</kbd> saves and closes, and <kbd>Esc</kbd> closes without saving. The
@@ -326,7 +338,8 @@ as anyone below it is, so a highlighted leaf never hangs under a faded parent. A
 link is kept whenever either of its ends is theirs: what gates their work, and what
 their work gates, is part of reading it. The avatars in the toolbar pin a person
 until they are unpinned; hovering an avatar — there, or in the grid's resource
-column — borrows the highlight for as long as the pointer stays on it. Nothing is
+column — borrows the highlight for as long as the pointer stays on it. Not a
+summary's stack of faces, though: see the resource column below. Nothing is
 spared, the selected row included: one row left bright in somebody else's colour
 reads as part of the highlight rather than as a selection. The load lanes below
 follow along, so picking a person leaves their row, their bars and their week

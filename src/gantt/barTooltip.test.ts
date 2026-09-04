@@ -10,6 +10,7 @@ const facts = (patch: Partial<BarFacts> = {}): BarFacts => ({
   effortDays: 3,
   elapsedDays: 3,
   resource: { name: 'Marco', availability: 1 },
+  people: [],
   rates: [1],
   contended: false,
   shared: false,
@@ -83,6 +84,62 @@ describe('renderBarTooltip', () => {
   it('agrees with itself about a single subtask', () => {
     const html = renderBarTooltip(facts({ isSummary: true, descendantCount: 1, rates: [] }));
     expect(html).toContain('dalla sottoattività');
+  });
+
+  it('names everyone under a summary, past the faces the row can stack', () => {
+    const html = renderBarTooltip(
+      facts({
+        isSummary: true,
+        descendantCount: 6,
+        resource: null,
+        rates: [],
+        people: [
+          { name: 'Marco', availability: 1 },
+          { name: 'Sara', availability: 0.5 },
+          { name: 'Luca', availability: 1 },
+          { name: 'Elena', availability: 1 },
+          { name: 'Paolo', availability: 1 },
+          { name: 'Giulia', availability: 1 },
+        ],
+      }),
+    );
+    expect(html).toContain('Persone');
+    // The row shows four faces at most: the two the "+2" stands for are here.
+    expect(html).toContain('Paolo');
+    expect(html).toContain('Giulia');
+    // Part-time reads the same as it does on a leaf.
+    expect(html).toContain('Sara <em>al 50%</em>');
+  });
+
+  it('says persona, not persone, for a branch one person carries', () => {
+    const html = renderBarTooltip(
+      facts({ isSummary: true, resource: null, rates: [], people: [{ name: 'Marco', availability: 1 }] }),
+    );
+    expect(html).toContain('<dt>Persona</dt>');
+    expect(html).not.toContain('<dt>Persone</dt>');
+  });
+
+  it('escapes the names it lists, as it escapes the one it names', () => {
+    const html = renderBarTooltip(
+      facts({
+        isSummary: true,
+        resource: null,
+        rates: [],
+        people: [
+          { name: '<img src=x onerror=alert(1)>', availability: 1 },
+          { name: 'Sara', availability: 1 },
+        ],
+      }),
+    );
+    expect(html).not.toContain('<img');
+    expect(html).toContain('&lt;img');
+  });
+
+  it('says nothing about people where a branch has none', () => {
+    const html = renderBarTooltip(
+      facts({ isSummary: true, resource: null, rates: [], people: [] }),
+    );
+    expect(html).toContain('<dt>Persone</dt><dd>&mdash;</dd>');
   });
 
   it('reports criticality only from a marking that exists', () => {

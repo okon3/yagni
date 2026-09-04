@@ -18,6 +18,7 @@ import {
   isChainMeasurable,
   isMilestone,
   loadByResource,
+  peopleUnder,
   rejectionForLink,
   slackByRow,
   solve,
@@ -73,6 +74,21 @@ const shortDate = (value: Date) => (value ? dayMonth.format(new Date(value)) : '
 
 /** Columns whose value a summary derives from its children. */
 const DERIVED_ON_SUMMARY = new Set(['nominal_days', 'resource_id', 'start_date']);
+
+/**
+ * Faces a summary's resource cell fits, the "+n" counted as one of them.
+ *
+ * The cell is 64px inside its padding and a face is 22px overlapping by 8, so
+ * four is what the column holds — chosen against the width rather than picked,
+ * since a fifth is clipped in silence.
+ */
+const AVATAR_STACK_LIMIT = 4;
+
+/** A person as an avatar names them: part-time is why a row is as long as it is. */
+function personLabel(resource: Resource): string {
+  const availability = resource.availability ?? 1;
+  return availability < 1 ? `${resource.name} - ${Math.round(availability * 100)}%` : resource.name;
+}
 
 /** Class tokens for whoever works on the task, or anywhere below it. */
 function resourceClassesOf(solved: SolvedProject, id: string): string {
@@ -894,7 +910,7 @@ export function GanttChart({
       }
       const availability = resource.availability ?? 1;
       const percentage = Math.round(availability * 100);
-      const title = availability < 1 ? `${resource.name} - ${percentage}%` : resource.name;
+      const title = personLabel(resource);
       return (
         `<span class="gantt-avatar" style="background:${avatarColorOf(resource.name)}"` +
         // Whoever the pointer is on drives the highlight, and App reads it off
@@ -902,6 +918,50 @@ export function GanttChart({
         ` data-resource-id="${escapeHtml(resource.id)}"` +
         ` title="${escapeHtml(title)}">${escapeHtml(initialsOf(resource.name))}</span>` +
         (availability < 1 ? `<span class="gantt-avatar__pct">${percentage}%</span>` : '')
+      );
+    };
+
+    /**
+     * Everyone working under a summary, as overlapping faces.
+     *
+     * The row used to say "—", which is true of the summary's own field and
+     * useless about the branch: who a group of work belongs to is most of what
+     * a collapsed tree is read for.
+     *
+     * None of these carries `data-resource-id`, so none of them highlights.
+     * That is the price of the overlap: a face covered down to a sliver is not
+     * something a pointer can claim to have chosen, and the people past the
+     * limit have no face at all. A branch staffed by one person still renders
+     * as the ordinary avatar and still highlights — there the pointer is
+     * unambiguous.
+     *
+     * Who they all are is a native `title`, as it is on every other avatar in
+     * the grid: the app's own tooltip is deliberately detached from the rows and
+     * left on the bars, and bringing it back here for one cell would be a second
+     * tooltip in the same column as the leaves' titles. It carries the whole
+     * list, the people the "+n" stands for included.
+     */
+    const resourceStack = (taskId: string) => {
+      const people = peopleUnder(solvedRef.current, projectRef.current.resources, taskId);
+      if (people.length === 0) return '<span class="gantt-derived">—</span>';
+      if (people.length === 1) return resourceAvatar(people[0].id);
+      const title = people.map(personLabel).join('\n');
+      // A face and the "+n" that replaces the rest cost the same width, so the
+      // stack is n faces or n-1 faces and a count — never both a count and a
+      // gap where one more face would have fitted.
+      const shown =
+        people.length > AVATAR_STACK_LIMIT ? people.slice(0, AVATAR_STACK_LIMIT - 1) : people;
+      const hidden = people.length - shown.length;
+      const faces = shown.map(
+        (person) =>
+          `<span class="gantt-avatar" style="background:${avatarColorOf(person.name)}">` +
+          `${escapeHtml(initialsOf(person.name))}</span>`,
+      );
+      if (hidden > 0) {
+        faces.push(`<span class="gantt-avatar gantt-avatar--more">+${hidden}</span>`);
+      }
+      return (
+        `<span class="gantt-avatar-stack" title="${escapeHtml(title)}">${faces.join('')}</span>`
       );
     };
 
@@ -955,10 +1015,10 @@ export function GanttChart({
         width: 76,
         align: 'center',
         resize: true,
-        // A summary aggregates whoever works on its children, so it names none.
+        // A summary has no resource of its own, so it shows the branch's.
         template: (task) =>
           task.is_summary
-            ? '<span class="gantt-derived">—</span>'
+            ? resourceStack(String(task.id))
             : resourceAvatar(task.resource_id as string | undefined),
         editor: { type: 'select', map_to: 'resource_id', options: resourceOptions() },
       },
