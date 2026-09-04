@@ -67,6 +67,26 @@
   opacity: 1;
 }
 
+.app__version {
+  flex: none;
+  padding: 2px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.app__version:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
 /* Fills whatever is left below the bar, and shares it between the chart and the
    load panel under it. Still positioned, for the overlays that cover the whole
    body: the empty state and the drop zone. */

@@ -165,6 +165,8 @@ know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
   days calendar.
 - Empty state is minimal (name, one line, two buttons, help link) — the old
   5-step explainer stood between the user and their first task.
+- Header version badge: the top `CHANGELOG.md` entry, clickable to open the
+  changelog dialog.
 
 ## Undo and the draft
 

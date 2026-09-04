@@ -6,6 +6,8 @@ import type { CalendarSpec, Resource } from './scheduler';
 import { GanttChart, INITIAL_SCALE_LABEL, type GanttHandle } from './gantt/GanttChart';
 import { COLOR_OPTIONS } from './gantt/colors';
 import { CalendarDialog } from './gantt/CalendarDialog';
+import { ChangelogDialog } from './gantt/ChangelogDialog';
+import { CHANGELOG_ENTRIES } from './gantt/changelogEntries';
 import { ConfirmDialog } from './gantt/ConfirmDialog';
 import { EmptyState } from './gantt/EmptyState';
 import { HelpDialog } from './gantt/HelpDialog';
@@ -97,6 +99,7 @@ export default function App() {
   const searchField = useRef<HTMLInputElement>(null);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const [people, setPeople] = useState<Resource[]>(initialProject.resources);
   // Two sources for one highlight: the toolbar pins a person until they are
   // unpinned, an avatar under the pointer borrows it for as long as it is there.
@@ -710,6 +713,16 @@ export default function App() {
             YAGNI
             <span className="app__expansion">Yet Another Gantt, Now Improved</span>
           </span>
+          {CHANGELOG_ENTRIES.length > 0 && (
+            <button
+              type="button"
+              className="app__version"
+              onClick={() => setChangelogOpen(true)}
+              title="Novità di questa versione"
+            >
+              {CHANGELOG_ENTRIES[0].version}
+            </button>
+          )}
         </h1>
         <Toolbar
           filename={filename}
@@ -821,6 +834,8 @@ export default function App() {
       )}
 
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
+
+      {changelogOpen && <ChangelogDialog onClose={() => setChangelogOpen(false)} />}
 
       {calendarOpen && (
         <CalendarDialog
