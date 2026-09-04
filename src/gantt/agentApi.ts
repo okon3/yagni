@@ -50,6 +50,14 @@ export interface TaskInput {
 
 export interface NewTaskInput extends TaskInput {
   parentId?: string | null;
+  /**
+   * Placed straight below this row as its sibling, rather than at the end of a
+   * branch. Wins over `parentId`, which it derives.
+   *
+   * Here because it cannot be composed: the order of the rows is the order of
+   * the file, and nothing else on the surface can put a row anywhere but last.
+   */
+  after?: string;
 }
 
 declare global {
@@ -274,6 +282,9 @@ export function createAgentApi(host: AgentHost): AgentApi {
 
     addTask: (patch) => {
       requireKnownResource(patch?.resourceId);
+      // The handle would fall back to the end of the plan, which is a placement
+      // the caller did not ask for and would not notice.
+      if (patch?.after) details(patch.after);
       return chart().addTask({
         name: patch?.name,
         nominalDays: patch?.nominalDays,
@@ -281,6 +292,7 @@ export function createAgentApi(host: AgentHost): AgentApi {
         resourceId: patch?.resourceId ?? undefined,
         color: patch?.color ?? undefined,
         parentId: patch?.parentId ?? undefined,
+        after: patch?.after ?? undefined,
       });
     },
 

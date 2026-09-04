@@ -24,6 +24,7 @@ import {
 } from './gantt/files';
 import { DEFAULT_CALENDAR } from './scheduler';
 import { emptyProject, type ChainState, type MeasuredSlack } from './gantt/project';
+import { RowMenu, type RowMenuAction, type RowMenuTarget } from './gantt/RowMenu';
 import { ProjectFileError, deserializeProject, serializeProject } from './gantt/serialization';
 import {
   historyOf,
@@ -102,6 +103,7 @@ export default function App() {
     resolve: (confirmed: boolean) => void;
   } | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [rowMenu, setRowMenu] = useState<RowMenuTarget | null>(null);
   // Snapshotted on open, like the other dialogs: the chart owns the live task.
   const [openTask, setOpenTask] = useState<{
     details: TaskDetails;
@@ -349,6 +351,32 @@ export default function App() {
     setMarkCritical(true);
     chart.current?.measureCriticalChain();
   }, [chainState]);
+
+  /**
+   * A creation placed against the row the pointer was on.
+   *
+   * The start comes from the anchor rather than from today: adding a row beside
+   * one that runs in March and having it land on this morning is a date nobody
+   * chose, and it drags the whole plan's origin back with it. Which start it is
+   * — the row's own, or a summary's rolled-up earliest — is already what the
+   * details answer with.
+   */
+  const createFromMenu = useCallback((target: RowMenuTarget, action: RowMenuAction) => {
+    const handle = chart.current;
+    const anchor = handle?.getTaskDetails(target.taskId);
+    if (!handle || !anchor) return;
+    const created =
+      action === 'child'
+        ? handle.addTask({ parentId: target.taskId, start: anchor.start })
+        : handle.addTask({
+            after: target.taskId,
+            start: anchor.start,
+            ...(action === 'milestone' ? { name: 'Nuovo traguardo', nominalDays: 0 } : {}),
+          });
+    handle.revealTask(created);
+    handle.selectTask(created);
+    syncFromChart();
+  }, [syncFromChart]);
 
   const openTaskDetails = useCallback((id: string) => {
     const handle = chart.current;
@@ -725,6 +753,7 @@ export default function App() {
             registerChange();
           }}
           onOpenTask={openTaskDetails}
+          onRowMenu={setRowMenu}
           onDeleteTask={(id) => void requestDelete(id)}
           onScaleChange={setScale}
           onReject={setError}
@@ -768,6 +797,17 @@ export default function App() {
           confirm={ask}
           onCancel={() => setResourcesOpen(false)}
           onSave={saveResources}
+        />
+      )}
+
+      {rowMenu && (
+        <RowMenu
+          target={rowMenu}
+          onDismiss={() => setRowMenu(null)}
+          onPick={(action) => {
+            setRowMenu(null);
+            createFromMenu(rowMenu, action);
+          }}
         />
       )}
 

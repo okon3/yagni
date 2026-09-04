@@ -386,6 +386,19 @@ happens, a file that never opens. Ask through `ConfirmDialog` instead, which App
 owns and hands out as a promise; a nested `<dialog>` stacks correctly above the
 one that asked.
 
+**A popup that dismisses on a click outside must do both jobs on that one
+event.** The obvious shape — close on `pointerdown`, and arm a one-shot listener
+to eat the `click` behind it — does not work: the two are separate events, React
+unmounts the popup between them, and the effect's cleanup disarms the waiting
+listener, so the click lands on the grid and opens an inline editor. `preventDefault`
+on the pointerdown does not help either; suppressing the compatibility mouse
+events that way holds for touch and pen, not for a mouse. One listener on `click`
+in the capture phase, above the node dhtmlx delegates from, closes the popup and
+stops the click in the same breath. `RowMenu` is the case in hand. It is also a
+non-modal `<dialog>` on purpose: `keystrokeIsCaptured` already reads an open
+dialog as "the keys are not aimed at the plan", which is what keeps Del from
+deleting the row the menu is about.
+
 **`window.print()` is the exception, and it blocks.** Where `confirm` returns
 `false` and shows nothing, `print()` opens the real print dialog — modal, and
 invisible while the browser pane is hidden. Every script on the tab then hangs

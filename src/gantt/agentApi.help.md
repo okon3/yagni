@@ -162,7 +162,7 @@ which is exactly the task a planner has to move.
 
 | Call | Notes |
 | --- | --- |
-| `addTask(patch?) → id` | `{ name, nominalDays, start, resourceId, color, parentId }`, all optional. The start is normalised to the opening of a working day. |
+| `addTask(patch?) → id` | `{ name, nominalDays, start, resourceId, color, parentId, after }`, all optional. The start is normalised to the opening of a working day. |
 | `updateTask(id, patch)` | Any subset of `{ name, nominalDays, start, resourceId, color, progress }`. Throws on `nominalDays`, `start` or `resourceId` for a summary. |
 | `deleteTask(id)` | Takes the subtree with it and clears dependencies on any of it. |
 | `setParent(id, parentId \| null)` | `null` moves it to the top level. Refuses a parent from inside `id`'s own subtree. |
@@ -192,6 +192,13 @@ A start that *is* taken as a constraint is taken as the **opening of the working
 day it falls on**, and a day the calendar has closed moves on to the next open
 one: `2026-09-23T11:37` and a Saturday both come back as an 08:00. The time of
 day is the calendar's to decide, so asking for one is asking for nothing.
+
+**The order of the rows is the order of the list**, in the grid and in the file
+both, and `after` is the only way to choose it: a new task lands at the end of a
+branch otherwise, and nothing else on this surface moves it — `setParent`
+appends too. `after: id` puts the new row straight below that one, as its
+sibling, and settles `parentId` on its own. An id the project does not have is
+refused rather than quietly turned into "at the end".
 
 `resourceId: null` unassigns, and an unassigned task never contends: it runs at
 full rate. **An id no resource carries is refused before anything is written**,

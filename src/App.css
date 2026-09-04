@@ -1026,6 +1026,64 @@
   max-width: 420px;
 }
 
+/* The row menu. A `<dialog>` for what `keystrokeIsCaptured` reads off it, but
+   not a modal: it sits at the pointer, over a plan that must stay legible
+   behind it, so every dialog default about placement has to be undone. */
+.rowmenu {
+  position: fixed;
+  margin: 0;
+  padding: 4px;
+  min-width: 200px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-dialog);
+  color: var(--ink);
+}
+
+/* Which row the menu is about, since the pointer has already left it and the
+   selection behind may be covered by the menu itself. */
+.rowmenu__anchor {
+  margin: 0;
+  padding: 6px 10px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+
+.rowmenu__items {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rowmenu__items button {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rowmenu__items button:hover,
+.rowmenu__items button:focus-visible {
+  background: var(--accent-soft);
+  outline: none;
+}
+
 .confirm__message {
   margin: 0;
   font-size: 14px;

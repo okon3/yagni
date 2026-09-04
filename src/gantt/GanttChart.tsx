@@ -213,6 +213,12 @@ export interface NewTask {
   resourceId?: string;
   color?: string;
   parentId?: string;
+  /**
+   * Placed straight below this row, as its sibling, instead of at the end of a
+   * branch. Wins over `parentId`, which it derives: "below this" already says
+   * whose child the new row is.
+   */
+  after?: string;
 }
 
 export interface LoadOptions {
@@ -513,6 +519,7 @@ export function GanttChart({
   showLoad = false,
   onChange,
   onOpenTask,
+  onRowMenu,
   onDeleteTask,
   onScaleChange,
   onChainState,
@@ -528,6 +535,8 @@ export function GanttChart({
   showLoad?: boolean;
   onChange?: () => void;
   onOpenTask?: (id: string) => void;
+  /** A right-click on a row, for the caller to answer with a menu of its own. */
+  onRowMenu?: (target: { taskId: string; name: string; x: number; y: number; isSummary: boolean }) => void;
   /** Asked, not done: the confirmation belongs with the rest of the dialogs. */
   onDeleteTask?: (id: string) => void;
   onScaleChange?: (label: string) => void;
@@ -542,6 +551,7 @@ export function GanttChart({
   // Held in a ref because the dhtmlx handlers are registered once, in an effect
   // that must not re-run when a callback identity changes.
   const openTaskRef = useRef(onOpenTask);
+  const rowMenuRef = useRef(onRowMenu);
   const deleteTaskRef = useRef(onDeleteTask);
   const scaleChangeRef = useRef(onScaleChange);
   const changeRef = useRef(onChange);
@@ -570,12 +580,13 @@ export function GanttChart({
 
   useEffect(() => {
     openTaskRef.current = onOpenTask;
+    rowMenuRef.current = onRowMenu;
     deleteTaskRef.current = onDeleteTask;
     scaleChangeRef.current = onScaleChange;
     changeRef.current = onChange;
     rejectRef.current = onReject;
     chainStateRef.current = onChainState;
-  }, [onChainState, onChange, onDeleteTask, onOpenTask, onReject, onScaleChange]);
+  }, [onChainState, onChange, onDeleteTask, onOpenTask, onReject, onRowMenu, onScaleChange]);
 
   /** Says which of the three the control has to offer, after every write to the chain. */
   const reportChainState = useCallback(() => {
@@ -798,31 +809,42 @@ export function GanttChart({
       addTask: (task) => {
         const start = task?.start ? new Date(task.start) : new Date();
         const effort = task?.nominalDays ?? 1;
+        // Below a named row: the parent is that row's, and the index is one past
+        // it. dhtmlx counts the index within the branch, which is exactly the
+        // arrangement `pullOrderFromView` then writes into the model.
+        const sibling =
+          task?.after && gantt.isTaskExists(task.after) ? gantt.getTask(task.after) : undefined;
+        const parent = sibling ? (sibling.parent ?? 0) : (task?.parentId ?? 0);
+        const index = sibling ? gantt.getTaskIndex(task!.after!) + 1 : undefined;
         // A parent that was a leaf until now renders collapsed, which would hide
         // the row that was just created.
-        if (task?.parentId && gantt.isTaskExists(task.parentId)) {
-          gantt.getTask(task.parentId).$open = true;
+        if (parent && gantt.isTaskExists(parent)) {
+          gantt.getTask(parent).$open = true;
         }
         // No applying flag and no write to the model here: onAfterTaskAdd is the
         // single path that turns a dhtmlx row into a project task, and it
         // already honours whatever data the row carries. Adding a second path
         // is how the grid's "+" button once produced rows with a NaN duration.
         const id = String(
-          gantt.addTask({
-            id: nextTaskId(projectRef.current),
-            text: task?.name ?? 'Nuova attività',
-            start_date: gantt.date.date_to_str(gantt.config.date_format)(start),
-            parent: task?.parentId ?? 0,
-            duration: 1,
-            progress: 0,
-            resource_id: task?.resourceId ?? '',
-            nominal_days: effort,
-            rolled_effort_days: effort,
-            elapsed_days: effort,
-            is_summary: false,
-            bar_color: task?.color ?? '',
-            shared: false,
-          }),
+          gantt.addTask(
+            {
+              id: nextTaskId(projectRef.current),
+              text: task?.name ?? 'Nuova attività',
+              start_date: gantt.date.date_to_str(gantt.config.date_format)(start),
+              parent,
+              duration: 1,
+              progress: 0,
+              resource_id: task?.resourceId ?? '',
+              nominal_days: effort,
+              rolled_effort_days: effort,
+              elapsed_days: effort,
+              is_summary: false,
+              bar_color: task?.color ?? '',
+              shared: false,
+            },
+            parent,
+            index,
+          ),
         );
         gantt.showTask(id);
         return id;
@@ -1530,6 +1552,27 @@ export function GanttChart({
     };
     container.addEventListener('keydown', editorKeys);
 
+    // The only pointer gesture the grid had left: a single click opens the
+    // inline editor and selects the row, a double click the same, a drag
+    // reorders. The row is selected too, so the plan says which one the menu
+    // that opens is about even after the pointer has moved off it.
+    const openRowMenu = (event: MouseEvent) => {
+      const id = (event.target as HTMLElement | null)
+        ?.closest?.('.gantt_grid_data .gantt_row')
+        ?.getAttribute('data-task-id');
+      if (!id || !gantt.isTaskExists(id)) return;
+      event.preventDefault();
+      gantt.selectTask(id);
+      rowMenuRef.current?.({
+        taskId: id,
+        name: String(gantt.getTask(id).text ?? ''),
+        x: event.clientX,
+        y: event.clientY,
+        isSummary: solvedRef.current.summaryIds.has(id),
+      });
+    };
+    container.addEventListener('contextmenu', openRowMenu);
+
     // A click on a grid cell opens an inline editor but leaves the row
     // unselected, so Del would have nothing to act on unless the user went to
     // the timeline to click a bar first. The info button is excluded: it opens a
@@ -1750,6 +1793,7 @@ export function GanttChart({
       bandsAbove.remove();
       gantt.ext.zoom.detachEvent(zoomHandler);
       container.removeEventListener('wheel', zoomOnWheel, true);
+      container.removeEventListener('contextmenu', openRowMenu);
       gantt.ext.inlineEditors.detachEvent(derivedGuard);
       container.removeEventListener('keydown', editorKeys);
       container.removeEventListener('click', selectRow);

@@ -288,6 +288,21 @@ people past the limit have no face to point at. A branch that one person carries
 draws the ordinary avatar instead, and that one highlights like any other: there is
 no ambiguity to protect against.
 
+**Right-click a row** to add one where you are looking: a new task below it, a
+subtask inside it, or a milestone below it. Adding could only ever *append* before
+— to the top level from the toolbar, to a branch from the row's `+` — so putting a
+row in its place meant creating it elsewhere and dragging it back. The new row
+starts on the same day as the row it was added against, which for a summary is its
+rolled-up earliest: today's date beside a plan that runs in March is a date nobody
+chose, and it would drag the plan's own start back with it.
+
+Right-click is the only pointer gesture the grid had left — a single click opens
+the inline editor and selects, a double click the same, a drag reorders. The menu
+names the row it is about, closes on <kbd>Esc</kbd> or a click outside, and that
+click does nothing else: it would otherwise open an editor on the cell it landed
+on. <kbd>Del</kbd> and <kbd>Ctrl+Z</kbd> are held off while it is open, for the
+same reason they are held off inside a dialog.
+
 Inside an editor, <kbd>Tab</kbd> and <kbd>Maiusc+Tab</kbd> move along the editable
 cells of the row and on into the next, saving each cell as they leave it,
 <kbd>Invio</kbd> saves and closes, and <kbd>Esc</kbd> closes without saving. The
