@@ -141,14 +141,16 @@ prove).
 | `docs/dhtmlx.md` | Library traps — add every new one. |
 | `docs/verification.md` | Embedded-browser quirks, verifying UI from an agent. |
 | `src/gantt/agentApi.help.md` | Agent surface. **Is** `yagni.help()` and `/llms.txt`. |
-| `CHANGELOG.md` | User-visible releases. Newest first; the header badge shows the top entry. |
+| `CHANGELOG.md` | Releases a user cares about. Newest first; the header badge shows the top entry. |
 
 **A commit that changes behaviour described in `docs/` updates the affected file
 in the same commit.** Docs are written tersely — keep them that way: every fact,
 no prose. README changes only when the feature set changes; retake
 `docs/assets/` screenshots when the UI drifts enough to misrepresent them. A
-significant, user-visible change adds a bullet to `CHANGELOG.md` in the same
-commit (and a new version heading when a release warrants it).
+significant feature adds a bullet to `CHANGELOG.md` in the same commit (a new
+version heading when a release warrants it) — features a user would notice,
+not fixes or plumbing, and never exhaustive: it holds the recent releases
+only, oldest entries get pruned. Git history is the full record.
 
 ## Conventions
 
