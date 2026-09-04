@@ -220,6 +220,36 @@ describe('rejects broken files', () => {
       }),
     ],
     [
+      'a default availability of zero',
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 2,
+        resources: [{ id: 'r1', name: 'X', availability: 0 }],
+        tasks: [{ id: '1', nominalDays: 1, start: '2026-01-05T08:00', resourceId: 'r1' }],
+      }),
+    ],
+    [
+      'a default availability above 1',
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 2,
+        resources: [{ id: 'r1', name: 'X', availability: 1.5 }],
+        tasks: [],
+      }),
+    ],
+    [
+      'two people with the same name',
+      JSON.stringify({
+        format: 'gantt-effort-split',
+        version: 2,
+        resources: [
+          { id: 'r1', name: 'Marta', availability: 1 },
+          { id: 'r2', name: 'Marta', availability: 1 },
+        ],
+        tasks: [],
+      }),
+    ],
+    [
       'a dangling predecessor',
       JSON.stringify({
         format: 'gantt-effort-split',

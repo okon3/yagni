@@ -361,6 +361,15 @@ duplicate ids, dangling predecessors, circular hierarchy, availability outside
 0..1, future versions. Parse before loading, so a bad file leaves the open project
 untouched. Version 1 files still load, their `daysOff` read as overrides at zero.
 
+**A gap in that strictness is not a bad error message, it is the open project.**
+`loadProject` writes the incoming project onto `projectRef` and *then* solves, so
+a file that parses but cannot be scheduled — a person the file leaves at zero
+capacity was the last way in — throws `Scheduler stalled` with the model already
+replaced: the grid still shows the old rows, every further edit dies on a task
+dhtmlx does not have, and the next save writes the malformed project over the
+user's work. Hence the people list goes through `validateResources` here as well
+as in the dialog and the agent API: one gate, checked on every path in.
+
 Dates are written as local wall-clock (`YYYY-MM-DDTHH:mm`). `toISOString` would
 shift them to UTC and move an 08:00 start to the previous day.
 

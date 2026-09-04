@@ -4,9 +4,9 @@ import type { AvailabilityOverride, Resource } from '../scheduler';
  * The rules and transformations of the people list, with no form and no chart
  * around them.
  *
- * `ResourceDialog` and the agent API both go through here: the four validation
- * rules and the released-resource diff decide whether tasks silently lose their
- * assignee, which is not a thing that may exist in two versions.
+ * `ResourceDialog`, the agent API and the file parser all go through here: the
+ * validation rules and the released-resource diff decide whether tasks silently
+ * lose their assignee, which is not a thing that may exist in two versions.
  *
  * Availability is a fraction of a full working day, as the model and the file
  * format hold it. The percentage is the form's own unit and stays in the form.

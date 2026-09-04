@@ -8,6 +8,7 @@ import {
 } from '../scheduler';
 import { parseWallClock, serializeDate } from './dates';
 import type { Project, ProjectTask } from './project';
+import { validateResources } from './resources';
 
 export const FILE_FORMAT = 'gantt-effort-split';
 export const FILE_VERSION = 2;
@@ -127,17 +128,19 @@ export function deserializeProject(text: string): Project {
           asRecord(entry, `${context}[${position}]`).availability,
           `${context}[${position}].availability`,
         );
-        if (share < 0 || share > 1) {
-          throw new ProjectFileError(
-            `${context}[${position}].availability: attesa una quota fra 0 e 1`,
-          );
-        }
         overrides.push({ ...range, availability: share });
       });
     }
     if (overrides.length > 0) resource.availabilityOverrides = overrides;
     return resource;
   });
+
+  // The people list has one set of rules, and the dialogs and the agent API
+  // already answer to them. A file that skips them parses a person the scheduler
+  // cannot serve — capacity at zero stalls it from inside the load, with the
+  // open project already replaced.
+  const brokenResources = validateResources(resources);
+  if (brokenResources) throw new ProjectFileError(brokenResources);
 
   const knownResources = new Set(resources.map((resource) => resource.id));
   const seenTaskIds = new Set<string>();

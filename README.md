@@ -494,7 +494,9 @@ to UTC and move an 08:00 start to the previous day.
 Parsing is strict — unknown resources, duplicate ids, dangling predecessors, a
 circular hierarchy, an availability share outside 0..1, a colour that is not a
 `#rrggbb` triplet and future versions are all rejected, and the open project is
-left untouched when a file fails to load.
+left untouched when a file fails to load. The people list answers to the same
+rules as the dialog, so a file that leaves somebody without capacity is refused
+rather than stalling the scheduler halfway through the load.
 
 The current version is **2**. Version 1 files still load: their `daysOff` are read
 as availability overrides at zero, which is what they always meant.
