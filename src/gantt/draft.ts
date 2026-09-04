@@ -104,8 +104,8 @@ export function draftAge(savedAt: number, now: Date): string {
   const when = new Date(savedAt);
   const time = `${pad(when.getHours())}:${pad(when.getMinutes())}`;
   const days = Math.round((startOfDay(now) - startOfDay(when)) / DAY);
-  if (days === 0) return `oggi ${time}`;
-  if (days === 1) return `ieri ${time}`;
+  if (days === 0) return `today ${time}`;
+  if (days === 1) return `yesterday ${time}`;
   const date = `${pad(when.getDate())}/${pad(when.getMonth() + 1)}`;
   return when.getFullYear() === now.getFullYear()
     ? `${date} ${time}`
@@ -114,5 +114,5 @@ export function draftAge(savedAt: number, now: Date): string {
 
 /** The question the app asks before touching an unsaved draft. */
 export function draftQuestion(draft: Draft, now: Date): string {
-  return `Riprendo la bozza non salvata di «${draft.filename}» (${draftAge(draft.savedAt, now)})?`;
+  return `Resume the unsaved draft of "${draft.filename}" (${draftAge(draft.savedAt, now)})?`;
 }

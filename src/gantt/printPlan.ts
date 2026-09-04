@@ -6,7 +6,7 @@ import type { Figure } from './planFigure';
  *
  * On `beforeprint` rather than behind a button of its own, so that Ctrl+P — the
  * way a person actually prints — goes through exactly the same path as the
- * toolbar's `Stampa`, which does nothing but call `window.print()`. Building the
+ * toolbar's `Print`, which does nothing but call `window.print()`. Building the
  * pages ahead of time instead would mean redrawing them on every edit for a
  * figure nobody may ever ask to see.
  *

@@ -66,7 +66,7 @@ const BAR_TYPE = String(gantt.config.types.task);
  */
 const MIN_NONWORKING_BAND = 10;
 
-const dayMonth = new Intl.DateTimeFormat('it-IT', {
+const dayMonth = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',
   month: '2-digit',
   year: '2-digit',
@@ -157,7 +157,7 @@ const ZOOM_LEVELS: ZoomLevel[] = [
     name: 'week',
     scale_height: 50,
     scales: [
-      { unit: 'week', step: 1, format: 'Sett. %W', css: todaySpan('week') },
+      { unit: 'week', step: 1, format: 'Week %W', css: todaySpan('week') },
       { unit: 'day', step: 1, format: '%d %M', css: todayCell('day') },
     ],
   },
@@ -166,7 +166,7 @@ const ZOOM_LEVELS: ZoomLevel[] = [
     scale_height: 50,
     scales: [
       { unit: 'month', step: 1, format: '%F %Y', css: todaySpan('month') },
-      { unit: 'week', step: 1, format: 'Sett. %W', css: todayCell('week') },
+      { unit: 'week', step: 1, format: 'Week %W', css: todayCell('week') },
     ],
   },
   {
@@ -189,11 +189,11 @@ const ZOOM_LEVELS: ZoomLevel[] = [
 
 /** What the status bar calls each zoom level: the band above its columns. */
 const SCALE_LABELS: Record<string, string> = {
-  day: 'Giorni',
-  week: 'Settimane',
-  month: 'Mesi',
-  quarter: 'Trimestri',
-  year: 'Anni',
+  day: 'Days',
+  week: 'Weeks',
+  month: 'Months',
+  quarter: 'Quarters',
+  year: 'Years',
 };
 
 export const INITIAL_SCALE_LABEL = SCALE_LABELS.week;
@@ -404,7 +404,7 @@ function refreshResourceOptions(resources: Resource[]): void {
  * rendering skips a row whose bar falls outside it — which showed as an empty
  * chart twice over: after the first task added to a fresh project, whose range
  * is three days around today, and after opening a file while the range was
- * pinned by Adatta. `refreshData` redraws the bars but never the scales, hence
+ * pinned by Fit. `refreshData` redraws the bars but never the scales, hence
  * the render, and only when the plan no longer fits: `render()` is the whole
  * chart, on every edit.
  */
@@ -858,7 +858,7 @@ export function GanttChart({
           gantt.addTask(
             {
               id: nextTaskId(projectRef.current),
-              text: task?.name ?? 'Nuova attività',
+              text: task?.name ?? 'New task',
               start_date: gantt.date.date_to_str(gantt.config.date_format)(start),
               parent,
               duration: 1,
@@ -959,7 +959,7 @@ export function GanttChart({
     const resourceAvatar = (id: string | undefined) => {
       const resource = projectRef.current.resources.find((entry) => entry.id === id);
       if (!resource) {
-        return '<span class="gantt-avatar gantt-avatar--empty" title="Nessuna risorsa">&ndash;</span>';
+        return '<span class="gantt-avatar gantt-avatar--empty" title="No resource">&ndash;</span>';
       }
       const availability = resource.availability ?? 1;
       const percentage = Math.round(availability * 100);
@@ -1020,7 +1020,7 @@ export function GanttChart({
 
     // Also localises month and weekday names in the timeline scales, and the
     // default name dhtmlx gives to rows created from the grid.
-    gantt.i18n.setLocale('it');
+    gantt.i18n.setLocale('en');
     gantt.config.date_format = '%Y-%m-%d %H:%i';
     // dhtmlx rounds a drop to the cell of the finest scale on screen, and on a
     // plan long enough to need the month or quarter view that cell is a month:
@@ -1047,7 +1047,7 @@ export function GanttChart({
     gantt.config.columns = [
       {
         name: 'text',
-        label: 'Attività',
+        label: 'Task',
         tree: true,
         width: 230,
         resize: true,
@@ -1064,7 +1064,7 @@ export function GanttChart({
       },
       {
         name: 'resource_id',
-        label: 'Risorsa',
+        label: 'Resource',
         width: 76,
         align: 'center',
         resize: true,
@@ -1085,13 +1085,13 @@ export function GanttChart({
         // kind of figure from the 5g of the leaf under it.
         template: (task) =>
           task.is_summary
-            ? `<span class="gantt-derived">${formatDays(Number(task.rolled_effort_days))}g</span>`
-            : `${formatDays(Number(task.nominal_days))}g`,
+            ? `<span class="gantt-derived">${formatDays(Number(task.rolled_effort_days))}d</span>`
+            : `${formatDays(Number(task.nominal_days))}d`,
         editor: { type: 'number', map_to: 'nominal_days', min: 0, max: 999 },
       },
       {
         name: 'start_date',
-        label: 'Inizio',
+        label: 'Start',
         width: 84,
         align: 'center',
         resize: true,
@@ -1107,7 +1107,7 @@ export function GanttChart({
       // never an input.
       {
         name: 'end_shown',
-        label: 'Fine',
+        label: 'End',
         width: 84,
         align: 'center',
         resize: true,
@@ -1116,12 +1116,12 @@ export function GanttChart({
       },
       {
         name: 'elapsed_days',
-        label: 'Durata',
+        label: 'Duration',
         width: 62,
         align: 'center',
         resize: true,
         template: (task) =>
-          `<span class="gantt-derived">${formatDays(Number(task.elapsed_days ?? 0))}g</span>`,
+          `<span class="gantt-derived">${formatDays(Number(task.elapsed_days ?? 0))}d</span>`,
       },
       {
         name: 'info',
@@ -1137,7 +1137,7 @@ export function GanttChart({
         // class or an attribute set by hand does not survive a redraw.
         template: (task) =>
           `<button type="button" class="gantt-rowinfo" data-task-info="1"` +
-          ` title="Dettaglio di «${escapeHtml(String(task.text ?? ''))}»">${INFO_ICON}</button>`,
+          ` title="Details for “${escapeHtml(String(task.text ?? ''))}”">${INFO_ICON}</button>`,
       },
       { name: 'add', width: 40 },
     ];
@@ -1745,7 +1745,7 @@ export function GanttChart({
           const supplied = Number(item.nominal_days);
           projectRef.current.tasks.push({
             id: key,
-            name: String(item.text || 'Nuova attività'),
+            name: String(item.text || 'New task'),
             nominalDays: Number.isFinite(supplied) && supplied >= 0 ? supplied : 1,
             start,
             parentId: parent,

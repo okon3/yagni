@@ -169,7 +169,7 @@ function asDate(value: string | Date, field: string): Date {
   const parsed = parseWallClock(value);
   if (!parsed) {
     throw new Error(
-      `${field}: attesa una data "YYYY-MM-DDTHH:mm" in ora locale, ricevuto ${JSON.stringify(value)}`,
+      `${field}: expected a "YYYY-MM-DDTHH:mm" date in local time, received ${JSON.stringify(value)}`,
     );
   }
   return parsed;
@@ -183,13 +183,13 @@ function copy<T>(value: T): T {
 export function createAgentApi(host: AgentHost): AgentApi {
   const chart = (): GanttHandle => {
     const handle = host.handle();
-    if (!handle) throw new Error('Il grafico non è ancora montato');
+    if (!handle) throw new Error('The chart is not mounted yet');
     return handle;
   };
 
   const details = (id: string): TaskDetails => {
     const found = chart().getTaskDetails(id);
-    if (!found) throw new Error(`Attività "${id}" inesistente`);
+    if (!found) throw new Error(`Task "${id}" does not exist`);
     return found;
   };
 
@@ -197,7 +197,7 @@ export function createAgentApi(host: AgentHost): AgentApi {
     const found = chart()
       .getResources()
       .find((entry) => entry.id === id);
-    if (!found) throw new Error(`Risorsa "${id}" inesistente`);
+    if (!found) throw new Error(`Resource "${id}" does not exist`);
     return found;
   };
 
@@ -320,7 +320,7 @@ export function createAgentApi(host: AgentHost): AgentApi {
         );
         if (derived.length > 0) {
           throw new Error(
-            `"${id}" è un'attività di riepilogo: ${derived.join(', ')} si ricava dalle figlie`,
+            `"${id}" is a summary task: ${derived.join(', ')} is derived from its children`,
           );
         }
       }
@@ -350,7 +350,7 @@ export function createAgentApi(host: AgentHost): AgentApi {
         // detaches the branch from the tree, and buildHierarchy then throws on
         // every render.
         if (subtreeOf(chart().getProject().tasks, id).has(parentId)) {
-          throw new Error(`"${parentId}" sta sotto "${id}": non può diventarne il padre`);
+          throw new Error(`"${parentId}" is under "${id}": it cannot become its parent`);
         }
       }
       chart().setParent(id, parentId);
@@ -389,8 +389,8 @@ export function createAgentApi(host: AgentHost): AgentApi {
       // into an argument the caller has to mean.
       if (assigned > 0 && !options?.releaseTasks) {
         throw new Error(
-          `${person.name} è assegnata a ${assigned} attività, che resterebbero senza risorsa. ` +
-            'Passa { releaseTasks: true } per farlo comunque.',
+          `${person.name} is assigned to ${assigned} tasks, which would be left with no resource. ` +
+            'Pass { releaseTasks: true } to do it anyway.',
         );
       }
       commitResources(withResourceRemoved(chart().getResources(), id));

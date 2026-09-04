@@ -48,54 +48,54 @@ export function Toolbar({
     <div className="toolbar">
       <div className="toolbar__group">
         <button type="button" onClick={onNew}>
-          Nuovo
+          New
         </button>
         <button type="button" onClick={onOpen}>
-          Apri
+          Open
         </button>
         <button type="button" onClick={onSave}>
-          Salva
+          Save
         </button>
       </div>
-      {/* Its own group rather than beside Salva: what Salva writes is the
+      {/* Its own group rather than beside Save: what Save writes is the
           project, what this writes is the schedule derived from it — a file
           that comes back in is one thing, a file that only goes out is
           another. */}
-      <div className="toolbar__group" role="group" aria-label="Esporta">
+      <div className="toolbar__group" role="group" aria-label="Export">
         <button
           type="button"
           onClick={onExportCsv}
-          title="Esporta il piano risolto in CSV (date, effort e durate)"
+          title="Export the solved plan to CSV (dates, effort and durations)"
         >
           CSV
         </button>
         <button
           type="button"
           onClick={onExportPng}
-          title="Esporta il piano come immagine PNG"
+          title="Export the plan as a PNG image"
         >
           PNG
         </button>
         <button
           type="button"
           onClick={onPrint}
-          title="Stampa il piano, o salvalo in PDF dalla finestra di stampa (Ctrl+P)"
+          title="Print the plan, or save it as PDF from the print dialog (Ctrl+P)"
         >
-          Stampa
+          Print
         </button>
       </div>
       <div className="toolbar__group">
         {/* The title names the step rather than only saying there is one: a
             plan is edited from the grid, the bars, the dialogs and a script
-            alike, and a bare "Annulla" leaves the user guessing which of them
+            alike, and a bare "Undo" leaves the user guessing which of them
             is about to be taken back. */}
         <button
           type="button"
           className="toolbar__icon"
           onClick={onUndo}
           disabled={undoing === null}
-          aria-label={undoing ? `Annulla: ${undoing}` : 'Annulla modifica'}
-          title={undoing ? `Annulla: ${undoing} (Ctrl+Z)` : 'Niente da annullare'}
+          aria-label={undoing ? `Undo: ${undoing}` : 'Undo change'}
+          title={undoing ? `Undo: ${undoing} (Ctrl+Z)` : 'Nothing to undo'}
         >
           ↶
         </button>
@@ -104,25 +104,25 @@ export function Toolbar({
           className="toolbar__icon"
           onClick={onRedo}
           disabled={redoing === null}
-          aria-label={redoing ? `Ripeti: ${redoing}` : 'Ripeti modifica'}
-          title={redoing ? `Ripeti: ${redoing} (Ctrl+Shift+Z)` : 'Niente da ripetere'}
+          aria-label={redoing ? `Redo: ${redoing}` : 'Redo change'}
+          title={redoing ? `Redo: ${redoing} (Ctrl+Shift+Z)` : 'Nothing to redo'}
         >
           ↷
         </button>
       </div>
       <div className="toolbar__group">
         <button type="button" className="toolbar__primary" onClick={onAddTask}>
-          Aggiungi attività
+          Add task
         </button>
         <button type="button" onClick={onEditResources}>
-          Persone
+          People
         </button>
         <button type="button" onClick={onEditCalendar}>
-          Calendario
+          Calendar
         </button>
       </div>
       {people.length > 0 && (
-        <div className="toolbar__group toolbar__people" role="group" aria-label="Evidenzia">
+        <div className="toolbar__group toolbar__people" role="group" aria-label="Highlight">
           {people.map((person) => {
             // The ring follows the pin, never the hover: what is pinned has to
             // stay readable while the pointer borrows the highlight elsewhere.
@@ -136,7 +136,7 @@ export function Toolbar({
                 // carry the same colour in both places.
                 style={{ background: avatarColorOf(person.name) }}
                 aria-pressed={on}
-                title={on ? `Non evidenziare più ${person.name}` : `Evidenzia ${person.name}`}
+                title={on ? `Stop highlighting ${person.name}` : `Highlight ${person.name}`}
                 // Hovering highlights this person for as long as the pointer
                 // stays, wherever their avatar is: App tracks the attribute
                 // rather than a handler of this button's own.
@@ -151,7 +151,7 @@ export function Toolbar({
       )}
       <span className="toolbar__file">
         {filename}
-        {dirty && <span className="toolbar__dirty" title="Modifiche non salvate" />}
+        {dirty && <span className="toolbar__dirty" title="Unsaved changes" />}
       </span>
     </div>
   );

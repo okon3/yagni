@@ -151,7 +151,7 @@ describe('planFigure', () => {
 
   it('holds a frame and a title for an empty plan instead of throwing', () => {
     const { svg } = figureOf([], { title: 'vuoto.gantt' });
-    expect(svg).toContain('nessuna attività');
+    expect(svg).toContain('no tasks');
     expect(svg).not.toContain('<rect x=');
   });
 });
@@ -222,8 +222,8 @@ describe('planFigurePages', () => {
   it('numbers the pages in the title only when there is more than one', () => {
     expect(pagesOf(10, { title: 'piano.gantt' })[0].svg).toContain('piano.gantt<');
     const paged = pagesOf(30, { title: 'piano.gantt', rowsPerPage: 12 });
-    expect(paged[0].svg).toContain('piano.gantt — pagina 1 di 3');
-    expect(paged[2].svg).toContain('piano.gantt — pagina 3 di 3');
+    expect(paged[0].svg).toContain('piano.gantt — page 1 of 3');
+    expect(paged[2].svg).toContain('piano.gantt — page 3 of 3');
   });
 
   it('is as tall as the rows it holds, so a short last page is short', () => {

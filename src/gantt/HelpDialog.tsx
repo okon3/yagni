@@ -15,7 +15,7 @@ const TRACK_LINE = '#c3cddc';
 const FILL = '#3b74d6';
 const FILL_LINE = '#2a539a';
 
-const DAYS = ['L', 'M', 'M', 'G', 'V', 'S', 'D', 'L'];
+const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S', 'M'];
 const COLUMN = 60;
 const AXIS_X = 110;
 const BAR_HEIGHT = 28;
@@ -49,7 +49,7 @@ function EffortDiagram() {
       className="help__diagram"
       viewBox="0 0 620 162"
       role="img"
-      aria-label="Due attività della stessa persona che si sovrappongono: nei giorni in comune ciascuna avanza al 50%."
+      aria-label="Two tasks assigned to the same person that overlap: on the days they share, each progresses at 50%."
     >
       <defs>
         <clipPath id="help-bar-a">
@@ -74,8 +74,8 @@ function EffortDiagram() {
       <line x1={dayX(8)} y1={22} x2={dayX(8)} y2={130} className="help__gridline" />
 
       {[
-        { y: rowA, name: 'Analisi', effort: '5g' },
-        { y: rowB, name: 'Report', effort: '1g' },
+        { y: rowA, name: 'Analysis', effort: '5d' },
+        { y: rowB, name: 'Report', effort: '1d' },
       ].map((row) => (
         <g key={row.name}>
           <circle cx={16} cy={row.y + BAR_HEIGHT / 2} r={10} fill={PERSON.colour} />
@@ -94,7 +94,7 @@ function EffortDiagram() {
         </g>
       ))}
 
-      {/* Analisi: five days of effort, at full rate until Report joins it. */}
+      {/* Analysis: five days of effort, at full rate until Report joins it. */}
       <rect
         x={dayX(0)}
         y={rowA}
@@ -154,7 +154,7 @@ function EffortDiagram() {
         d={`M ${dayX(0)},${136} L ${dayX(0)},${144} M ${dayX(0)},${140} L ${dayX(8)},${140} M ${dayX(8)},${136} L ${dayX(8)},${144}`}
       />
       <text x={dayX(4)} y={155} className="help__spanlabel" textAnchor="middle">
-        5 giornate di effort, 8 giorni di calendario
+        5 days of effort, 8 calendar days
       </text>
     </svg>
   );
@@ -184,114 +184,112 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
 
   return (
     <dialog ref={dialog} className="resources help" tabIndex={-1} onCancel={onClose}>
-      <h2>Come funziona</h2>
+      <h2>How it works</h2>
       <p className="resources__hint">
-        Di un&apos;attività si dichiarano due cose: quanto lavoro costa e da quando può partire.
-        Tutto il resto — durata, data di fine, chi è in ritardo su chi — lo calcola il motore, e non
-        si può scrivere a mano.
+        A task declares two things: how much work it costs and from when it may start. Everything
+        else — duration, end date, who is holding up whom — is computed by the engine, and cannot be
+        typed by hand.
       </p>
 
       <section className="help__section">
-        <h3>Effort e inizio sono input, la fine è un risultato</h3>
+        <h3>Effort and start are inputs, the end is a result</h3>
         <p>
-          L&apos;<strong>effort</strong> è il lavoro che l&apos;attività costa, in giornate-persona.
-          L&apos;<strong>inizio</strong> è il giorno prima del quale non può partire. La{' '}
-          <strong>fine</strong> non esiste come dato: dipende da quanta capacità la persona assegnata
-          riesce davvero a darle, giorno per giorno.
+          <strong>Effort</strong> is the work the task costs, in person-days. <strong>Start</strong>{' '}
+          is the day before which it cannot begin. <strong>End</strong> does not exist as a stored
+          value: it depends on how much capacity the assigned person can actually give it, day by
+          day.
         </p>
       </section>
 
       <section className="help__section">
-        <h3>Chi ha due attività insieme le fa entrambe a metà</h3>
+        <h3>Two tasks at once are each done at half rate</h3>
         <figure className="help__figure">
           <EffortDiagram />
           <figcaption className="help__caption">
-            Ada ha <strong>Analisi</strong> (5 giorni di effort, dal lunedì) e{' '}
-            <strong>Report</strong> (1 giorno, dal mercoledì). Mercoledì e giovedì sono attive
-            entrambe: la sua giornata si divide in due e ognuna avanza al 50%. Analisi torna al 100%
-            il venerdì, quando resta da sola.
+            Ada has <strong>Analysis</strong> (5 days of effort, from Monday) and{' '}
+            <strong>Report</strong> (1 day, from Wednesday). Both are active on Wednesday and
+            Thursday: her day splits in two and each progresses at 50%. Analysis returns to 100% on
+            Friday, once it is alone again.
           </figcaption>
         </figure>
         <p>
-          È questo il profilo altalenante dentro le barre: l&apos;altezza del riempimento è la quota
-          di giornata che quella persona sta dedicando all&apos;attività in quel momento. Il{' '}
-          <strong>lavoro non cambia mai</strong> — cinque giornate restano cinque giornate. Cambia
-          solo il tempo di calendario che serve a smaltirle: Analisi ne occupa otto.
+          That is the up-and-down profile inside the bars: the height of the fill is the share of
+          the day that person is giving the task at that moment. The{' '}
+          <strong>work never changes</strong> — five days stay five days. What changes is only the
+          calendar time it takes to get through them: Analysis takes eight.
         </p>
       </section>
 
       <section className="help__section">
-        <h3>Il tempo che nessuno lavora non conta</h3>
+        <h3>Time nobody works does not count</h3>
         <p>
-          Notti, weekend, festività e chiusure aziendali non stanno sull&apos;asse: una durata non li
-          conta mai. Nel diagramma il sabato e la domenica passano senza consumare effort, e Analisi
-          finisce il lunedì. Sul grafico le <strong>fasce grigie</strong> sono giorni non lavorativi;
-          le <strong>fasce rosse</strong> sono assenze di una persona o chiusure di tutti.
+          Nights, weekends, holidays and company shutdowns are not on the axis: a duration never
+          counts them. In the diagram Saturday and Sunday pass without consuming effort, and
+          Analysis finishes on Monday. On the chart the <strong>grey bands</strong> are non-working
+          days; the <strong>red bands</strong> are one person's absence or a shutdown for everyone.
         </p>
       </section>
 
       <section className="help__section">
-        <h3>La disponibilità sostituisce, non moltiplica</h3>
+        <h3>Availability replaces, it does not multiply</h3>
         <p>
-          Una persona al 50% dà mezza giornata al progetto. Un periodo di disponibilità{' '}
-          <strong>rimpiazza</strong> la percentuale di base invece di moltiplicarla: chi sta al 50%
-          con un periodo al 25% lavora al 25%, non al 12,5%. Dove due periodi si sovrappongono vince
-          l&apos;ultimo dichiarato, così un&apos;eccezione stretta si ritaglia dentro una larga. Una
-          disponibilità a zero è un&apos;assenza — non serve altro concetto.
+          A person at 50% gives half a day to the project. An availability period{' '}
+          <strong>replaces</strong> the base percentage instead of multiplying it: someone at 50%
+          with a period at 25% works at 25%, not at 12.5%. Where two periods overlap, the last one
+          declared wins, so a narrow exception carves itself out of a wider one. An availability of
+          zero is an absence — no other concept is needed.
         </p>
       </section>
 
       <section className="help__section">
-        <h3>Un raggruppamento non viene mai schedulato</h3>
+        <h3>A group is never scheduled</h3>
         <p>
-          Un&apos;attività con sottoattività non consuma capacità: se lo facesse contenderebbe la
-          stessa persona ai propri figli, dimezzandoli. Effort e date le somma dai figli, e il colore
-          scelto sul livello alto scende su tutto il ramo. Una dipendenza su un raggruppamento vale
-          per le sue foglie.
+          A task with subtasks consumes no capacity: if it did, it would contend for the same
+          person against its own children, halving them. Its effort and dates are summed from its
+          children, and the colour chosen at the top level flows down the whole branch. A
+          dependency on a group applies to its leaves.
         </p>
       </section>
 
       <section className="help__section">
-        <h3>Senza persona non si contende</h3>
+        <h3>With no person, there is no contention</h3>
         <p>
-          Un&apos;attività a cui non è assegnato nessuno avanza sempre al 100%: la sua durata è il
-          suo effort, e nessun altro può rallentarla.
+          A task with nobody assigned always progresses at 100%: its duration equals its effort,
+          and nothing else can slow it down.
         </p>
       </section>
 
       <section className="help__section">
-        <h3>Il bordo rosso è la catena critica</h3>
+        <h3>The red outline is the critical chain</h3>
         <p>
-          Le attività cerchiate di <strong>rosso</strong> sono quelle da cui dipende la data di
-          fine: farle partire più tardi, o dargli un giorno di lavoro in più, la sposta. Nel
-          dettaglio della riga il <strong>margine</strong> dice di quanti giorni un&apos;attività
-          può slittare prima di spostarla.
+          Tasks outlined in <strong>red</strong> are the ones the end date depends on: starting them
+          later, or giving them one more day of work, moves it. In the row's detail the{' '}
+          <strong>float</strong> says how many days a task can slip before it moves the end.
         </p>
         <p>
-          Non è il percorso critico dei manuali, che guarda solo le dipendenze. Qui una persona
-          divisa fra due attività le allunga entrambe, quindi un&apos;attività può essere critica
-          senza dipendere da niente, solo perché condivide una risorsa con la catena — e il
-          dettaglio dice quale dei due casi è. Una <strong>contesa</strong> si scioglie spostando o
-          riassegnando un&apos;altra attività di quella persona; una criticità di sequenza si
-          scioglie accorciando la catena.
+          This is not the textbook critical path, which only looks at dependencies. Here a person
+          split between two tasks stretches both of them, so a task can be critical without
+          depending on anything, purely because it shares a resource with the chain — and the
+          detail says which of the two cases it is. A <strong>contention</strong> is resolved by
+          moving or reassigning another task of that person's; a sequence criticality is resolved
+          by shortening the chain.
         </p>
         <p>
-          Le due cose convivono: chi è occupato dal primo giorno lascia margine su ogni singola
-          attività — spostarne una la fa recuperare da sola — ma un giorno di lavoro in più su
-          qualunque di esse sposta la fine.
+          The two coexist: someone booked from day one leaves float on every single task — moving
+          one lets it recover on its own — but one more day of work on any of them moves the end.
         </p>
         <p>
-          Misurare costa un ricalcolo del piano per ogni attività: fino a {CRITICAL_CHAIN_LIMIT}{' '}
-          attività la marcatura si rifà a ogni modifica, oltre si chiede dalla barra di stato. In
-          quel caso, dopo una modifica, resta a schermo il calcolo di prima:{' '}
-          <strong>tratteggiato</strong> per dirlo, e lo stesso pulsante lo rifà.
+          Measuring it costs a re-solve of the plan per task: up to {CRITICAL_CHAIN_LIMIT} tasks the
+          marking redoes itself on every edit, past that it is asked for from the status bar. In
+          that case, after an edit, the previous measurement stays on screen —{' '}
+          <strong>dashed</strong> to say so, and the same button redoes it.
         </p>
       </section>
 
       <div className="resources__actions">
         <span className="resources__spacer" />
         <button type="button" className="resources__primary" onClick={onClose}>
-          Chiudi
+          Close
         </button>
       </div>
     </dialog>

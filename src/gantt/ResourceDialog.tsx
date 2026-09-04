@@ -76,10 +76,10 @@ export function ResourceDialog({
       if (period.availability === 0) away += working;
       else reduced += working;
     }
-    if (away === 0 && reduced === 0) return 'nessuno';
+    if (away === 0 && reduced === 0) return 'none';
     const parts = [];
-    if (away > 0) parts.push(`${away} g via`);
-    if (reduced > 0) parts.push(`${reduced} g ridotti`);
+    if (away > 0) parts.push(`${away} d away`);
+    if (reduced > 0) parts.push(`${reduced} d reduced`);
     return parts.join(', ');
   };
 
@@ -94,9 +94,9 @@ export function ResourceDialog({
     const assigned = usage.taskCounts.get(draft.id) ?? 0;
     if (assigned > 0) {
       const confirmed = await confirm(
-        `${draft.name || 'Questa risorsa'} è assegnata a ${assigned} attività. ` +
-          'Rimuovendola, quelle attività restano senza risorsa e non condivideranno più effort. Continuare?',
-        'Rimuovi',
+        `${draft.name || 'This resource'} is assigned to ${assigned} tasks. ` +
+          'Removing it leaves those tasks with no resource, and they will no longer share effort. Continue?',
+        'Remove',
       );
       if (!confirmed) return;
     }
@@ -122,21 +122,20 @@ export function ResourceDialog({
 
   return (
     <dialog ref={dialog} className="resources" onCancel={onCancel} onClose={onCancel}>
-      <h2>Persone</h2>
+      <h2>People</h2>
       <p className="resources__hint">
-        La disponibilità è la quota di giornata lavorativa che la persona dedica al progetto: 50%
-        significa mezza giornata. Nei <strong>periodi</strong> puoi sovrascriverla per intervalli
-        specifici — 0% è un&apos;assenza. L&apos;effort disponibile si divide comunque in parti uguali
-        fra le attività concorrenti.
+        Availability is the share of a working day the person gives to the project: 50% means half
+        a day. In <strong>periods</strong> you can override it for specific ranges — 0% is an
+        absence. Available effort is still split evenly across concurrent tasks.
       </p>
 
       <table className="resources__table">
         <thead>
           <tr>
-            <th>Nome</th>
-            <th>Disponibilità</th>
-            <th>Periodi</th>
-            <th>Attività</th>
+            <th>Name</th>
+            <th>Availability</th>
+            <th>Periods</th>
+            <th>Tasks</th>
             <th />
           </tr>
         </thead>
@@ -146,7 +145,7 @@ export function ResourceDialog({
               <td>
                 <input
                   value={draft.name}
-                  placeholder="Nome e cognome"
+                  placeholder="Full name"
                   onChange={(event) => update(index, { name: event.target.value })}
                 />
               </td>
@@ -174,7 +173,7 @@ export function ResourceDialog({
               </td>
               <td className="resources__count">{usage.taskCounts.get(draft.id) ?? 0}</td>
               <td>
-                <button type="button" onClick={() => void remove(index)} title="Rimuovi">
+                <button type="button" onClick={() => void remove(index)} title="Remove">
                   ✕
                 </button>
               </td>
@@ -194,7 +193,7 @@ export function ResourceDialog({
           {drafts.length === 0 && (
             <tr>
               <td colSpan={5} className="resources__empty">
-                Nessuna persona. Aggiungine una per poter assegnare le attività.
+                No people yet. Add one to be able to assign tasks.
               </td>
             </tr>
           )}
@@ -209,14 +208,14 @@ export function ResourceDialog({
 
       <div className="resources__actions">
         <button type="button" onClick={add}>
-          Aggiungi persona
+          Add person
         </button>
         <span className="resources__spacer" />
         <button type="button" onClick={onCancel}>
-          Annulla
+          Cancel
         </button>
         <button type="button" className="resources__primary" onClick={save}>
-          Salva
+          Save
         </button>
       </div>
     </dialog>

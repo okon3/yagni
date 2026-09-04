@@ -30,7 +30,7 @@ export function AvailabilityList({
     <div className="ranges">
       {periods.length === 0 && (
         <p className="ranges__empty">
-          Nessun periodo: vale la disponibilità di default per tutta la durata del progetto.
+          No periods: the default availability applies for the whole project.
         </p>
       )}
 
@@ -68,19 +68,19 @@ export function AvailabilityList({
             <span className="ranges__unit">%</span>
             <input
               className="ranges__label"
-              placeholder={percent === 0 ? 'Ferie, permesso...' : 'Motivo (opzionale)'}
+              placeholder={percent === 0 ? 'Leave, time off...' : 'Reason (optional)'}
               value={period.label ?? ''}
               onChange={(event) => update(index, { label: event.target.value })}
             />
             <span className={`ranges__count${working === 0 ? ' ranges__count--none' : ''}`}>
               {working === 0
-                ? 'nessun giorno lavorativo'
-                : `${working} ${working === 1 ? 'giorno' : 'giorni'}${percent === 0 ? ' via' : ''}`}
+                ? 'no working days'
+                : `${working} ${working === 1 ? 'day' : 'days'}${percent === 0 ? ' away' : ''}`}
             </span>
             <button
               type="button"
               onClick={() => onChange(periods.filter((_, position) => position !== index))}
-              title="Rimuovi"
+              title="Remove"
             >
               ✕
             </button>
@@ -89,7 +89,7 @@ export function AvailabilityList({
       })}
 
       <button type="button" className="ranges__add" onClick={add}>
-        Aggiungi periodo
+        Add period
       </button>
     </div>
   );

@@ -23,19 +23,19 @@ const BOM = String.fromCharCode(0xfeff);
 
 const HEADERS = [
   'Id',
-  'Attività',
-  'Livello',
-  'Riepilogo',
-  'Persona',
-  'Inizio',
-  'Fine',
-  'Effort (g)',
-  'Durata (g)',
-  'Contesa',
-  'Predecessori',
+  'Task',
+  'Level',
+  'Summary',
+  'Person',
+  'Start',
+  'End',
+  'Effort (d)',
+  'Duration (d)',
+  'Contended',
+  'Predecessors',
   // Appended rather than grouped with the other flags: a column order somebody
   // has built a sheet on top of is worth more than reading well.
-  'Disattivata',
+  'Disabled',
 ];
 
 /** `YYYY-MM-DDTHH:mm` as the day comes first here, purely textual. */
@@ -62,17 +62,17 @@ function row(task: PlanTask, nameOfResource: (id: string) => string): string[] {
     String(task.depth + 1),
     // A summary's effort is the rollup of its children's, so a column summed
     // without this flag counts every leaf twice.
-    task.isSummary ? 'sì' : '',
+    task.isSummary ? 'yes' : '',
     task.resourceId ? nameOfResource(task.resourceId) : '',
     localDateTime(task.start),
     localDateTime(task.end),
     decimal(task.effortDays),
     decimal(task.elapsedDays),
-    task.shared ? 'sì' : '',
+    task.shared ? 'yes' : '',
     task.predecessors.join(' '),
     // Without it an exported plan reads a placeholder as committed work, and
     // the effort column sums it in with the rest.
-    task.disabled ? 'sì' : '',
+    task.disabled ? 'yes' : '',
   ];
 }
 

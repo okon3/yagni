@@ -63,14 +63,14 @@ describe('the snapshot stack', () => {
   it('names what each step would take back', () => {
     let history = historyOf(textOf(emptyProject()));
     history = recordedChange(history, projectOf([task()]));
-    expect(undoLabel(history)).toBe('aggiunta di «Requisiti»');
+    expect(undoLabel(history)).toBe('added "Requisiti"');
 
     history = recordedChange(history, projectOf([task({ nominalDays: 8 })]));
-    expect(undoLabel(history)).toBe('modifica di «Requisiti»');
+    expect(undoLabel(history)).toBe('edited "Requisiti"');
 
     history = undone(history);
-    expect(undoLabel(history)).toBe('aggiunta di «Requisiti»');
-    expect(redoLabel(history)).toBe('modifica di «Requisiti»');
+    expect(undoLabel(history)).toBe('added "Requisiti"');
+    expect(redoLabel(history)).toBe('edited "Requisiti"');
   });
 
   it('ignores an edit that leaves the project as it was', () => {
@@ -115,13 +115,13 @@ describe('naming a change', () => {
   const before = projectOf([task(), task({ id: 't2', name: 'Modello dati' })]);
 
   it('counts several tasks appearing or disappearing', () => {
-    expect(describeChange(projectOf([]), before)).toBe('aggiunta di 2 attività');
-    expect(describeChange(before, projectOf([]))).toBe('eliminazione di 2 attività');
+    expect(describeChange(projectOf([]), before)).toBe('added 2 tasks');
+    expect(describeChange(before, projectOf([]))).toBe('deleted 2 tasks');
   });
 
   it('names the one task deleted', () => {
     expect(describeChange(before, projectOf([task()]))).toBe(
-      'eliminazione di «Modello dati»',
+      'deleted "Modello dati"',
     );
   });
 
@@ -139,7 +139,7 @@ describe('naming a change', () => {
       task(),
       task({ id: 't2', name: 'Modello dati' }),
     ]);
-    expect(describeChange(three, dragged)).toBe('riordino di «Collaudo»');
+    expect(describeChange(three, dragged)).toBe('reordered "Collaudo"');
   });
 
   it('says nothing more than a reorder when several rows changed places', () => {
@@ -153,20 +153,20 @@ describe('naming a change', () => {
       task({ id: 't2', name: 'Modello dati' }),
       task(),
     ]);
-    expect(describeChange(three, shuffled)).toBe('riordino delle attività');
+    expect(describeChange(three, shuffled)).toBe('reordered tasks');
   });
 
   it('tells a dependency added from one removed', () => {
     const linked = projectOf([task(), task({ id: 't2', name: 'Modello dati', predecessors: ['t1'] })]);
-    expect(describeChange(before, linked)).toBe('aggiunta di una dipendenza');
-    expect(describeChange(linked, before)).toBe('rimozione di una dipendenza');
+    expect(describeChange(before, linked)).toBe('added a dependency');
+    expect(describeChange(linked, before)).toBe('removed a dependency');
   });
 
   it('tells a task re-parented from a task edited', () => {
     const nested = projectOf([task(), task({ id: 't2', name: 'Modello dati', parentId: 't1' })]);
-    expect(describeChange(before, nested)).toBe('spostamento di «Modello dati»');
+    expect(describeChange(before, nested)).toBe('moved "Modello dati"');
     const later = projectOf([task({ start: at(4) }), task({ id: 't2', name: 'Modello dati' })]);
-    expect(describeChange(before, later)).toBe('modifica di «Requisiti»');
+    expect(describeChange(before, later)).toBe('edited "Requisiti"');
   });
 
   it('names people and calendar changes before task ones', () => {
@@ -174,12 +174,12 @@ describe('naming a change', () => {
       resources: [{ id: 'r1', name: 'Marco Bianchi' }],
     });
     // The assignment moved too, and the person arriving is the reason why.
-    expect(describeChange(before, staffed)).toBe('aggiunta di «Marco Bianchi»');
-    expect(describeChange(staffed, before)).toBe('rimozione di «Marco Bianchi»');
+    expect(describeChange(before, staffed)).toBe('added "Marco Bianchi"');
+    expect(describeChange(staffed, before)).toBe('removed "Marco Bianchi"');
     const shutdown = projectOf(before.tasks, {
       calendar: { ...before.calendar, holidays: [{ from: '2026-12-24', to: '2026-12-31' }] },
     });
-    expect(describeChange(before, shutdown)).toBe('modifica del calendario');
+    expect(describeChange(before, shutdown)).toBe('changed calendar');
   });
 
   it('does not mistake a reordered availability list for the same one', () => {
@@ -194,13 +194,13 @@ describe('naming a change', () => {
       resources: [{ id: 'r1', name: 'Elena Rossi', availabilityOverrides: [...periods].reverse() }],
     });
     // The last override declared wins, so the order is meaning, not noise.
-    expect(describeChange(withPeriods, reordered)).toBe('modifica delle persone');
+    expect(describeChange(withPeriods, reordered)).toBe('changed people');
     expect(describeChange(withPeriods, withPeriods)).toBe(GENERIC_CHANGE);
   });
 
   it('names a task with no name at all', () => {
     expect(describeChange(projectOf([]), projectOf([task({ name: '  ' })]))).toBe(
-      'aggiunta di «attività senza nome»',
+      'added "unnamed task"',
     );
   });
 });

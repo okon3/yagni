@@ -18,7 +18,7 @@ import { deserializeProject, serializeProject } from './serialization';
 export const HISTORY_LIMIT = 50;
 
 /** What the button says when the change cannot be named more precisely. */
-export const GENERIC_CHANGE = 'ultima modifica';
+export const GENERIC_CHANGE = 'last change';
 
 export interface Snapshot {
   /** The project as `.gantt` text. */
@@ -98,8 +98,8 @@ function labelFor(beforeText: string, after: Project): string {
 /** Fields a person edits on a task, parentage and dependencies apart. */
 const OWN_FIELDS = ['name', 'nominalDays', 'resourceId', 'progress', 'color', 'disabled'] as const;
 
-const nameOf = (task: ProjectTask) => task.name.trim() || 'attività senza nome';
-const quoted = (task: ProjectTask) => `«${nameOf(task)}»`;
+const nameOf = (task: ProjectTask) => task.name.trim() || 'unnamed task';
+const quoted = (task: ProjectTask) => `"${nameOf(task)}"`;
 
 /**
  * What changed between two states, in the words the undo button uses.
@@ -115,14 +115,14 @@ export function describeChange(before: Project, after: Project): string {
   const added = after.tasks.filter((task) => !beforeTasks.has(task.id));
   if (added.length > 0) {
     return added.length === 1
-      ? `aggiunta di ${quoted(added[0])}`
-      : `aggiunta di ${added.length} attività`;
+      ? `added ${quoted(added[0])}`
+      : `added ${added.length} tasks`;
   }
   const removed = before.tasks.filter((task) => !afterTasks.has(task.id));
   if (removed.length > 0) {
     return removed.length === 1
-      ? `eliminazione di ${quoted(removed[0])}`
-      : `eliminazione di ${removed.length} attività`;
+      ? `deleted ${quoted(removed[0])}`
+      : `deleted ${removed.length} tasks`;
   }
 
   if (!equalValues(before.resources, after.resources)) {
@@ -130,23 +130,23 @@ export function describeChange(before: Project, after: Project): string {
     const knownAfter = new Set(after.resources.map((person) => person.id));
     const arrived = after.resources.filter((person) => !knownBefore.has(person.id));
     const gone = before.resources.filter((person) => !knownAfter.has(person.id));
-    if (arrived.length === 1 && gone.length === 0) return `aggiunta di «${arrived[0].name}»`;
-    if (gone.length === 1 && arrived.length === 0) return `rimozione di «${gone[0].name}»`;
-    return 'modifica delle persone';
+    if (arrived.length === 1 && gone.length === 0) return `added "${arrived[0].name}"`;
+    if (gone.length === 1 && arrived.length === 0) return `removed "${gone[0].name}"`;
+    return 'changed people';
   }
-  if (!equalValues(before.calendar, after.calendar)) return 'modifica del calendario';
+  if (!equalValues(before.calendar, after.calendar)) return 'changed calendar';
 
   const dependencies = countDependencies(after) - countDependencies(before);
-  if (dependencies > 0) return 'aggiunta di una dipendenza';
-  if (dependencies < 0) return 'rimozione di una dipendenza';
+  if (dependencies > 0) return 'added a dependency';
+  if (dependencies < 0) return 'removed a dependency';
 
   const moved = after.tasks.filter(
     (task) => beforeTasks.get(task.id)?.parentId !== task.parentId,
   );
   if (moved.length > 0) {
     return moved.length === 1
-      ? `spostamento di ${quoted(moved[0])}`
-      : `spostamento di ${moved.length} attività`;
+      ? `moved ${quoted(moved[0])}`
+      : `moved ${moved.length} tasks`;
   }
 
   const edited = after.tasks.filter((task) => {
@@ -155,8 +155,8 @@ export function describeChange(before: Project, after: Project): string {
   });
   if (edited.length > 0) {
     return edited.length === 1
-      ? `modifica di ${quoted(edited[0])}`
-      : `modifica di ${edited.length} attività`;
+      ? `edited ${quoted(edited[0])}`
+      : `edited ${edited.length} tasks`;
   }
 
   const beforeOrder = before.tasks.map((task) => task.id);
@@ -172,7 +172,7 @@ export function describeChange(before: Project, after: Project): string {
       ),
     );
     const task = dragged === undefined ? undefined : afterTasks.get(dragged);
-    return task ? `riordino di ${quoted(task)}` : 'riordino delle attività';
+    return task ? `reordered ${quoted(task)}` : 'reordered tasks';
   }
 
   // Reordered dependencies, or a rename to the same name through a path that

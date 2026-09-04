@@ -31,7 +31,7 @@ snapshot you chose beats whichever step happens to be on top of that stack.
 
 ```js
 const before = yagni.toText();
-const id = yagni.addTask({ name: 'Analisi', nominalDays: 5, resourceId: 'r1' });
+const id = yagni.addTask({ name: 'Analysis', nominalDays: 5, resourceId: 'r1' });
 yagni.getPlan().tasks.find((t) => t.id === id);
 yagni.loadText(before); // changed my mind
 ```
@@ -52,7 +52,7 @@ yagni.loadText(before); // changed my mind
 A `getPlan()` task:
 
 ```json
-{ "id": "t1", "name": "Analisi", "parentId": null, "depth": 0, "isSummary": true,
+{ "id": "t1", "name": "Analysis", "parentId": null, "depth": 0, "isSummary": true,
   "start": "2026-09-07T08:00", "end": "2026-09-16T17:00",
   "effortDays": 8, "elapsedDays": 8, "shared": false, "disabled": false,
   "resourceId": null, "predecessors": [] }
@@ -121,8 +121,8 @@ and it is cheap: it reads the schedule already solved.
   which are no time at all on the engine's axis.
 
 This is the one reading that cannot be assembled from `getPlan()`, which leaves
-the allocation segments out. The chart shows the same thing under *Carico
-risorse* in the status bar.
+the allocation segments out. The chart shows the same thing under *Resource
+load* in the status bar.
 
 ## Why the end date is what it is
 

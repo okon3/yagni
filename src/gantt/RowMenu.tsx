@@ -24,10 +24,10 @@ export interface RowMenuTarget {
 }
 
 const ITEMS: { action: RowMenuAction; label: string }[] = [
-  { action: 'sibling', label: 'Nuova attività sotto' },
-  { action: 'child', label: 'Nuova sottoattività' },
-  { action: 'milestone', label: 'Nuovo traguardo sotto' },
-  { action: 'toggle-disabled', label: 'Disattiva' },
+  { action: 'sibling', label: 'New task below' },
+  { action: 'child', label: 'New subtask' },
+  { action: 'milestone', label: 'New milestone below' },
+  { action: 'toggle-disabled', label: 'Disable' },
 ];
 
 /**
@@ -111,7 +111,7 @@ export function RowMenu({
   };
 
   return (
-    <dialog ref={dialog} open className="rowmenu" aria-label={`Azioni per ${target.name}`}>
+    <dialog ref={dialog} open className="rowmenu" aria-label={`Actions for ${target.name}`}>
       <p className="rowmenu__anchor">{target.name}</p>
       <ul className="rowmenu__items">
         {ITEMS.map(({ action, label }) => (
@@ -131,10 +131,10 @@ export function RowMenu({
             >
               {action === 'toggle-disabled'
                 ? target.disabled
-                  ? 'Riattiva'
-                  : 'Disattiva'
+                  ? 'Enable'
+                  : 'Disable'
                 : action === 'child' && target.isSummary
-                  ? 'Nuova attività dentro'
+                  ? 'New task inside'
                   : label}
             </button>
           </li>

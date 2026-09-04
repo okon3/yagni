@@ -3,8 +3,8 @@ import { countWorkingDaysInRange, type DayRange } from '../scheduler';
 
 function describe(range: DayRange, workingWeekdays: number[]): string {
   const working = countWorkingDaysInRange(range, workingWeekdays);
-  if (working === 0) return 'nessun giorno lavorativo';
-  return working === 1 ? '1 giorno' : `${working} giorni`;
+  if (working === 0) return 'no working days';
+  return working === 1 ? '1 day' : `${working} days`;
 }
 
 export function DayRangeList({
@@ -32,7 +32,7 @@ export function DayRangeList({
 
   return (
     <div className="ranges">
-      {ranges.length === 0 && <p className="ranges__empty">Nessun periodo.</p>}
+      {ranges.length === 0 && <p className="ranges__empty">No periods.</p>}
 
       {ranges.map((range, index) => (
         <div className="ranges__row" key={index}>
@@ -66,7 +66,7 @@ export function DayRangeList({
           <button
             type="button"
             onClick={() => onChange(ranges.filter((_, position) => position !== index))}
-            title="Rimuovi"
+            title="Remove"
           >
             ✕
           </button>
@@ -74,7 +74,7 @@ export function DayRangeList({
       ))}
 
       <button type="button" className="ranges__add" onClick={add}>
-        Aggiungi periodo
+        Add period
       </button>
     </div>
   );

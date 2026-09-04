@@ -23,9 +23,9 @@ describe('renderBarTooltip', () => {
   it('answers what the bar is', () => {
     const html = renderBarTooltip(facts());
     expect(html).toContain('API di dominio');
-    expect(html).toContain('lun 14/09/2026');
-    expect(html).toContain('lun 21/09/2026');
-    expect(html).toContain('3 g');
+    expect(html).toContain('Mon, 14/09/2026');
+    expect(html).toContain('Mon, 21/09/2026');
+    expect(html).toContain('3 d');
     expect(html).toContain('Marco');
   });
 
@@ -37,8 +37,8 @@ describe('renderBarTooltip', () => {
 
   it('prints the same day figures the grid does', () => {
     const html = renderBarTooltip(facts({ effortDays: 0.25, elapsedDays: 0.5 }));
-    expect(html).toContain('0.25 g');
-    expect(html).toContain('0.5 g');
+    expect(html).toContain('0.25 d');
+    expect(html).toContain('0.5 d');
     expect(html).not.toContain('0.50');
   });
 
@@ -50,16 +50,16 @@ describe('renderBarTooltip', () => {
   it('says the resource was split when it was', () => {
     const html = renderBarTooltip(facts({ elapsedDays: 6, rates: [0.5, 0.5], contended: true, shared: true }));
     expect(html).toContain('50%');
-    expect(html).toContain('divisa con altre attività');
+    expect(html).toContain('split with other tasks');
   });
 
   it('blames part-time rather than contention when nothing was split', () => {
     const html = renderBarTooltip(
       facts({ elapsedDays: 6, rates: [0.5], shared: true, resource: { name: 'Anna', availability: 0.5 } }),
     );
-    expect(html).toContain('non lavora a tempo pieno');
-    expect(html).not.toContain('divisa con altre attività');
-    expect(html).toContain('al 50%');
+    expect(html).toContain('does not work full time');
+    expect(html).not.toContain('split with other tasks');
+    expect(html).toContain('at 50%');
   });
 
   it('shows the span of rates when the task changed regime', () => {
@@ -70,21 +70,21 @@ describe('renderBarTooltip', () => {
     // A task with no effort is never scheduled into segments, so there is no
     // rate to divide out of a zero-length span.
     const html = renderBarTooltip(facts({ effortDays: 0, elapsedDays: 0, rates: [] }));
-    expect(html).not.toContain('Quota');
-    expect(html).toContain('0 g');
+    expect(html).not.toContain('Share');
+    expect(html).toContain('0 d');
   });
 
   it('names neither a resource nor a quota on a summary', () => {
     const html = renderBarTooltip(
       facts({ isSummary: true, descendantCount: 4, resource: null, rates: [] }),
     );
-    expect(html).not.toContain('Risorsa');
-    expect(html).toContain('dalle 4 sottoattività');
+    expect(html).not.toContain('Resource');
+    expect(html).toContain('from its 4 subtasks');
   });
 
   it('agrees with itself about a single subtask', () => {
     const html = renderBarTooltip(facts({ isSummary: true, descendantCount: 1, rates: [] }));
-    expect(html).toContain('dalla sottoattività');
+    expect(html).toContain('from its subtask');
   });
 
   it('names everyone under a summary, past the faces the row can stack', () => {
@@ -104,20 +104,20 @@ describe('renderBarTooltip', () => {
         ],
       }),
     );
-    expect(html).toContain('Persone');
+    expect(html).toContain('People');
     // The row shows four faces at most: the two the "+2" stands for are here.
     expect(html).toContain('Paolo');
     expect(html).toContain('Giulia');
     // Part-time reads the same as it does on a leaf.
-    expect(html).toContain('Sara <em>al 50%</em>');
+    expect(html).toContain('Sara <em>at 50%</em>');
   });
 
-  it('says persona, not persone, for a branch one person carries', () => {
+  it('says person, not people, for a branch one person carries', () => {
     const html = renderBarTooltip(
       facts({ isSummary: true, resource: null, rates: [], people: [{ name: 'Marco', availability: 1 }] }),
     );
-    expect(html).toContain('<dt>Persona</dt>');
-    expect(html).not.toContain('<dt>Persone</dt>');
+    expect(html).toContain('<dt>Person</dt>');
+    expect(html).not.toContain('<dt>People</dt>');
   });
 
   it('escapes the names it lists, as it escapes the one it names', () => {
@@ -140,33 +140,33 @@ describe('renderBarTooltip', () => {
     const html = renderBarTooltip(
       facts({ isSummary: true, resource: null, rates: [], people: [] }),
     );
-    expect(html).toContain('<dt>Persone</dt><dd>&mdash;</dd>');
+    expect(html).toContain('<dt>People</dt><dd>&mdash;</dd>');
   });
 
   it('reports criticality only from a marking that exists', () => {
-    expect(renderBarTooltip(facts())).not.toContain('Critica');
+    expect(renderBarTooltip(facts())).not.toContain('Critical');
     const marked = renderBarTooltip(
       facts({ chain: { isCritical: true, contendedOn: null, stale: false } }),
     );
-    expect(marked).toContain('Critica');
-    expect(marked).not.toContain('prima dell’ultima modifica');
+    expect(marked).toContain('Critical');
+    expect(marked).not.toContain('before the last edit');
   });
 
   it('says a marking is old when the chart is drawing it dashed', () => {
     const html = renderBarTooltip(
       facts({ chain: { isCritical: true, contendedOn: null, stale: true } }),
     );
-    expect(html).toContain('prima dell’ultima modifica');
+    expect(html).toContain('before the last edit');
   });
 
   it('says a disabled task does not weigh on the plan', () => {
     const html = renderBarTooltip(facts({ disabled: true }));
-    expect(html).toContain('Disattivata');
-    expect(html).toContain('non pesa sul piano');
+    expect(html).toContain('Disabled');
+    expect(html).toContain('does not weigh on the plan');
   });
 
   it('says nothing about being disabled when it is not', () => {
-    expect(renderBarTooltip(facts())).not.toContain('Disattivata');
+    expect(renderBarTooltip(facts())).not.toContain('Disabled');
   });
 
   it('names the contention once, in the line that explains the criticality', () => {
@@ -178,7 +178,7 @@ describe('renderBarTooltip', () => {
         chain: { isCritical: true, contendedOn: 'Marco', stale: false },
       }),
     );
-    expect(html).toContain('contesa su Marco');
-    expect(html).not.toContain('divisa con altre attività');
+    expect(html).toContain('contended on Marco');
+    expect(html).not.toContain('split with other tasks');
   });
 });

@@ -72,8 +72,8 @@ describe('saying when the draft was left', () => {
   const now = new Date(2026, 8, 3, 9, 30);
 
   it('counts calendar days rather than hours', () => {
-    expect(draftAge(new Date(2026, 8, 3, 0, 5).getTime(), now)).toBe('oggi 00:05');
-    expect(draftAge(new Date(2026, 8, 2, 18, 42).getTime(), now)).toBe('ieri 18:42');
+    expect(draftAge(new Date(2026, 8, 3, 0, 5).getTime(), now)).toBe('today 00:05');
+    expect(draftAge(new Date(2026, 8, 2, 18, 42).getTime(), now)).toBe('yesterday 18:42');
     expect(draftAge(new Date(2026, 8, 1, 8, 0).getTime(), now)).toBe('01/09 08:00');
   });
 
@@ -83,7 +83,7 @@ describe('saying when the draft was left', () => {
 
   it('names the file it belongs to', () => {
     expect(draftQuestion({ ...draft, savedAt: new Date(2026, 8, 2, 18, 42).getTime() }, now)).toBe(
-      'Riprendo la bozza non salvata di «progetto.gantt» (ieri 18:42)?',
+      'Resume the unsaved draft of "progetto.gantt" (yesterday 18:42)?',
     );
   });
 });

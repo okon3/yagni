@@ -22,22 +22,22 @@ describe('validateResources', () => {
   });
 
   it('refuses a person with no name', () => {
-    expect(validateResources([person('r1', '   ')])).toBe('Ogni persona deve avere un nome');
+    expect(validateResources([person('r1', '   ')])).toBe('Every person needs a name');
   });
 
   it('refuses a duplicate name whatever its case', () => {
     expect(validateResources([person('r1', 'Marta'), person('r2', 'MARTA')])).toBe(
-      'Nome duplicato: "MARTA"',
+      'Duplicate name: "MARTA"',
     );
   });
 
   it('refuses a default availability of zero', () => {
-    expect(validateResources([person('r1', 'Marta', 0)])).toMatch(/Disponibilità non valida/);
+    expect(validateResources([person('r1', 'Marta', 0)])).toMatch(/Invalid availability/);
   });
 
   it('refuses a default availability above one', () => {
     // The mistake an agent makes when it hands over a percentage.
-    expect(validateResources([person('r1', 'Marta', 50)])).toMatch(/Disponibilità non valida/);
+    expect(validateResources([person('r1', 'Marta', 50)])).toMatch(/Invalid availability/);
   });
 
   it('refuses a period missing one of its ends', () => {
@@ -45,7 +45,7 @@ describe('validateResources', () => {
       ...person('r1', 'Marta'),
       availabilityOverrides: [{ from: '2026-09-07', to: '', availability: 0 }],
     };
-    expect(validateResources([resource])).toBe('Un periodo di "Marta" non ha inizio o fine');
+    expect(validateResources([resource])).toBe('A period of "Marta" has no start or end');
   });
 
   it('accepts a period at zero, which is how an absence is written', () => {

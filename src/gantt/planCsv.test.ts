@@ -61,7 +61,7 @@ describe('planToCsv', () => {
   it('heads the columns and ends every line, the last one included', () => {
     const text = planToCsv(buildPlan(solve(project)), people);
     expect(text.slice(1).split('\r\n')[0]).toBe(
-      'Id;Attività;Livello;Riepilogo;Persona;Inizio;Fine;Effort (g);Durata (g);Contesa;Predecessori;Disattivata',
+      'Id;Task;Level;Summary;Person;Start;End;Effort (d);Duration (d);Contended;Predecessors;Disabled',
     );
     expect(text.endsWith('\r\n')).toBe(true);
   });
@@ -112,7 +112,7 @@ describe('planToCsv', () => {
     };
     const parent = at(nested, 'Progetto');
     expect(parent[2]).toBe('1');
-    expect(parent[3]).toBe('sì');
+    expect(parent[3]).toBe('yes');
     expect(parent[7]).toBe('3');
     // A summary belongs to nobody: the people are on the leaves that consume time.
     expect(parent[4]).toBe('');
@@ -129,7 +129,7 @@ describe('planToCsv', () => {
         { id: '2', name: 'Seconda', nominalDays: 2, start: new Date(2026, 8, 7, 8, 0), resourceId: 'r1' },
       ],
     };
-    expect(at(contended, 'Prima')[9]).toBe('sì');
+    expect(at(contended, 'Prima')[9]).toBe('yes');
     expect(at(project, 'Analisi')[9]).toBe('');
   });
 
@@ -185,7 +185,7 @@ describe('planToCsv', () => {
         },
       ],
     };
-    expect(at(withPlaceholder, 'Ipotesi')[11]).toBe('sì');
+    expect(at(withPlaceholder, 'Ipotesi')[11]).toBe('yes');
     expect(at(withPlaceholder, 'Analisi')[11]).toBe('');
   });
 

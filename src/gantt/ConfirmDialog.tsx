@@ -33,7 +33,7 @@ export function ConfirmDialog({
       <div className="resources__actions">
         <span className="resources__spacer" />
         <button type="button" onClick={() => onResolve(false)}>
-          Annulla
+          Cancel
         </button>
         <button
           type="button"

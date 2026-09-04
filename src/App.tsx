@@ -54,7 +54,7 @@ import { wrapIndex } from './gantt/search';
 import { keystrokeIsCaptured } from './gantt/shortcuts';
 import './App.css';
 
-const DEFAULT_FILENAME = `progetto${PROJECT_EXTENSION}`;
+const DEFAULT_FILENAME = `project${PROJECT_EXTENSION}`;
 const initialProject = emptyProject();
 const initialText = serializeProject(initialProject);
 const draftStore = localDraftStorage();
@@ -164,7 +164,7 @@ export default function App() {
   );
 
   const confirmDiscard = useCallback(
-    async () => !dirty || ask('Ci sono modifiche non salvate. Continuare?', 'Continua'),
+    async () => !dirty || ask('There are unsaved changes. Continue?', 'Continue'),
     [ask, dirty],
   );
 
@@ -172,7 +172,7 @@ export default function App() {
     setError(
       cause instanceof ProjectFileError
         ? cause.message
-        : `Impossibile leggere il file: ${String(cause)}`,
+        : `Could not read the file: ${String(cause)}`,
     );
   }, []);
 
@@ -339,7 +339,7 @@ export default function App() {
         planFigure(project, solved, { title: filename, today: new Date() }),
       );
     } catch (cause) {
-      setError(`Impossibile creare l'immagine del piano: ${String(cause)}`);
+      setError(`Could not create the plan image: ${String(cause)}`);
     }
   }, [filename]);
 
@@ -386,7 +386,7 @@ export default function App() {
         : handle.addTask({
             after: target.taskId,
             start,
-            ...(action === 'milestone' ? { name: 'Nuovo traguardo', nominalDays: 0 } : {}),
+            ...(action === 'milestone' ? { name: 'New milestone', nominalDays: 0 } : {}),
           });
     handle.revealTask(created);
     handle.selectTask(created);
@@ -445,9 +445,9 @@ export default function App() {
       if (details.descendantCount > 0) {
         const subtasks =
           details.descendantCount === 1
-            ? 'la sua sottoattività'
-            : `le sue ${details.descendantCount} sottoattività`;
-        if (!(await ask(`Elimino "${details.name}" e ${subtasks}?`, 'Elimina'))) return;
+            ? 'its subtask'
+            : `its ${details.descendantCount} subtasks`;
+        if (!(await ask(`Delete "${details.name}" and ${subtasks}?`, 'Delete'))) return;
       }
       handle.deleteTask(id);
       setOpenTask(null);
@@ -604,7 +604,7 @@ export default function App() {
     if (!pendingDraft || draftAsked.current) return;
     draftAsked.current = true;
     void (async () => {
-      const resume = await ask(draftQuestion(pendingDraft, new Date()), 'Riprendi');
+      const resume = await ask(draftQuestion(pendingDraft, new Date()), 'Resume');
       try {
         if (resume) adopt(pendingDraft.text, pendingDraft.filename, { neverSaved: true });
         else clearDraft(draftStore);
@@ -687,7 +687,7 @@ export default function App() {
       newProject: () => agentState.current.reset(),
     });
     console.info(
-      'YAGNI: window.yagni pilota il piano da uno script. yagni.help() per la superficie completa.',
+      'YAGNI: window.yagni drives the plan from a script. yagni.help() for the full surface.',
     );
   }, []);
 
@@ -764,7 +764,7 @@ export default function App() {
               type="button"
               className="app__version"
               onClick={() => setChangelogOpen(true)}
-              title="Novità di questa versione"
+              title="What's new in this version"
             >
               {CHANGELOG_ENTRIES[0].version}
             </button>
@@ -794,8 +794,8 @@ export default function App() {
         <button
           type="button"
           className="app__help"
-          title="Come funziona"
-          aria-label="Come funziona"
+          title="How it works"
+          aria-label="How it works"
           onClick={() => setHelpOpen(true)}
         >
           ?
@@ -833,7 +833,7 @@ export default function App() {
             onHelp={() => setHelpOpen(true)}
           />
         )}
-        {dragging && <div className="app__dropzone">Rilascia il file .gantt per aprirlo</div>}
+        {dragging && <div className="app__dropzone">Drop the .gantt file to open it</div>}
       </div>
 
       <StatusBar

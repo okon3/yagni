@@ -51,7 +51,7 @@ function harness(task: TaskDetails = details()) {
 describe('agent API resource assignment', () => {
   it('refuses an id nobody has, naming it', () => {
     const { api } = harness();
-    expect(() => api.addTask({ name: 'T', resourceId: 'nope' })).toThrow(/"nope".*inesistente/);
+    expect(() => api.addTask({ name: 'T', resourceId: 'nope' })).toThrow(/"nope".*does not exist/);
   });
 
   it('writes nothing when addTask names an unknown resource', () => {
@@ -62,7 +62,7 @@ describe('agent API resource assignment', () => {
 
   it('writes nothing when updateTask names an unknown resource', () => {
     const { api, handle } = harness();
-    expect(() => api.updateTask('t1', { resourceId: 'nope' })).toThrow(/inesistente/);
+    expect(() => api.updateTask('t1', { resourceId: 'nope' })).toThrow(/does not exist/);
     expect(handle.updateTask).not.toHaveBeenCalled();
   });
 

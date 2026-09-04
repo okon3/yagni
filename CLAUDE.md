@@ -154,7 +154,7 @@ only, oldest entries get pruned. Git history is the full record.
 
 ## Conventions
 
-- **Code, comments, commits in English. UI in Italian.**
+- **Code, comments, commits, UI: all in English.**
 - Comments: the *why* only — never the *what*, never the previous state.
 - One commit per completed, tested feature, docs included.
 - Before committing: `npm test`, `npm run build`, `npm run lint` all clean.

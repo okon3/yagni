@@ -744,10 +744,10 @@ function rollUp(
  * only way this cannot disagree with what the engine will do next.
  */
 export function rejectionForLink(project: Project, from: string, to: string): string | null {
-  if (from === to) return `Un'attività non può dipendere da se stessa ("${from}")`;
+  if (from === to) return `A task cannot depend on itself ("${from}")`;
   const known = new Set(project.tasks.map((task) => task.id));
-  if (!known.has(from)) return `Attività "${from}" inesistente`;
-  if (!known.has(to)) return `Attività "${to}" inesistente`;
+  if (!known.has(from)) return `Task "${from}" does not exist`;
+  if (!known.has(to)) return `Task "${to}" does not exist`;
 
   const prospective: Project = {
     ...project,
@@ -761,7 +761,7 @@ export function rejectionForLink(project: Project, from: string, to: string): st
     solve(prospective);
   } catch (cause) {
     if (cause instanceof CyclicDependencyError) {
-      return `La dipendenza da "${from}" a "${to}" crea un ciclo: ${cause.cycle.join(' → ')}`;
+      return `The dependency from "${from}" to "${to}" creates a cycle: ${cause.cycle.join(' → ')}`;
     }
     throw cause;
   }

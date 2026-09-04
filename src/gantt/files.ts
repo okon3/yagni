@@ -29,7 +29,7 @@ export function pickTextFile(accept = PROJECT_EXTENSION): Promise<{ name: string
 }
 
 /**
- * `progetto.gantt` → `progetto.csv`, and a name carrying no extension gains one.
+ * `project.gantt` → `project.csv`, and a name carrying no extension gains one.
  *
  * Every export takes the project's own name so that a plan and its pictures land
  * in the download folder next to each other.
@@ -60,18 +60,18 @@ export async function downloadSvgAsPng(
     const image = new Image();
     await new Promise<void>((resolve, reject) => {
       image.addEventListener('load', () => resolve());
-      image.addEventListener('error', () => reject(new Error('Immagine del piano non generata')));
+      image.addEventListener('error', () => reject(new Error('Plan image was not generated')));
       image.src = source;
     });
     const canvas = document.createElement('canvas');
     canvas.width = Math.ceil(figure.width * scale);
     canvas.height = Math.ceil(figure.height * scale);
     const context = canvas.getContext('2d');
-    if (!context) throw new Error('Canvas non disponibile');
+    if (!context) throw new Error('Canvas not available');
     context.scale(scale, scale);
     context.drawImage(image, 0, 0);
     const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-    if (!png) throw new Error('PNG non generato');
+    if (!png) throw new Error('PNG was not generated');
     downloadBlob(filename, png);
   } finally {
     URL.revokeObjectURL(source);

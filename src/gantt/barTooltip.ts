@@ -50,7 +50,7 @@ export interface BarFacts {
 }
 
 /** The weekday matters on a Gantt: it is why a bar ends where it does. */
-const longDate = new Intl.DateTimeFormat('it-IT', {
+const longDate = new Intl.DateTimeFormat('en-GB', {
   weekday: 'short',
   day: '2-digit',
   month: '2-digit',
@@ -77,7 +77,7 @@ function rateRange(rates: number[]): string | null {
 function resourceLabel(resource: BarFacts['resource']): string {
   if (!resource) return '&mdash;';
   const name = escapeHtml(resource.name);
-  return resource.availability < 1 ? `${name} <em>al ${percent(resource.availability)}</em>` : name;
+  return resource.availability < 1 ? `${name} <em>at ${percent(resource.availability)}</em>` : name;
 }
 
 /**
@@ -92,10 +92,10 @@ function stretchNote(facts: BarFacts, namesContention: boolean): string {
   if (facts.contended) {
     return namesContention
       ? ''
-      : 'La risorsa è divisa con altre attività in corso, quindi la durata supera l’effort.';
+      : 'The resource is split with other tasks in progress, so the duration exceeds the effort.';
   }
   if (facts.shared) {
-    return 'La risorsa non lavora a tempo pieno in questo periodo, quindi la durata supera l’effort.';
+    return 'The resource does not work full time in this period, so the duration exceeds the effort.';
   }
   return '';
 }
@@ -110,56 +110,56 @@ function stretchNote(facts: BarFacts, namesContention: boolean): string {
  */
 export function renderBarTooltip(facts: BarFacts): string {
   const rows: [string, string][] = [
-    ['Inizio', longDate.format(facts.start)],
-    ['Fine', longDate.format(facts.end)],
-    ['Effort', `${formatDays(facts.effortDays)} g`],
+    ['Start', longDate.format(facts.start)],
+    ['End', longDate.format(facts.end)],
+    ['Effort', `${formatDays(facts.effortDays)} d`],
   ];
   // The comparison the whole chart is about, so the duration carries the same
   // warning colour here that it carries in the dialog.
   const stretched = facts.elapsedDays > facts.effortDays;
   rows.push([
-    'Durata',
-    `<span class="${stretched ? 'gantt-stretched' : ''}">${formatDays(facts.elapsedDays)} g</span>`,
+    'Duration',
+    `<span class="${stretched ? 'gantt-stretched' : ''}">${formatDays(facts.elapsedDays)} d</span>`,
   ]);
   if (facts.isSummary) {
     rows.push([
-      facts.people.length === 1 ? 'Persona' : 'Persone',
+      facts.people.length === 1 ? 'Person' : 'People',
       facts.people.length > 0 ? facts.people.map(resourceLabel).join(', ') : '&mdash;',
     ]);
   } else {
-    rows.push(['Risorsa', resourceLabel(facts.resource)]);
+    rows.push(['Resource', resourceLabel(facts.resource)]);
     const rate = rateRange(facts.rates);
-    if (rate) rows.push(['Quota', rate]);
+    if (rate) rows.push(['Share', rate]);
   }
 
   const namesContention = Boolean(facts.chain?.isCritical && facts.chain.contendedOn);
   const notes: string[] = [];
   if (facts.disabled) {
-    notes.push('Disattivata — non pesa sul piano.');
+    notes.push('Disabled — does not weigh on the plan.');
   }
   if (facts.isSummary) {
     const subtasks =
       facts.descendantCount === 1
-        ? 'dalla sottoattività'
-        : `dalle ${facts.descendantCount} sottoattività`;
-    notes.push(`Riepilogo: effort e date vengono ${subtasks}.`);
+        ? 'from its subtask'
+        : `from its ${facts.descendantCount} subtasks`;
+    notes.push(`Summary: effort and dates roll up ${subtasks}.`);
   }
   const stretch = stretchNote(facts, namesContention);
   if (stretch) notes.push(stretch);
   if (facts.chain?.isCritical) {
     const reason = namesContention
-      ? ` &mdash; contesa su ${escapeHtml(facts.chain.contendedOn ?? '')}`
+      ? ` &mdash; contended on ${escapeHtml(facts.chain.contendedOn ?? '')}`
       : '';
     // Said as plainly as the dashed outline says it: a marking that reads as
     // measured while it is not is worse than none.
-    const age = facts.chain.stale ? ' <em>(misurata prima dell’ultima modifica)</em>' : '';
+    const age = facts.chain.stale ? ' <em>(measured before the last edit)</em>' : '';
     // Nothing with no effort has a size to grow, so its criticality is purely
     // positional — the engine does not even run the second probe on it, and
     // offering growing as a cause would describe a measurement nobody made.
-    const grows = facts.effortDays > 0 ? ' o se cresce' : '';
+    const grows = facts.effortDays > 0 ? ' or if it grows' : '';
     notes.push(
-      `<strong class="gantt-tip__critical">Critica${reason}.</strong> ` +
-        `La fine del progetto si sposta se slitta${grows}.${age}`,
+      `<strong class="gantt-tip__critical">Critical${reason}.</strong> ` +
+        `The project end moves if it slips${grows}.${age}`,
     );
   }
 

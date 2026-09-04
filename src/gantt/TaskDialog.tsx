@@ -44,7 +44,7 @@ export interface TaskPatch {
   disabled?: boolean;
 }
 
-const dayFormat = new Intl.DateTimeFormat('it-IT', {
+const dayFormat = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
@@ -91,22 +91,22 @@ export function TaskDialog({
   const save = () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      setError('Il nome non può essere vuoto');
+      setError('Name cannot be empty');
       return;
     }
     const days = Number(effort);
     if (!Number.isFinite(days) || days < 0) {
-      setError("L'effort deve essere un numero di giorni non negativo");
+      setError('Effort must be a non-negative number of days');
       return;
     }
     const percentage = Number(progress);
     if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
-      setError('L’avanzamento va da 0 a 100');
+      setError('Progress must be between 0 and 100');
       return;
     }
     const [year, month, day] = start.split('-').map(Number);
     if (!year || !month || !day) {
-      setError('Data di inizio non valida');
+      setError('Invalid start date');
       return;
     }
     // Keeps the time of day the engine assigned: only the calendar day is edited
@@ -130,7 +130,7 @@ export function TaskDialog({
   // is in the middle of not typing.
   const isMilestone = !task.isSummary && effort.trim() !== '' && Number(effort) === 0;
 
-  const fromChildren = <span className="taskinfo__derived">dalle sottoattività</span>;
+  const fromChildren = <span className="taskinfo__derived">from subtasks</span>;
   const contendedWith = resources.find(
     (resource) => resource.id === slack?.contendedResourceId,
   )?.name;
@@ -138,37 +138,38 @@ export function TaskDialog({
   const namesContention = Boolean(slack?.isCritical && contendedWith);
   /** Reads on from either opening, so it starts lower case. */
   const whatCostsWhat = slack?.floatDays
-    ? `può iniziare fino a ${formatDays(slack.floatDays)} g più tardi, ma un giorno di lavoro in più sposta la fine del progetto`
-    : 'ogni ritardo qui sposta la fine del progetto';
+    ? `can start up to ${formatDays(slack.floatDays)} d later, but one more day of work moves the project end`
+    : 'any delay here moves the project end';
 
   return (
     <dialog ref={dialog} className="resources taskinfo" onCancel={onCancel} onClose={onCancel}>
       <h2>
-        {task.isSummary ? 'Attività di riepilogo' : isMilestone ? 'Milestone' : 'Dettaglio attività'}
+        {task.isSummary ? 'Summary task' : isMilestone ? 'Milestone' : 'Task detail'}
       </h2>
       <p className="resources__hint">
         {isMilestone ? (
           <>
-            Effort <strong>0</strong>: una milestone, cioè una data che il piano raggiunge e non
-            lavoro che consuma. Non occupa nessuno e sul diagramma è un rombo. Rimettere un effort
-            maggiore di zero la fa tornare un&apos;attività.
+            Effort <strong>0</strong>: a milestone, that is a date the plan reaches rather than
+            work it consumes. It occupies nobody and is a diamond on the chart. Setting an effort
+            above zero turns it back into a task.
           </>
         ) : (
           <>
-            La <strong>fine</strong> e la <strong>durata</strong> non si impostano: le calcola il
-            motore da effort, inizio, calendario e dalla quota di risorsa che l&apos;attività riceve.
+            The <strong>end</strong> and the <strong>duration</strong> are not set directly: the
+            engine computes them from effort, start, calendar and the share of the resource the
+            task receives.
           </>
         )}
       </p>
 
       <div className="taskinfo__grid">
         <label className="taskinfo__field taskinfo__field--wide">
-          <span>Nome</span>
+          <span>Name</span>
           <input value={name} onChange={(event) => setName(event.target.value)} autoFocus />
         </label>
 
         <label className="taskinfo__field">
-          <span>Risorsa</span>
+          <span>Resource</span>
           {task.isSummary ? (
             fromChildren
           ) : (
@@ -198,7 +199,7 @@ export function TaskDialog({
                   value={effort}
                   onChange={(event) => setEffort(event.target.value)}
                 />
-                <span className="resources__unit">giorni</span>
+                <span className="resources__unit">days</span>
               </span>
               {/* The only way to make a milestone, so the field has to say so:
                   there is no second control, because there is no second concept. */}
@@ -208,7 +209,7 @@ export function TaskDialog({
         </label>
 
         <label className="taskinfo__field">
-          <span>Inizio</span>
+          <span>Start</span>
           {task.isSummary ? (
             fromChildren
           ) : (
@@ -217,7 +218,7 @@ export function TaskDialog({
         </label>
 
         <label className="taskinfo__field">
-          <span>Avanzamento</span>
+          <span>Progress</span>
           <span className="taskinfo__inline">
             <input
               type="number"
@@ -232,14 +233,14 @@ export function TaskDialog({
         </label>
 
         <div className="taskinfo__field taskinfo__field--wide">
-          <span>Colore</span>
+          <span>Colour</span>
           {task.ownsColor ? (
             <div className="taskinfo__colors">
               <input
                 type="color"
                 className="taskinfo__picker"
                 value={color}
-                aria-label="Colore della barra"
+                aria-label="Bar colour"
                 onChange={(event) => setColor(event.target.value)}
               />
               {colors.map((option) => (
@@ -261,51 +262,51 @@ export function TaskDialog({
               <span className="taskinfo__preview" style={{ background: color }} />
             </div>
           ) : (
-            <span className="taskinfo__derived">ereditato dall&apos;attività principale</span>
+            <span className="taskinfo__derived">inherited from the parent task</span>
           )}
         </div>
 
         <label className="taskinfo__field taskinfo__field--wide">
-          <span>Stato</span>
+          <span>Status</span>
           <span className="taskinfo__checkbox">
             <input
               type="checkbox"
               checked={disabled}
               onChange={(event) => setDisabled(event.target.checked)}
             />
-            Disattivata
+            Disabled
           </span>
           <span className="taskinfo__hint">
-            Resta sul piano ma non pesa: niente capacità, fuori da roll-up e catena critica.
+            Stays on the plan but does not weigh: no capacity, out of roll-up and critical chain.
           </span>
         </label>
       </div>
 
-      <h3 className="taskinfo__subhead">Calcolato</h3>
+      <h3 className="taskinfo__subhead">Computed</h3>
       <dl className="taskinfo__readonly">
         <div>
-          <dt>Fine</dt>
+          <dt>End</dt>
           <dd>{dayFormat.format(task.end)}</dd>
         </div>
         <div>
-          <dt>Durata</dt>
+          <dt>Duration</dt>
           <dd className={task.shared ? 'gantt-stretched' : undefined}>
-            {formatDays(task.elapsedDays)} g
+            {formatDays(task.elapsedDays)} d
           </dd>
         </div>
         <div>
-          <dt>Effort totale</dt>
-          <dd>{formatDays(task.effortDays)} g</dd>
+          <dt>Total effort</dt>
+          <dd>{formatDays(task.effortDays)} d</dd>
         </div>
         <div>
           {/* The figure, whatever else is true of the task: criticality is a
               different fact and it is stated below, in words. */}
-          <dt>Margine</dt>
+          <dt>Float</dt>
           <dd className={slack?.isCritical ? 'taskinfo__critical' : undefined}>
             {slack === null ? (
               <span className="taskinfo__derived">&mdash;</span>
             ) : (
-              `${formatDays(slack.floatDays)} g`
+              `${formatDays(slack.floatDays)} d`
             )}
           </dd>
         </div>
@@ -316,31 +317,31 @@ export function TaskDialog({
       {task.contended
         ? !namesContention && (
             <p className="taskinfo__note">
-              La risorsa è divisa con altre attività in corso, quindi la durata supera
-              l&apos;effort.
+              The resource is split with other tasks in progress, so the duration exceeds the
+              effort.
             </p>
           )
         : task.shared && (
             <p className="taskinfo__note">
-              La risorsa non lavora a tempo pieno in questo periodo, quindi la durata supera
-              l&apos;effort.
+              The resource does not work full time in this period, so the duration exceeds the
+              effort.
             </p>
           )}
       {slack === null ? (
         <p className="taskinfo__note">
-          Oltre {CRITICAL_CHAIN_LIMIT} attività il margine non viene misurato: costa un ricalcolo
-          del piano per ogni giorno provato. La catena critica si chiede dalla barra di stato.
+          Past {CRITICAL_CHAIN_LIMIT} tasks the float is not measured: it costs a re-solve of the
+          plan for every day probed. Ask for the critical chain from the status bar.
         </p>
       ) : slack.isCritical ? (
         <p className="taskinfo__note">
-          <strong>Critica{namesContention ? ` — contesa su ${contendedWith}` : ''}.</strong>{' '}
+          <strong>Critical{namesContention ? ` — contended on ${contendedWith}` : ''}.</strong>{' '}
           {namesContention
-            ? `La sua quota è divisa con altre attività in corso: ${whatCostsWhat}.`
+            ? `Its share is split with other tasks in progress: ${whatCostsWhat}.`
             : `${whatCostsWhat[0].toUpperCase()}${whatCostsWhat.slice(1)}.`}
         </p>
       ) : (
         <p className="taskinfo__note">
-          Può slittare fino a {formatDays(slack.floatDays)} g senza spostare la fine del progetto.
+          Can slip up to {formatDays(slack.floatDays)} d without moving the project end.
         </p>
       )}
 
@@ -352,14 +353,14 @@ export function TaskDialog({
 
       <div className="resources__actions">
         <button type="button" className="taskinfo__delete" onClick={onDelete}>
-          Elimina
+          Delete
         </button>
         <span className="resources__spacer" />
         <button type="button" onClick={onCancel}>
-          Annulla
+          Cancel
         </button>
         <button type="button" className="resources__primary" onClick={save}>
-          Salva
+          Save
         </button>
       </div>
     </dialog>

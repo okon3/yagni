@@ -38,19 +38,19 @@ export interface StatusBarProps {
  * request to do it again.
  */
 const CHAIN_LABEL: Record<ChainState, string> = {
-  off: 'Catena critica',
-  live: 'Catena critica',
-  fresh: 'Catena critica',
-  asked: 'Calcola catena critica',
-  stale: 'Ricalcola catena critica',
+  off: 'Critical chain',
+  live: 'Critical chain',
+  fresh: 'Critical chain',
+  asked: 'Compute critical chain',
+  stale: 'Recompute critical chain',
 };
 
 const CHAIN_TITLE: Record<ChainState, string> = {
-  off: 'Evidenzia le attività da cui dipende la data di fine',
-  live: 'Non evidenziare più le attività critiche',
-  fresh: `Calcolata su richiesta: oltre ${CRITICAL_CHAIN_LIMIT} attività non si aggiorna da sola`,
-  asked: `Oltre ${CRITICAL_CHAIN_LIMIT} attività si calcola su richiesta: costa un ricalcolo del piano per ogni attività`,
-  stale: 'Il piano è cambiato dopo il calcolo: il tratteggio è la marcatura di prima',
+  off: 'Highlight the tasks the end date depends on',
+  live: 'Stop highlighting critical tasks',
+  fresh: `Computed on request: past ${CRITICAL_CHAIN_LIMIT} tasks it does not update on its own`,
+  asked: `Past ${CRITICAL_CHAIN_LIMIT} tasks it is computed on request: it costs a re-solve of the plan per task`,
+  stale: 'The plan changed after the measurement: the dashed outline is the earlier marking',
 };
 
 /** Drawn on the chart, so the control shows itself as pressed. */
@@ -84,7 +84,7 @@ export function StatusBar({
 }: StatusBarProps) {
   return (
     <footer className="statusbar">
-      <span>{taskCount} attività</span>
+      <span>{taskCount} tasks</span>
       {/* Nothing is filtered, so this is a way through the plan and belongs with
           the other controls over the view rather than with the file actions. */}
       <div className="statusbar__search">
@@ -93,10 +93,10 @@ export function StatusBar({
           type="search"
           className="statusbar__searchfield"
           value={search}
-          placeholder="Cerca attività"
+          placeholder="Search tasks"
           // The field carries no visible text of its own, so this is its name
           // rather than a second one competing with a label.
-          aria-label="Cerca attività"
+          aria-label="Search tasks"
           onChange={(event) => onSearch(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
@@ -115,7 +115,7 @@ export function StatusBar({
             {/* Read out on its own, because on a long plan the answer to a
                 query is often that there is nothing to walk to. */}
             <span className="statusbar__matches" role="status">
-              {matchCount === 0 ? 'nessuna' : `${matchPosition}/${matchCount}`}
+              {matchCount === 0 ? 'none' : `${matchPosition}/${matchCount}`}
             </span>
             {/* Greyed rather than removed, as the undo arrows are: a control
                 that comes and goes moves everything beside it. */}
@@ -123,8 +123,8 @@ export function StatusBar({
               type="button"
               className="statusbar__step"
               disabled={matchCount === 0}
-              aria-label="Risultato precedente"
-              title="Risultato precedente (Maiusc+Invio)"
+              aria-label="Previous match"
+              title="Previous match (Shift+Enter)"
               onClick={() => onStepMatch(-1)}
             >
               ‹
@@ -133,8 +133,8 @@ export function StatusBar({
               type="button"
               className="statusbar__step"
               disabled={matchCount === 0}
-              aria-label="Risultato successivo"
-              title="Risultato successivo (Invio)"
+              aria-label="Next match"
+              title="Next match (Enter)"
               onClick={() => onStepMatch(1)}
             >
               ›
@@ -143,11 +143,11 @@ export function StatusBar({
         )}
       </div>
       <div className="statusbar__rows">
-        <button type="button" onClick={onCollapseAll} title="Comprimi tutte le attività">
-          Comprimi
+        <button type="button" onClick={onCollapseAll} title="Collapse all tasks">
+          Collapse
         </button>
-        <button type="button" onClick={onExpandAll} title="Espandi tutte le attività">
-          Espandi
+        <button type="button" onClick={onExpandAll} title="Expand all tasks">
+          Expand
         </button>
       </div>
       {/* Never disabled: a control that is dead reads as broken, and past the
@@ -171,36 +171,36 @@ export function StatusBar({
         type="button"
         className={'statusbar__load' + (loadShown ? ' statusbar__load--on' : '')}
         aria-pressed={loadShown}
-        title="Mostra quanto è impegnata ogni persona e dove le resta capacità"
+        title="Shows how busy each person is and where they still have capacity"
         onClick={onToggleLoad}
       >
-        Carico risorse
+        Resource load
       </button>
       {/* An agent reads the page text and the accessibility tree before it reads
           anything else, so the scripting surface has to be named there. */}
       <span className="statusbar__agent">
-        Per agenti: <code>window.yagni.help()</code>
+        For agents: <code>window.yagni.help()</code>
       </span>
       <span className="statusbar__spacer" />
       <button type="button" onClick={onToday}>
-        Oggi
+        Today
       </button>
       <span className="statusbar__scale">
-        Scala: <strong>{scale}</strong>
+        Scale: <strong>{scale}</strong>
       </span>
       {/* Named, like every other button here whose face is a glyph: a `title`
           is the accessible name only where there is no text at all, and a sign
           counts as text — so without these the name announced is "−" and "+". */}
       <div className="statusbar__zoom">
-        <button type="button" onClick={onZoomOut} aria-label="Riduci" title="Riduci">
+        <button type="button" onClick={onZoomOut} aria-label="Zoom out" title="Zoom out">
           −
         </button>
-        <button type="button" onClick={onZoomIn} aria-label="Ingrandisci" title="Ingrandisci">
+        <button type="button" onClick={onZoomIn} aria-label="Zoom in" title="Zoom in">
           +
         </button>
       </div>
       <button type="button" onClick={onZoomToFit}>
-        Adatta
+        Fit
       </button>
     </footer>
   );

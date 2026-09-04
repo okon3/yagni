@@ -935,20 +935,20 @@ describe('rejectionForLink', () => {
 
   it('refuses the reverse of an existing dependency', () => {
     const problem = rejectionForLink(project([task('a'), task('b', ['a'])]), 'b', 'a');
-    expect(problem).toMatch(/ciclo/);
+    expect(problem).toMatch(/cycle/);
   });
 
   it('refuses a cycle several hops long', () => {
     const tasks = [task('a'), task('b', ['a']), task('c', ['b'])];
-    expect(rejectionForLink(project(tasks), 'c', 'a')).toMatch(/ciclo/);
+    expect(rejectionForLink(project(tasks), 'c', 'a')).toMatch(/cycle/);
   });
 
   it('refuses a task depending on itself', () => {
-    expect(rejectionForLink(project([task('a')]), 'a', 'a')).toMatch(/se stessa/);
+    expect(rejectionForLink(project([task('a')]), 'a', 'a')).toMatch(/cannot depend on itself/);
   });
 
   it('names an id that does not exist', () => {
-    expect(rejectionForLink(project([task('a')]), 'a', 'ghost')).toMatch(/inesistente/);
+    expect(rejectionForLink(project([task('a')]), 'a', 'ghost')).toMatch(/does not exist/);
   });
 
   /**
@@ -965,7 +965,7 @@ describe('rejectionForLink', () => {
       task('s2'),
       task('b', undefined, 's2'),
     ];
-    expect(rejectionForLink(project(tasks), 's1', 'b')).toMatch(/ciclo/);
+    expect(rejectionForLink(project(tasks), 's1', 'b')).toMatch(/cycle/);
   });
 
   it('leaves the project untouched whatever it decides', () => {

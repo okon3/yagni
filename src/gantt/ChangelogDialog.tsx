@@ -14,7 +14,7 @@ export function ChangelogDialog({ onClose }: { onClose(): void }) {
 
   return (
     <dialog ref={dialog} className="resources help" tabIndex={-1} onCancel={onClose}>
-      <h2>Novità</h2>
+      <h2>What's new</h2>
 
       {CHANGELOG_ENTRIES.map((entry) => (
         <section key={entry.version} className="help__section">
@@ -32,7 +32,7 @@ export function ChangelogDialog({ onClose }: { onClose(): void }) {
       <div className="resources__actions">
         <span className="resources__spacer" />
         <button type="button" className="resources__primary" onClick={onClose}>
-          Chiudi
+          Close
         </button>
       </div>
     </dialog>

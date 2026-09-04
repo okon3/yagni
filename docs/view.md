@@ -13,7 +13,7 @@ know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
   listener, one step per gesture burst.
 - **The window widens whenever the plan no longer fits** (dhtmlx computes range
   at render; a pinned range outranks data → empty chart with rows in the grid).
-  It only grows; *Adatta* tightens it again. Not per-edit — a full redraw per
+  It only grows; *Fit* tightens it again. Not per-edit — a full redraw per
   edit isn't worth it.
 - **An opened plan is collapsed and fitted at once**: shape first, leaves one
   click away. Status-bar count is the plan's, not the screen's. Collapsing never
@@ -36,7 +36,7 @@ know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
   column (a truncated name is the one cell you can't guess; the timeline scrolls
   and re-scales).
 - Editor keys: Tab/Shift+Tab walk editable cells across rows saving each on
-  leave; Invio saves+closes; Esc closes without saving. Focused field carries
+  leave; Enter saves+closes; Esc closes without saving. Focused field carries
   the app's violet focus ring.
 
 ## Right-click add
@@ -85,23 +85,23 @@ know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
 
 ## Search
 
-- Status-bar box: marks matches in grid and timeline, shows count; Invio walks
-  (opening branches, scrolling, selecting), Shift+Invio backwards, wraps.
+- Status-bar box: marks matches in grid and timeline, shows count; Enter walks
+  (opening branches, scrolling, selecting), Shift+Enter backwards, wraps.
   Ctrl+F focuses the box (beats the browser's find); Esc empties it.
 - **Marks and walks, never filters** (same argument as highlight; on a tree,
   filtering either drops the hierarchy or shows non-matches). Nothing hidden =
   nothing to undo.
 - A closed summary hiding matches carries a **fainter mark** (a pointer to where
   to open, not a result; the walk lands on real matches).
-- Case- and accent-insensitive both ways (*attivita* ↔ "Attività"). Marks come
+- Case- and accent-insensitive both ways (*analysis* ↔ "Analysis"). Marks come
   from a row template asking one query (no per-row class copies). Matches
   re-measured after every edit; the current match keeps its place while it still
   matches.
 
 ## Disabled tasks
 
-- Toggled from the row menu (leaf or summary — *Disattiva*/*Riattiva*, label
-  read off the row's own flag) and from the details dialog's *Disattivata*
+- Toggled from the row menu (leaf or summary — *Disable*/*Enable*, label
+  read off the row's own flag) and from the details dialog's *Disabled*
   checkbox, on both leaves and summaries. Both go through `updateTask`'s
   `TaskPatch` — no pathway of their own, so undo and the dirty check come free.
 - What is drawn is the **effective** state (`solved.disabledIds`): a leaf's own
@@ -152,7 +152,7 @@ know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
   place own elements in the data area (`addTaskLayer` is PRO; dhtmlx rewrites
   its own layers every render).
 
-## Resource load lanes (*Carico risorse*)
+## Resource load lanes (*Resource load*)
 
 - One lane per person under the chart, same time axis. **Over-allocation cannot
   happen** (the engine divides, never overbooks) — the signal is **unclaimed
@@ -193,7 +193,7 @@ know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
 ## Undo and the draft
 
 - Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y + toolbar arrows, greyed when empty, each
-  naming its step (*Annulla: eliminazione di «Requisiti»*). Inactive while a
+  naming its step (*Undo: deleted "Requisiti"*). Inactive while a
   field or dialog holds focus.
 - A step is a **whole-project snapshot** (same text a file holds, restored
   through the file path). A command log would have to describe every edit path

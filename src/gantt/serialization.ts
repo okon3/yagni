@@ -32,7 +32,7 @@ function parseDayRanges(value: unknown, context: string): DayRange[] {
   return asArray(value, context).map((entry, index) => {
     const record = asRecord(entry, `${context}[${index}]`);
     if (!isDayString(record.from) || !isDayString(record.to)) {
-      throw new ProjectFileError(`${context}[${index}]: attesa una data YYYY-MM-DD`);
+      throw new ProjectFileError(`${context}[${index}]: expected a YYYY-MM-DD date`);
     }
     const range: DayRange = { from: record.from, to: record.to };
     if (typeof record.label === 'string' && record.label.length > 0) range.label = record.label;
@@ -135,19 +135,19 @@ export function deserializeProject(text: string): Project {
   try {
     raw = JSON.parse(text);
   } catch {
-    throw new ProjectFileError('Il file non è un JSON valido');
+    throw new ProjectFileError('The file is not valid JSON');
   }
 
   const root = asRecord(raw, 'file');
   if (root.format !== FILE_FORMAT) {
-    throw new ProjectFileError('Il file non è un progetto di questo strumento');
+    throw new ProjectFileError('The file is not a project from this tool');
   }
   const version = requireNumber(root.version, 'version');
   // Refusing a newer file beats loading it partially and dropping fields the
   // user cannot see are missing.
   if (version > FILE_VERSION) {
     throw new ProjectFileError(
-      `Il file usa la versione ${version}, questa applicazione arriva alla ${FILE_VERSION}`,
+      `The file uses version ${version}, this application supports up to ${FILE_VERSION}`,
     );
   }
 
@@ -196,7 +196,7 @@ export function deserializeProject(text: string): Project {
   const tasks = asArray(root.tasks ?? [], 'tasks').map((entry, index) => {
     const record = asRecord(entry, `tasks[${index}]`);
     const id = requireString(record.id, `tasks[${index}].id`);
-    if (seenTaskIds.has(id)) throw new ProjectFileError(`tasks[${index}]: id duplicato "${id}"`);
+    if (seenTaskIds.has(id)) throw new ProjectFileError(`tasks[${index}]: duplicate id "${id}"`);
     seenTaskIds.add(id);
 
     const task: ProjectTask = {
@@ -210,7 +210,7 @@ export function deserializeProject(text: string): Project {
       // silently show as unassigned; failing here surfaces the broken file.
       if (!knownResources.has(record.resourceId)) {
         throw new ProjectFileError(
-          `tasks[${index}]: risorsa sconosciuta "${record.resourceId}"`,
+          `tasks[${index}]: unknown resource "${record.resourceId}"`,
         );
       }
       task.resourceId = record.resourceId;
@@ -235,7 +235,7 @@ export function deserializeProject(text: string): Project {
       // as a style the browser drops without a word.
       const color = requireString(record.color, `tasks[${index}].color`);
       if (!/^#[0-9a-f]{6}$/i.test(color)) {
-        throw new ProjectFileError(`tasks[${index}]: colore non valido "${color}", atteso #rrggbb`);
+        throw new ProjectFileError(`tasks[${index}]: invalid color "${color}", expected #rrggbb`);
       }
       task.color = color;
     }
@@ -248,12 +248,12 @@ export function deserializeProject(text: string): Project {
   for (const task of tasks) {
     for (const predecessorId of task.predecessors ?? []) {
       if (!seenTaskIds.has(predecessorId)) {
-        throw new ProjectFileError(`Il task "${task.id}" dipende da "${predecessorId}", che non esiste`);
+        throw new ProjectFileError(`Task "${task.id}" depends on "${predecessorId}", which does not exist`);
       }
     }
     if (task.parentId !== undefined && !seenTaskIds.has(task.parentId)) {
       throw new ProjectFileError(
-        `Il task "${task.id}" ha come padre "${task.parentId}", che non esiste`,
+        `Task "${task.id}" has "${task.parentId}" as its parent, which does not exist`,
       );
     }
   }
@@ -266,7 +266,7 @@ export function deserializeProject(text: string): Project {
     let cursor = parentOf.get(task.id);
     while (cursor !== undefined) {
       if (seen.has(cursor)) {
-        throw new ProjectFileError(`Gerarchia circolare intorno al task "${task.id}"`);
+        throw new ProjectFileError(`Circular hierarchy around task "${task.id}"`);
       }
       seen.add(cursor);
       cursor = parentOf.get(cursor);

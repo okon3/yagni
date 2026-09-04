@@ -34,7 +34,7 @@ export interface LoadGeometry {
   nameOf(taskId: string): string;
 }
 
-const dayMonth = new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit' });
+const dayMonth = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit' });
 const percent = (rate: number) => `${Math.round(rate * 100)}%`;
 /** Two decimals would claim a precision nobody plans to. */
 const roundDays = (value: number) => Math.round(value * 10) / 10;
@@ -98,11 +98,11 @@ function laneLabel(lane: LoadLane, width: number): HTMLElement {
   name.textContent = lane.resource.name;
 
   const totals = element('span', 'loadlane__totals');
-  totals.textContent = `${roundDays(lane.committedDays)}g`;
-  totals.title = `${roundDays(lane.committedDays)} giorni impegnati, ${roundDays(lane.idleDays)} liberi`;
+  totals.textContent = `${roundDays(lane.committedDays)}d`;
+  totals.title = `${roundDays(lane.committedDays)} days booked, ${roundDays(lane.idleDays)} free`;
   if (lane.idleDays > 0) {
     const idle = element('span', 'loadlane__idle');
-    idle.textContent = ` · ${roundDays(lane.idleDays)}g libere`;
+    idle.textContent = ` · ${roundDays(lane.idleDays)}d free`;
     totals.append(idle);
   }
 
@@ -196,14 +196,14 @@ function showTip(
   const headline = element('div', 'loadtip__headline');
   headline.textContent =
     segment.capacity === 0
-      ? 'Assente'
-      : `Impegno ${percent(segment.committed)} su ${percent(segment.capacity)} disponibile`;
+      ? 'Absent'
+      : `Committed ${percent(segment.committed)} of ${percent(segment.capacity)} available`;
 
   tip.replaceChildren(when, headline);
 
   if (segment.shares.length === 0 && segment.capacity > 0) {
     const free = element('div', 'loadtip__free');
-    free.textContent = 'Nessuna attività in corso';
+    free.textContent = 'No tasks in progress';
     tip.append(free);
   }
   for (const share of segment.shares) {
@@ -238,7 +238,7 @@ export function renderLoadPanel(
 ): void {
   if (lanes.length === 0) {
     const empty = element('p', 'loadpanel__empty');
-    empty.textContent = 'Nessuna risorsa: il carico si legge per persona.';
+    empty.textContent = 'No resources: load is read per person.';
     root.replaceChildren(empty);
     return;
   }

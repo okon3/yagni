@@ -67,7 +67,7 @@ const SUMMARY_COLOR = '#55637a';
 const TODAY = '#3b6fe0';
 
 /** Deterministic rather than `toLocaleString`, which depends on the ICU data present. */
-const MONTHS = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function escapeXml(text: string): string {
   return text
@@ -259,7 +259,7 @@ export function planFigure(
     const span =
       plan.tasks.length > 0
         ? `${formatDay(solved.schedule.projectStart)} → ${formatDay(solved.schedule.projectEnd)}`
-        : 'nessuna attività';
+        : 'no tasks';
     parts.push(
       `<text x="${width - PADDING}" y="${PADDING + 14}" font-size="11" fill="${INK_MUTED}" ` +
         `text-anchor="end">${escapeXml(span)}</text>`,
@@ -356,7 +356,7 @@ export function planFigurePages(
       width: options.width ?? PAGE_WIDTH,
       title:
         options.title && pages > 1
-          ? `${options.title} — pagina ${index + 1} di ${pages}`
+          ? `${options.title} — page ${index + 1} of ${pages}`
           : options.title,
       slice: { from: index * perPage, count: perPage },
     }),

@@ -72,29 +72,29 @@ export function withAvailability(
 /**
  * The first thing wrong with the list, or null.
  *
- * The message is user-facing Italian: it reaches the dialog's error line and the
- * `Error` an agent gets back.
+ * The message is user-facing English: it reaches the dialog's error line and
+ * the `Error` an agent gets back.
  */
 export function validateResources(resources: Resource[]): string | null {
   const seenNames = new Set<string>();
   const seenIds = new Set<string>();
   for (const resource of resources) {
     const name = resource.name.trim();
-    if (!name) return 'Ogni persona deve avere un nome';
-    if (seenNames.has(name.toLowerCase())) return `Nome duplicato: "${name}"`;
+    if (!name) return 'Every person needs a name';
+    if (seenNames.has(name.toLowerCase())) return `Duplicate name: "${name}"`;
     seenNames.add(name.toLowerCase());
-    if (seenIds.has(resource.id)) return `Id duplicato: "${resource.id}"`;
+    if (seenIds.has(resource.id)) return `Duplicate id: "${resource.id}"`;
     seenIds.add(resource.id);
     const availability = resource.availability ?? 1;
     // Zero is refused as a default because a person who never works is a person
     // to remove; as an override it is exactly how an absence is expressed.
     if (!Number.isFinite(availability) || availability <= 0 || availability > 1) {
-      return `Disponibilità non valida per "${name}": attesa una quota fra 0 (escluso) e 1`;
+      return `Invalid availability for "${name}": expected a share between 0 (excluded) and 1`;
     }
     for (const period of resource.availabilityOverrides ?? []) {
-      if (!period.from || !period.to) return `Un periodo di "${name}" non ha inizio o fine`;
+      if (!period.from || !period.to) return `A period of "${name}" has no start or end`;
       if (period.availability < 0 || period.availability > 1) {
-        return `Un periodo di "${name}" ha una quota fuori da 0..1`;
+        return `A period of "${name}" has a share outside 0..1`;
       }
     }
   }

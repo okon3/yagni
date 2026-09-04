@@ -13,8 +13,9 @@
 /**
  * A name reduced to what a query should match it on.
  *
- * Case and accents both go: somebody looking for "analisi" has to find
- * "Analisi", and somebody typing it without the accent has to find "Attività".
+ * Case and accents both go: somebody looking for "analysis" has to find
+ * "Analysis", and somebody typing an accented name without the accent has to
+ * find it too.
  */
 export function searchKey(value: string): string {
   return value

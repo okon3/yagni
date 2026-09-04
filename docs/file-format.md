@@ -52,12 +52,13 @@ tasks, next save overwriting the user's work. Hence `validateResources` runs on
 order with the derived dates/durations the project file deliberately omits. No
 CSV import (results are not premises).
 
-Dialect for the app's locale: `;` separator, decimal comma, CRLF, UTF-8 BOM,
-dates `DD/MM/YYYY HH:mm`. `Livello` = outline depth; `Riepilogo` marks summaries
-(their effort is the children's rollup — summing without the flag double-counts);
-`Contesa` = stretched by sharing, vs part-time/absence; `Disattivata` marks a
-placeholder the effort column would otherwise sum in as committed work (appended
-last, so a sheet built on the earlier column order still reads). Dates come from
+Dialect for the target spreadsheet locale: `;` separator, decimal comma, CRLF,
+UTF-8 BOM, dates `DD/MM/YYYY HH:mm`. `Level` = outline depth; `Summary` marks
+summaries (their effort is the children's rollup — summing without the flag
+double-counts); `Contended` = stretched by sharing, vs part-time/absence;
+`Disabled` marks a placeholder the effort column would otherwise sum in as
+committed work (appended last, so a sheet built on the earlier column order
+still reads). Dates come from
 the schedule's own `Date`s, never re-converted from working minutes (milestone
 lands on its diamond's instant).
 

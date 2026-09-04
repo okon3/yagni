@@ -3,13 +3,13 @@ import type { CalendarSpec, DayRange } from '../scheduler';
 import { DayRangeList } from './DayRangeList';
 
 const WEEKDAYS = [
-  { day: 1, label: 'Lun' },
-  { day: 2, label: 'Mar' },
-  { day: 3, label: 'Mer' },
-  { day: 4, label: 'Gio' },
-  { day: 5, label: 'Ven' },
-  { day: 6, label: 'Sab' },
-  { day: 0, label: 'Dom' },
+  { day: 1, label: 'Mon' },
+  { day: 2, label: 'Tue' },
+  { day: 3, label: 'Wed' },
+  { day: 4, label: 'Thu' },
+  { day: 5, label: 'Fri' },
+  { day: 6, label: 'Sat' },
+  { day: 0, label: 'Sun' },
 ];
 
 /** Mounted only while open, so the draft initialises from props without an effect. */
@@ -39,11 +39,11 @@ export function CalendarDialog({
 
   const save = () => {
     if (workingDays.length === 0) {
-      setError('Serve almeno un giorno lavorativo alla settimana');
+      setError('At least one working day a week is required');
       return;
     }
     if (holidays.some((range) => !range.from || !range.to)) {
-      setError('Ogni chiusura deve avere una data di inizio e una di fine');
+      setError('Every shutdown needs a start date and an end date');
       return;
     }
     onSave({ ...calendar, workingDays, holidays });
@@ -51,15 +51,15 @@ export function CalendarDialog({
 
   return (
     <dialog ref={dialog} className="resources calendar" onCancel={onCancel} onClose={onCancel}>
-      <h2>Calendario di progetto</h2>
+      <h2>Project calendar</h2>
       <p className="resources__hint">
-        Le chiusure aziendali valgono per tutti e vengono escluse dal calendario: le attività si
-        spostano in avanti, ma il loro effort non cambia. Le assenze delle singole persone si
-        impostano in <strong>Persone</strong>.
+        Company shutdowns apply to everyone and are excluded from the calendar: tasks shift
+        forward, but their effort does not change. Individual absences are set in{' '}
+        <strong>People</strong>.
       </p>
 
       <div className="calendar__week">
-        <span className="calendar__weekLabel">Giorni lavorativi</span>
+        <span className="calendar__weekLabel">Working days</span>
         <div className="calendar__days">
           {WEEKDAYS.map(({ day, label }) => (
             <label key={day} className="calendar__day">
@@ -74,11 +74,11 @@ export function CalendarDialog({
         </div>
       </div>
 
-      <h3 className="calendar__subhead">Chiusure</h3>
+      <h3 className="calendar__subhead">Shutdowns</h3>
       <DayRangeList
         ranges={holidays}
         workingWeekdays={workingDays}
-        labelPlaceholder="Motivo (opzionale)"
+        labelPlaceholder="Reason (optional)"
         onChange={setHolidays}
       />
 
@@ -91,10 +91,10 @@ export function CalendarDialog({
       <div className="resources__actions">
         <span className="resources__spacer" />
         <button type="button" onClick={onCancel}>
-          Annulla
+          Cancel
         </button>
         <button type="button" className="resources__primary" onClick={save}>
-          Salva
+          Save
         </button>
       </div>
     </dialog>
