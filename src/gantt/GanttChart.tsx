@@ -528,6 +528,7 @@ export function GanttChart({
   onScaleChange,
   onChainState,
   onReject,
+  suppressTooltip = false,
   ref,
 }: {
   project: Project;
@@ -558,6 +559,8 @@ export function GanttChart({
   onChainState?: (state: ChainState) => void;
   /** Why an edit made in the chart was refused, for the caller to surface. */
   onReject?: (message: string) => void;
+  /** Quiets the bar tooltip while a caller's popup sits over the chart. */
+  suppressTooltip?: boolean;
   ref?: Ref<GanttHandle>;
 }) {
   const host = useRef<HTMLDivElement>(null);
@@ -591,6 +594,13 @@ export function GanttChart({
   // to come from a template, and a template asking one question of one value
   // cannot fall out of step with the query the way a copy per row would.
   const searchKeyRef = useRef('');
+  const suppressTooltipRef = useRef(suppressTooltip);
+
+  useEffect(() => {
+    suppressTooltipRef.current = suppressTooltip;
+    // Hovering preceded the popup, so a tooltip may already be up.
+    if (suppressTooltip) gantt.ext.tooltips.tooltip.hide();
+  }, [suppressTooltip]);
 
   useEffect(() => {
     openTaskRef.current = onOpenTask;
@@ -1257,6 +1267,7 @@ export function GanttChart({
      * delegates one mousemove on `$root`, which outlives every redraw too.
      */
     const barTooltip = (id: string | null): string | undefined => {
+      if (suppressTooltipRef.current) return undefined;
       const project = projectRef.current;
       const task = project.tasks.find((candidate) => candidate.id === id);
       const scheduled = id === null ? undefined : solvedRef.current.schedule.tasks.get(id);

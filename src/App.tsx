@@ -825,6 +825,7 @@ export default function App() {
           onDeleteTask={(id) => void requestDelete(id)}
           onScaleChange={setScale}
           onReject={setError}
+          suppressTooltip={rowMenu !== null}
         />
         {taskCount === 0 && (
           <EmptyState

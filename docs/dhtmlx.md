@@ -108,6 +108,9 @@ touching `src/gantt` code that talks to the library.
 - **Tooltip node lives on `document.body`** (outside dhtmlx's `border-box`
   scope), opens below-right of the pointer; `pointer-events: none` keeps it from
   describing the bar the pointer already left.
+- **Tooltip carries `z-index: 50`** — a fixed-position surface of ours near the
+  chart needs more (`.rowmenu`: 60), and an open popup should also suppress it
+  (`suppressTooltip` prop: hover re-opens it over whatever sits there).
 
 ## Grid and editors
 

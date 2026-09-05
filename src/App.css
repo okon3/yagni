@@ -1058,6 +1058,9 @@
    behind it, so every dialog default about placement has to be undone. */
 .rowmenu {
   position: fixed;
+  /* Above the dhtmlx bar tooltip (50, also on document.body) and the loadtip
+     (40); without one it loses even to the bands' hatch (z-index 1). */
+  z-index: 60;
   margin: 0;
   padding: 4px;
   min-width: 200px;
