@@ -249,6 +249,15 @@ the HelpDialog diagram, none of which are icons.
   which is how later migrations drop `!important` without a specificity war.
   `.dialog__control` and `.dialog__btn` (+ `--primary`/`--danger`) are explicit
   classes on each element, never descendant selectors, for the same reason.
+- **A legacy descendant rule outranks a primitive.** Old and new vocabularies
+  coexist only while they share no names — but `.resources__table input` or
+  `.ranges__row button` (0,1,1) beat `.dialog__control` / `.dialog__btn`
+  (0,1,0) regardless of source order, so a half-migrated dialog styles its new
+  classes with the old rules and the migration looks inert. Before migrating a
+  control, grep for the descendant rules that intercept it. Where the legacy
+  rule must survive for an unmigrated sibling, scope it —
+  `input:not(.dialog__control)`, `button:not(.dialog__btn)`: it then means
+  "whatever is not migrated yet" and retires with itself.
 
 ## Undo and the draft
 
