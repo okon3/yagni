@@ -708,7 +708,7 @@
 .taskinfo__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 16px;
+  gap: var(--space-3) var(--space-4);
 }
 
 .taskinfo__field {
@@ -722,36 +722,70 @@
   grid-column: 1 / -1;
 }
 
-.taskinfo__field > span:first-child {
+.taskinfo__label {
   color: var(--ink-muted);
   font-weight: 600;
   font-size: 12px;
 }
 
-.taskinfo__inline {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+/* p.dialog__hint's own text swaps (normal vs milestone); this pins the area's
+   height to the taller of the two so the row doesn't jump mid-typing. Measured
+   in the browser (both variants render at 48px at this dialog's width — not
+   derived), not from a line-height calculation — see docs/view.md § Details
+   dialog. */
+.taskinfo__intro {
+  min-height: 48px;
 }
 
+/* Wrapped in .dialog__field (dialog.css), which occupies the grid track; this
+   sizes to that wrapper and leaves room for the .dialog__suffix, same pattern
+   as .ranges__pct / .people__pct. Left-aligned (not right, unlike those): a
+   right-aligned value would run into the suffix inside this field.
+   min-height: measured, text/number .dialog__control renders at 27px in this
+   dialog, select/date at 29px (browser sizing, not a CSS difference — see
+   docs/view.md § Details dialog); 29px keeps this field's row even with its
+   Resource/Start sibling regardless of which control sits in it. */
 .taskinfo__amount {
-  width: 90px;
-  text-align: right;
+  width: 100%;
+  min-height: 29px;
+  padding-right: 40px;
+  text-align: left;
+  appearance: textfield;
+}
+
+.taskinfo__amount::-webkit-outer-spin-button,
+.taskinfo__amount::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
 }
 
 .taskinfo__checkbox {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 0;
+  min-height: 29px;
 }
 
 /* Values a summary rolls up from its children: shown as prose, not as a field
-   the user could mistake for editable. */
+   the user could mistake for editable. Semantics only here (italic +
+   --ink-faint) — this class is shared with the Float em-dash in the Computed
+   `dl`, which must stay a plain inline span on its text baseline. */
 .taskinfo__derived {
-  padding: 6px 0;
   color: var(--ink-faint);
   font-style: italic;
+}
+
+/* The field-grid row-height rule, split from the meaning above: applies only
+   to the derived spans standing in for a grid cell's control (Resource/Start
+   "from subtasks", the colour row's "inherited from the parent task"), never
+   to the Float em-dash. min-height matches this dialog's tallest rendered
+   .dialog__control (measured: text/number inputs render at 27px, select and
+   date at 29px — a platform quirk, not a CSS difference — so 29px keeps a
+   summary's row no shorter than a leaf's). */
+.taskinfo__derived--cell {
+  display: inline-flex;
+  align-items: center;
+  min-height: 29px;
 }
 
 /* A note about what a field accepts, not about the value it holds — hence not
@@ -759,6 +793,13 @@
 .taskinfo__hint {
   font-size: 11px;
   color: var(--ink-faint);
+}
+
+/* Same element, same text, kept in flow so its slot still holds the row's
+   height — a milestone typed mid-edit, or a summary's Effort cell, hides the
+   text rather than removing it. */
+.taskinfo__hint--reserved {
+  visibility: hidden;
 }
 
 .taskinfo__subhead {

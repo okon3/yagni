@@ -127,7 +127,9 @@ export function TaskDialog({
   // is in the middle of not typing.
   const isMilestone = !task.isSummary && effort.trim() !== '' && Number(effort) === 0;
 
-  const fromChildren = <span className="taskinfo__derived">from subtasks</span>;
+  const fromChildren = (
+    <span className="taskinfo__derived taskinfo__derived--cell">from subtasks</span>
+  );
   const contendedWith = resources.find(
     (resource) => resource.id === slack?.contendedResourceId,
   )?.name;
@@ -160,7 +162,7 @@ export function TaskDialog({
         </>
       }
     >
-      <p className="dialog__hint">
+      <p className="dialog__hint taskinfo__intro">
         {isMilestone ? (
           <>
             Effort <strong>0</strong>: a milestone, that is a date the plan reaches rather than
@@ -178,7 +180,7 @@ export function TaskDialog({
 
       <div className="taskinfo__grid">
         <label className="taskinfo__field taskinfo__field--wide">
-          <span>Name</span>
+          <span className="taskinfo__label">Name</span>
           <input
             className="dialog__control"
             value={name}
@@ -188,7 +190,7 @@ export function TaskDialog({
         </label>
 
         <label className="taskinfo__field">
-          <span>Resource</span>
+          <span className="taskinfo__label">Resource</span>
           {task.isSummary ? (
             fromChildren
           ) : (
@@ -208,12 +210,18 @@ export function TaskDialog({
         </label>
 
         <label className="taskinfo__field">
-          <span>Effort</span>
+          <span className="taskinfo__label">Effort</span>
           {task.isSummary ? (
-            fromChildren
+            <>
+              {fromChildren}
+              {/* Reserved so the row's tallest cell is the same on a summary as
+                  on a leaf — never visible here, since a summary is never a
+                  milestone (isMilestone excludes it). */}
+              <span className="taskinfo__hint taskinfo__hint--reserved">0 = milestone</span>
+            </>
           ) : (
             <>
-              <span className="taskinfo__inline">
+              <span className="dialog__field">
                 <input
                   className="dialog__control taskinfo__amount"
                   type="number"
@@ -223,17 +231,23 @@ export function TaskDialog({
                   value={effort}
                   onChange={(event) => setEffort(event.target.value)}
                 />
-                <span className="dialog__unit">days</span>
+                <span className="dialog__suffix">days</span>
               </span>
               {/* The only way to make a milestone, so the field has to say so:
-                  there is no second control, because there is no second concept. */}
-              {!isMilestone && <span className="taskinfo__hint">0 = milestone</span>}
+                  there is no second control, because there is no second concept.
+                  Rendered always and hidden by visibility (not removed), so the
+                  row doesn't shrink mid-typing. */}
+              <span
+                className={`taskinfo__hint${isMilestone ? ' taskinfo__hint--reserved' : ''}`}
+              >
+                0 = milestone
+              </span>
             </>
           )}
         </label>
 
         <label className="taskinfo__field">
-          <span>Start</span>
+          <span className="taskinfo__label">Start</span>
           {task.isSummary ? (
             fromChildren
           ) : (
@@ -247,8 +261,8 @@ export function TaskDialog({
         </label>
 
         <label className="taskinfo__field">
-          <span>Progress</span>
-          <span className="taskinfo__inline">
+          <span className="taskinfo__label">Progress</span>
+          <span className="dialog__field">
             <input
               className="dialog__control taskinfo__amount"
               type="number"
@@ -258,12 +272,12 @@ export function TaskDialog({
               value={progress}
               onChange={(event) => setProgress(event.target.value)}
             />
-            <span className="dialog__unit">%</span>
+            <span className="dialog__suffix">%</span>
           </span>
         </label>
 
         <div className="taskinfo__field taskinfo__field--wide">
-          <span>Colour</span>
+          <span className="taskinfo__label">Colour</span>
           {task.ownsColor ? (
             <div className="taskinfo__colors">
               <input
@@ -292,12 +306,14 @@ export function TaskDialog({
               <span className="taskinfo__preview" style={{ background: color }} />
             </div>
           ) : (
-            <span className="taskinfo__derived">inherited from the parent task</span>
+            <span className="taskinfo__derived taskinfo__derived--cell">
+              inherited from the parent task
+            </span>
           )}
         </div>
 
         <label className="taskinfo__field taskinfo__field--wide">
-          <span>Status</span>
+          <span className="taskinfo__label">Status</span>
           <span className="taskinfo__checkbox">
             <input
               type="checkbox"

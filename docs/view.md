@@ -88,6 +88,28 @@ that isn't there.
 - Only a task **with subtasks** confirms deletion — the one whose extent isn't
   on screen. The opener button names its task (identical unnamed buttons defeat
   keyboard users stepping between rows).
+- **Row heights are stable, not incidental** (`TaskDialog.tsx`, `.taskinfo__*`
+  in App.css). Numbers measured in the browser, never derived: this dialog's
+  `.dialog__control` renders at 27px for text/number, 29px for select/date —
+  a browser sizing quirk, not a stylesheet difference — so anything matching a
+  control's height uses the taller, 29px.
+  - **The "0 = milestone" hint is always rendered**, hidden with
+    `visibility: hidden` (`.taskinfo__hint--reserved`) rather than removed, on
+    a leaf whose effort isn't 0 and on a summary's Effort cell (never a
+    milestone) — its slot holds the row's height instead of the row shrinking
+    mid-edit.
+  - **`.taskinfo__derived` carries only the semantics** (italic, `--ink-faint`)
+    — it is shared with the Float em-dash in the Computed `dl`, which must stay
+    a plain inline span. The height rule (`display: inline-flex; align-items:
+    center; min-height: 29px`) is the modifier `.taskinfo__derived--cell`,
+    applied only to the spans standing in for a grid cell (`fromChildren`, the
+    colour row's "inherited from the parent task"). `.taskinfo__checkbox` gets
+    the same 29px `min-height` directly. `.taskinfo__amount` also gets it,
+    since its native 27px would otherwise leave a leaf's row 2px short of the
+    same row on a summary (whose Effort cell shows the 29px derived span).
+  - **The intro hint (`p.dialog__hint.taskinfo__intro`) reserves a min-height**
+    for its normal/milestone text swap — both variants measure 48px at this
+    dialog's width.
 
 ## Bar tooltip
 
@@ -288,7 +310,8 @@ that isn't there.
   down the list whatever the label or count text is. A field's unit (`%`)
   sits inside the field (`.dialog__field`/`.dialog__suffix`, dialog.css), so
   the fixed track carries the whole field and not a bare input with a span
-  beside it.
+  beside it. Same primitive in `TaskDialog`'s Effort ("days") and Progress
+  ("%") fields (`.taskinfo__amount`), outside any period-row list.
 - **The People table (`.people__table`) is `table-layout: fixed` with a
   `<colgroup>`**, so no cell's content can move a column: Name auto (≈260 at
   the dialog's 592px content box) · Availability 88 · Periods 160 · Tasks 48 ·
