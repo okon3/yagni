@@ -268,36 +268,6 @@
   background: var(--dirty);
 }
 
-.resources {
-  border: 0;
-  border-radius: 12px;
-  padding: 22px 24px;
-  min-width: 480px;
-  /* Stated rather than left to the UA's `Canvas`, which under `color-scheme:
-     light dark` picks its own near-black instead of the app's surface. */
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: var(--shadow-dialog);
-}
-
-.resources::backdrop {
-  background: rgb(28 36 48 / 35%);
-}
-
-.resources h2 {
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  margin: 0 0 4px;
-}
-
-.resources__hint {
-  margin: 0 0 14px;
-  font-size: 12px;
-  color: var(--ink-muted);
-  max-width: 58ch;
-}
-
 .people__table {
   width: 100%;
   border-collapse: collapse;
@@ -322,11 +292,6 @@
   text-align: right;
 }
 
-.resources__unit {
-  margin-left: 4px;
-  color: var(--ink-muted);
-}
-
 .people__count {
   text-align: center;
   color: var(--ink-muted);
@@ -337,47 +302,6 @@
   padding: 14px 6px;
   color: var(--ink-muted);
   text-align: center;
-}
-
-.resources__error {
-  margin: 12px 0 0;
-  font-size: 12px;
-  color: var(--danger);
-}
-
-.resources__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 18px;
-}
-
-.resources__spacer {
-  flex: 1;
-}
-
-.resources__actions button {
-  font: inherit;
-  padding: 6px 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
-  background: var(--surface);
-  cursor: pointer;
-}
-
-.resources__actions button:hover {
-  background: var(--surface-hover);
-}
-
-.resources__primary {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: #fff;
-  font-weight: 550;
-}
-
-.resources__primary:hover {
-  background: var(--accent-strong) !important;
 }
 
 /* Sits over the empty grid rather than replacing the chart: unmounting dhtmlx
@@ -1111,10 +1035,6 @@
 
   .empty__card {
     box-shadow: 0 6px 24px rgb(0 0 0 / 45%);
-  }
-
-  .resources::backdrop {
-    background: rgb(0 0 0 / 55%);
   }
 
   .taskinfo__swatch {

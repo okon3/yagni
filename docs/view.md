@@ -248,15 +248,17 @@ the HelpDialog diagram, none of which are icons.
   which is how later migrations drop `!important` without a specificity war.
   `.dialog__control` and `.dialog__btn` (+ `--primary`/`--danger`) are explicit
   classes on each element, never descendant selectors, for the same reason.
-- **A legacy descendant rule outranks a primitive.** Old and new vocabularies
-  coexist only while they share no names — but `.resources__table input` or
-  `.ranges__row button` (0,1,1) beat `.dialog__control` / `.dialog__btn`
-  (0,1,0) regardless of source order, so a half-migrated dialog styles its new
-  classes with the old rules and the migration looks inert. Before migrating a
-  control, grep for the descendant rules that intercept it. Where the legacy
-  rule must survive for an unmigrated sibling, scope it —
-  `input:not(.dialog__control)`, `button:not(.dialog__btn)`: it then means
-  "whatever is not migrated yet" and retires with itself.
+  Everything about the chrome lives in that one file, the backdrop's dark alpha
+  included — it sits beside the light one rather than in App.css's block of
+  alpha veils, because a light/dark pair split across two files drifts apart.
+- **A descendant rule outranks a primitive.** A block rule reaching a control
+  by element — `.block__row button` (0,1,1) — beats `.dialog__btn` /
+  `.dialog__control` (0,1,0) whatever the source order, so the control keeps
+  the block's styling and every per-dialog override of the primitive is inert
+  too. No dialog control is styled that way any more: give it an explicit
+  class instead (`.people__pct`, `.ranges__date`, `.taskinfo__amount` — same
+  element, same specificity, App.css later, so it wins by order alone). Grep
+  for what else selects a control before assuming its class styles it.
 
 ## Undo and the draft
 
