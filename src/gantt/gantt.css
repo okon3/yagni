@@ -535,6 +535,28 @@
   color: var(--accent);
 }
 
+.gantt-rowtoggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--danger);
+  opacity: 0.4;
+  cursor: pointer;
+}
+
+.gantt_row:hover .gantt-rowtoggle {
+  opacity: 1;
+}
+
+/* Discoverable without hover: a row already toggled off stays visible so its
+   state doesn't hide behind the same fade as an untouched row. */
+.gantt-rowtoggle--off {
+  opacity: 1;
+}
+
 /* A group is a heading for the rows under it, so its name carries the weight. */
 .gantt-name--summary {
   font-weight: 650;

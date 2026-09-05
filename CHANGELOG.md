@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Per-row toggle button in the grid to enable/disable a task without opening the row menu or the details dialog.
+
 ## v1.0 — 2026-09-04
 
 - First public release: effort-based scheduling engine, critical chain, undo, .gantt save, CSV/PNG/print export, agent API (window.yagni).

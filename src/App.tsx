@@ -397,19 +397,20 @@ export default function App() {
    * Flips the row's own flag through the one patch funnel every other edit
    * uses — undo, the effective (inherited) redraw and the dirty check all come
    * free from `updateTask`'s own `applySolution`, same as `saveTaskDetails`.
+   * Shared by the row menu and the grid's own toggle button.
    */
-  const toggleDisabled = useCallback((target: RowMenuTarget) => {
+  const toggleDisabled = useCallback((taskId: string, currentDisabled: boolean) => {
     const handle = chart.current;
-    const details = handle?.getTaskDetails(target.taskId);
+    const details = handle?.getTaskDetails(taskId);
     if (!handle || !details) return;
-    handle.updateTask(target.taskId, {
+    handle.updateTask(taskId, {
       name: details.name,
       nominalDays: details.nominalDays,
       start: details.start,
       resourceId: details.resourceId || undefined,
       color: details.ownsColor ? details.color : undefined,
       progress: details.progress,
-      disabled: !target.disabled,
+      disabled: !currentDisabled,
     });
   }, []);
 
@@ -822,6 +823,7 @@ export default function App() {
           }}
           onOpenTask={openTaskDetails}
           onRowMenu={setRowMenu}
+          onToggleDisabled={toggleDisabled}
           onDeleteTask={(id) => void requestDelete(id)}
           onScaleChange={setScale}
           onReject={setError}
@@ -875,7 +877,7 @@ export default function App() {
           onDismiss={() => setRowMenu(null)}
           onPick={(action) => {
             setRowMenu(null);
-            if (action === 'toggle-disabled') toggleDisabled(rowMenu);
+            if (action === 'toggle-disabled') toggleDisabled(rowMenu.taskId, rowMenu.disabled);
             else createFromMenu(rowMenu, action);
           }}
         />

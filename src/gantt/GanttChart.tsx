@@ -103,6 +103,11 @@ const INFO_ICON =
   '<circle cx="8" cy="4.6" r="0.95" fill="currentColor"/>' +
   '<rect x="7.25" y="6.7" width="1.5" height="4.9" rx="0.75" fill="currentColor"/></svg>';
 
+const BAN_ICON =
+  '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">' +
+  '<circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
+  '<path d="M4.11 4.11 11.89 11.89" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
+
 /**
  * Marks the scale cell holding today, whatever span that cell covers.
  *
@@ -524,6 +529,7 @@ export function GanttChart({
   onChange,
   onOpenTask,
   onRowMenu,
+  onToggleDisabled,
   onDeleteTask,
   onScaleChange,
   onChainState,
@@ -552,6 +558,8 @@ export function GanttChart({
     /** The task's own flag, not the effective (inherited) state. */
     disabled: boolean;
   }) => void;
+  /** The grid's per-row power button — same action as the menu's Enable/Disable. */
+  onToggleDisabled?: (taskId: string, ownDisabled: boolean) => void;
   /** Asked, not done: the confirmation belongs with the rest of the dialogs. */
   onDeleteTask?: (id: string) => void;
   onScaleChange?: (label: string) => void;
@@ -569,6 +577,7 @@ export function GanttChart({
   // that must not re-run when a callback identity changes.
   const openTaskRef = useRef(onOpenTask);
   const rowMenuRef = useRef(onRowMenu);
+  const toggleDisabledRef = useRef(onToggleDisabled);
   const deleteTaskRef = useRef(onDeleteTask);
   const scaleChangeRef = useRef(onScaleChange);
   const changeRef = useRef(onChange);
@@ -605,12 +614,22 @@ export function GanttChart({
   useEffect(() => {
     openTaskRef.current = onOpenTask;
     rowMenuRef.current = onRowMenu;
+    toggleDisabledRef.current = onToggleDisabled;
     deleteTaskRef.current = onDeleteTask;
     scaleChangeRef.current = onScaleChange;
     changeRef.current = onChange;
     rejectRef.current = onReject;
     chainStateRef.current = onChainState;
-  }, [onChainState, onChange, onDeleteTask, onOpenTask, onReject, onRowMenu, onScaleChange]);
+  }, [
+    onChainState,
+    onChange,
+    onDeleteTask,
+    onOpenTask,
+    onReject,
+    onRowMenu,
+    onScaleChange,
+    onToggleDisabled,
+  ]);
 
   /** Says which of the three the control has to offer, after every write to the chain. */
   const reportChainState = useCallback(() => {
@@ -1149,6 +1168,26 @@ export function GanttChart({
           `<button type="button" class="gantt-rowinfo" data-task-info="1"` +
           ` title="Details for “${escapeHtml(String(task.text ?? ''))}”">${INFO_ICON}</button>`,
       },
+      {
+        name: 'toggle',
+        label: '',
+        width: 34,
+        align: 'center',
+        // The effective (inherited) flag is what `task.disabled` carries here —
+        // wrong for a child of a disabled summary, which must still read as
+        // enabled on its own row. The row's own flag lives on the model, not
+        // on the dhtmlx task.
+        template: (task) => {
+          const own =
+            projectRef.current.tasks.find((candidate) => candidate.id === String(task.id))
+              ?.disabled === true;
+          const name = escapeHtml(String(task.text ?? ''));
+          return (
+            `<button type="button" class="gantt-rowtoggle${own ? ' gantt-rowtoggle--off' : ''}"` +
+            ` data-task-toggle="1" title="${own ? 'Enable' : 'Disable'} “${name}”">${BAN_ICON}</button>`
+          );
+        },
+      },
       { name: 'add', width: 40 },
     ];
     // The grid holds `grid_width` and squeezes its resizable columns down to
@@ -1675,11 +1714,14 @@ export function GanttChart({
 
     // A click on a grid cell opens an inline editor but leaves the row
     // unselected, so Del would have nothing to act on unless the user went to
-    // the timeline to click a bar first. The info button is excluded: it opens a
-    // modal, and a row highlighted behind it reads as a pending action.
+    // the timeline to click a bar first. The info and toggle buttons are
+    // excluded: info opens a modal (a row highlighted behind it reads as a
+    // pending action), and the toggle is a self-contained action that must not
+    // also select the row it sits on.
     const selectRow = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest?.('[data-task-info]')) return;
+      if (target?.closest?.('[data-task-toggle]')) return;
       const id = target?.closest?.('.gantt_row')?.getAttribute('data-task-id');
       if (id && gantt.isTaskExists(id)) gantt.selectTask(id);
     };
@@ -1733,7 +1775,13 @@ export function GanttChart({
         if (loadHost.current) scrollLoadPanel(loadHost.current, gantt.getScrollState().x);
       }, undefined),
       gantt.attachEvent('onTaskClick', (id, event) => {
-        if (!(event?.target as HTMLElement | null)?.closest?.('[data-task-info]')) return true;
+        const target = event?.target as HTMLElement | null;
+        if (target?.closest?.('[data-task-toggle]')) {
+          const task = projectRef.current.tasks.find((candidate) => candidate.id === String(id));
+          toggleDisabledRef.current?.(String(id), task?.disabled === true);
+          return false;
+        }
+        if (!target?.closest?.('[data-task-info]')) return true;
         openTaskRef.current?.(String(id));
         // Selecting the row as well would leave it highlighted behind the modal.
         return false;

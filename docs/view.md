@@ -101,8 +101,10 @@ know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
 ## Disabled tasks
 
 - Toggled from the row menu (leaf or summary — *Disable*/*Enable*, label
-  read off the row's own flag) and from the details dialog's *Disabled*
-  checkbox, on both leaves and summaries. Both go through `updateTask`'s
+  read off the row's own flag), from the details dialog's *Disabled*
+  checkbox, and from a red ban-icon button in its own grid column (title
+  flips *Enable*/*Disable*, stays at full opacity once off so the state is
+  discoverable without hovering). All three go through `updateTask`'s
   `TaskPatch` — no pathway of their own, so undo and the dirty check come free.
 - What is drawn is the **effective** state (`solved.disabledIds`): a leaf's own
   flag or one inherited from a disabled ancestor. The row menu and the dialog
