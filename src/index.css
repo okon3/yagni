@@ -1,5 +1,9 @@
 :root {
   color-scheme: light dark;
+  /* Checkboxes are UA-default blue otherwise, off-palette in both schemes;
+     set once here it inherits everywhere and follows the dark redefinition
+     for free. */
+  accent-color: var(--accent);
 
   /* One palette for the whole app. Task bars are the exception: they carry the
      colour the user picked, so nothing here may override them. */

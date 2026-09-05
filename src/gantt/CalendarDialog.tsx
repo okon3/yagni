@@ -70,20 +70,18 @@ export function CalendarDialog({
         <strong>People</strong>.
       </p>
 
-      <div className="calendar__week">
-        <span className="calendar__weekLabel">Working days</span>
-        <div className="calendar__days">
-          {WEEKDAYS.map(({ day, label }) => (
-            <label key={day} className="calendar__day">
-              <input
-                type="checkbox"
-                checked={workingDays.includes(day)}
-                onChange={() => toggleDay(day)}
-              />
-              {label}
-            </label>
-          ))}
-        </div>
+      <h3 className="calendar__subhead">Working days</h3>
+      <div className="calendar__days">
+        {WEEKDAYS.map(({ day, label }) => (
+          <label key={day} className="calendar__day">
+            <input
+              type="checkbox"
+              checked={workingDays.includes(day)}
+              onChange={() => toggleDay(day)}
+            />
+            {label}
+          </label>
+        ))}
       </div>
 
       <h3 className="calendar__subhead">Shutdowns</h3>

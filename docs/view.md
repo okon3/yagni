@@ -6,7 +6,10 @@ know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
 
 Icons are lucide only (`lucide-react` in components, `lucide-static` strings
 in dhtmlx templates) — except the critical-chain/dirty CSS dots, the logo and
-the HelpDialog diagram, none of which are icons.
+the HelpDialog diagram, none of which are icons. The `→` between a period
+row's two dates is one more exception: it's the word "to" set as an arrow,
+not an interactive control, and a grey svg arrow there would imply affordance
+that isn't there.
 
 ## Colour scheme
 
@@ -259,6 +262,20 @@ the HelpDialog diagram, none of which are icons.
   class instead (`.people__pct`, `.ranges__date`, `.taskinfo__amount` — same
   element, same specificity, App.css later, so it wins by order alone). Grep
   for what else selects a control before assuming its class styles it.
+- **Period-row lists (`.ranges__row`: Calendar shutdowns, People absences)
+  share one CSS grid template**: fixed date/count/remove tracks (`120px 12px
+  120px 1fr 88px 28px`), plus a `--pct` modifier that inserts a 68px
+  percentage track between the dates and the label (`AvailabilityList`).
+  Count is `white-space: nowrap` — 88px is "no working days" (measured 87px, the
+  widest string either list produces) rounded up to the `--space-*` grain;
+  a fixed track whose content wraps would change that one row's height
+  silently, which nowrap turns into a visibly wrong string instead. **The
+  label is the only elastic (`1fr`) track** — free text is the one thing that
+  can absorb leftover width, so dates, counts and remove buttons stay aligned
+  down the list whatever the label or count text is. A field's unit (`%`)
+  sits inside the field (`.dialog__field`/`.dialog__suffix`, dialog.css), so
+  the fixed track carries the whole field and not a bare input with a span
+  beside it.
 
 ## Undo and the draft
 

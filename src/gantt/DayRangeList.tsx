@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { countWorkingDaysInRange, type DayRange } from '../scheduler';
 
 
@@ -70,8 +71,9 @@ export function DayRangeList({
             className="dialog__btn dialog__btn--danger ranges__remove"
             onClick={() => onChange(ranges.filter((_, position) => position !== index))}
             title="Remove"
+            aria-label="Remove"
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
       ))}

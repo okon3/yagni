@@ -536,35 +536,33 @@
   color: var(--accent-strong);
 }
 
-.calendar__week {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
-}
-
-.calendar__weekLabel {
-  color: var(--ink-muted);
-  font-weight: 600;
-}
-
 .calendar__days {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-1);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
 }
 
 .calendar__day {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
+  font-size: 13px;
   cursor: pointer;
 }
 
 .calendar__subhead {
   font-size: 13px;
-  margin: 16px 0 8px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+/* The two subheads read as one grammar ("Working days" is one of them, not a
+   label of its own); only the first sits flush with the hint above it. */
+.calendar__subhead:first-of-type {
+  margin-top: 0;
 }
 
 .ranges {
@@ -576,41 +574,55 @@
   color: var(--ink-faint);
 }
 
+/* One grammar for every period-row list (Calendar shutdowns, People
+   absences): fixed date/count/remove tracks so they align down the list
+   regardless of content; `--pct` inserts the percentage track shared with
+   AvailabilityList. Label is the only elastic (1fr) track. */
 .ranges__row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 120px 12px 120px 1fr 88px 28px; /* date → date label count remove */
+  gap: var(--space-2);
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2);
 }
 
-/* A row sizes its dates to their content; the primitive's full width is meant
-   for stacked fields. Same specificity as `.dialog__control`, later file: it
-   wins on source order, which is why no `!important` is needed here. */
+.ranges__row--pct {
+  grid-template-columns: 120px 12px 120px 68px 1fr 88px 28px; /* date → date pct label count remove */
+}
+
 .ranges__date {
-  width: auto;
+  width: 100%;
 }
 
-/* The rows are dense — they keep the tighter padding until T13 unifies the two
-   list layouts. */
-.ranges__add,
 .ranges__remove {
-  padding: var(--space-1) var(--space-2);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
+/* Grid tracks blow out around an input unless it's told it may shrink below
+   its content. */
 .ranges__label {
-  flex: 1;
+  width: 100%;
   min-width: 0;
 }
 
 .ranges__to {
+  text-align: center;
   color: var(--ink-faint);
 }
 
+/* A fixed track whose content wraps changes row height silently; nowrap makes
+   a future longer string visibly wrong instead of quietly misaligned. */
 .ranges__count {
-  min-width: 82px;
   text-align: right;
+  font-size: 12px;
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* A period that lands entirely on non-working days costs nothing, which is worth
@@ -645,9 +657,18 @@
   padding: var(--space-1) var(--space-2);
 }
 
+/* Wrapped in .dialog__field (dialog.css), which occupies the grid track;
+   this sizes to that wrapper and leaves room for the .dialog__suffix. */
 .ranges__pct {
-  width: 62px;
+  width: 100%;
+  padding-right: 22px;
   text-align: right;
+}
+
+.ranges__pct::-webkit-outer-spin-button,
+.ranges__pct::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
 }
 
 .taskinfo__grid {

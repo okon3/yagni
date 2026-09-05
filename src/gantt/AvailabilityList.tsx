@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { countWorkingDaysInRange, type AvailabilityOverride } from '../scheduler';
 
 /**
@@ -38,7 +39,7 @@ export function AvailabilityList({
         const working = countWorkingDaysInRange(period, workingWeekdays);
         const percent = Math.round(period.availability * 100);
         return (
-          <div className="ranges__row" key={index}>
+          <div className="ranges__row ranges__row--pct" key={index}>
             <input
               className="dialog__control ranges__date"
               type="date"
@@ -53,21 +54,23 @@ export function AvailabilityList({
               min={period.from}
               onChange={(event) => update(index, { to: event.target.value })}
             />
-            <input
-              className="dialog__control ranges__pct"
-              type="number"
-              min={0}
-              max={100}
-              step={5}
-              value={percent}
-              onChange={(event) => {
-                const next = Number(event.target.value);
-                update(index, {
-                  availability: Number.isFinite(next) ? Math.min(100, Math.max(0, next)) / 100 : 0,
-                });
-              }}
-            />
-            <span className="ranges__unit">%</span>
+            <span className="dialog__field">
+              <input
+                className="dialog__control ranges__pct"
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                value={percent}
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  update(index, {
+                    availability: Number.isFinite(next) ? Math.min(100, Math.max(0, next)) / 100 : 0,
+                  });
+                }}
+              />
+              <span className="dialog__suffix">%</span>
+            </span>
             <input
               className="dialog__control ranges__label"
               placeholder={percent === 0 ? 'Leave, time off...' : 'Reason (optional)'}
@@ -84,8 +87,9 @@ export function AvailabilityList({
               className="dialog__btn dialog__btn--danger ranges__remove"
               onClick={() => onChange(periods.filter((_, position) => position !== index))}
               title="Remove"
+              aria-label="Remove"
             >
-              ✕
+              <X size={14} />
             </button>
           </div>
         );
