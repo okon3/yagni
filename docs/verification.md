@@ -14,6 +14,13 @@ at all.
   can't do (close and reopen the tab). Verify the print path by dispatching
   `beforeprint` on `window` (what `printPlan` listens to); the paper needs a
   person.
+- **A `<dialog>`'s `close` event never fires here** — probed on a fresh
+  `<dialog>`: `showModal()`, `close('bye')` → `returnValue` set, `open` false,
+  but neither `onclose` nor `addEventListener('close')` ran. The tool's
+  synthetic Escape likewise produces no native `cancel`. So the `close` half of
+  a dialog's wiring (`Dialog`'s `onCancel`/`onClose` → `onDismiss`) can't be
+  exercised by driving the UI — dispatch a real `Event('close')` (or `'cancel'`)
+  on the dialog node instead.
 
 ## Popups closing on outside click
 

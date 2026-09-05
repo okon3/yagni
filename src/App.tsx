@@ -53,6 +53,10 @@ import {
 import { announces, readSeenVersion, writeSeenVersion } from './gantt/seenVersion';
 import { wrapIndex } from './gantt/search';
 import { keystrokeIsCaptured } from './gantt/shortcuts';
+// Load-bearing order: equal-specificity per-dialog rules in App.css win by
+// loading after dialog.css's generic block — the mechanism T12 uses instead of
+// `!important` to override a base rule.
+import './dialog.css';
 import './App.css';
 
 const DEFAULT_FILENAME = `project${PROJECT_EXTENSION}`;

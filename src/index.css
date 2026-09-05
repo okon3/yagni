@@ -6,6 +6,9 @@
   --accent: #6f5bd8;
   --accent-strong: #5b47c4;
   --accent-soft: #f1eefc;
+  /* Label ink on top of --accent. Dark measures ≈3.4:1 here, under the 4.5:1 a
+     13px label needs — palette retuning is T13's territory, not this one. */
+  --on-accent: #fff;
   --today: #3b6fe0;
   --warn: #b4530a;
   --danger: #8a3a17;
@@ -46,6 +49,13 @@
   --shadow-raised: 0 1px 2px rgb(24 28 40 / 6%);
   --shadow-dialog: 0 18px 48px rgb(24 28 40 / 16%);
 
+  /* Dialog spacing — the only scale dialog.css draws gaps and padding from. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--ink);
 }
@@ -62,6 +72,7 @@
     --accent: #8b78ea;
     --accent-strong: #a495f2;
     --accent-soft: #2a2542;
+    --on-accent: #fff;
     --today: #6d9bf5;
     --warn: #d9903f;
     --danger: #dd8a68;

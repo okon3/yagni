@@ -213,6 +213,43 @@ the HelpDialog diagram, none of which are icons.
   of greeting a new user with release notes. Waits for the unsaved-draft
   question to be settled first — never stacks on that dialog.
 
+## Dialogs
+
+- `Dialog` (`src/gantt/Dialog.tsx`) owns the `<dialog>` chrome for every modal:
+  `showModal`, the focus/scroll fallback, and the header/body/footer skeleton.
+  Content and buttons stay per-dialog. Mounted only while open, like before —
+  it never takes an `open` prop, so a draft still initialises from props on
+  mount rather than through an effect.
+- **`.dialog__body` is the only scroll container.** Header, error slot and
+  footer are `flex: none`, so a scrolled-past error or a title never leaves
+  view, and the footer's buttons are always reachable without scrolling.
+- **Width is fixed per dialog, never content-driven** — no `min-width`
+  anywhere in a dialog rule; a `min-width` next to content pressure is what
+  let an expanded row resize a dialog before. Height is content-driven up to a
+  cap, past which the body scrolls.
+- No header close button. Esc and the footer button both dismiss through the
+  same path — a real Escape fires the native `cancel` event and then `close`
+  right after, both wired to `onDismiss`, which is latched to run at most once
+  per mount.
+- **Focus on open rests on the safe option, not the one that acts.** A real
+  Escape and a stray Enter must not perform a confirmation's destructive or
+  irreversible action, so `ConfirmDialog`'s Cancel button — not its confirm
+  button — carries a literal `autofocus` HTML attribute, applied through
+  `setAutofocus` (`src/gantt/autofocus.ts`; its own module because a
+  non-component export costs `Dialog.tsx` its Fast Refresh). React's
+  `autoFocus` prop cannot supply this: it only calls `.focus()` at mount,
+  while the dialog is still closed (`showModal` runs later), which does
+  nothing. `Dialog`'s own fallback looks
+  for that same literal attribute to decide whether to focus the dialog itself
+  instead. TaskDialog's name field still uses React's `autoFocus` prop
+  (`src/gantt/TaskDialog.tsx`) — not yet migrated to `Dialog`, so its focus on
+  open works only because the field happens to be the first focusable child.
+- CSS: `src/dialog.css`, imported in `App.tsx` before `App.css` — an
+  equal-specificity per-dialog override in App.css then wins by source order,
+  which is how later migrations drop `!important` without a specificity war.
+  `.dialog__control` and `.dialog__btn` (+ `--primary`/`--danger`) are explicit
+  classes on each element, never descendant selectors, for the same reason.
+
 ## Undo and the draft
 
 - Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y + toolbar arrows, greyed when empty, each

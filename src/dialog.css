@@ -1,0 +1,143 @@
+/* Generic dialog chrome and primitives, shared by every modal `<dialog>` in
+   the app — see docs/view.md (*Dialogs*). `.dialog__control` and `.dialog__btn`
+   are explicit classes on each element, never descendant selectors: a modifier
+   on the same element ties specificity at (0,1,0), so a later-loaded,
+   equal-specificity per-dialog override in App.css always wins by source
+   order alone — no `!important` needed anywhere in a dialog rule. */
+
+.dialog {
+  /* Width is fixed per dialog and never grows with its content: `min-width` +
+     content pressure is exactly the resize-on-expand bug this replaces. */
+  width: min(var(--dialog-width), calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  /* Content-driven up to the cap; past it the body scrolls, footer stays put. */
+  max-height: min(85vh, calc(100vh - 48px));
+  border: 0;
+  border-radius: 12px;
+  padding: 0;
+  /* Stated rather than left to the UA's `Canvas`, which under `color-scheme:
+     light dark` picks its own near-black instead of the app's surface. */
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-dialog);
+}
+
+.dialog::backdrop {
+  background: rgb(28 36 48 / 35%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .dialog::backdrop {
+    background: rgb(0 0 0 / 55%);
+  }
+}
+
+.dialog__header {
+  flex: none;
+  padding: var(--space-5) var(--space-5) 0;
+}
+
+.dialog__title {
+  margin: 0 0 var(--space-2);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+/* The only scroll container: header, error slot and footer stay put, so an
+   error triggered from the footer or a header title are never scrolled away. */
+.dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5);
+}
+
+/* A header already opens the gap above the body; without one, the body's own
+   top padding takes over instead. */
+.dialog__header + .dialog__body {
+  padding-top: 0;
+}
+
+.dialog__hint {
+  margin: 0 0 var(--space-4);
+  font-size: 12px;
+  color: var(--ink-muted);
+  max-width: 58ch;
+}
+
+/* Outside the scroll on purpose: an error triggered from a footer button must
+   stay visible even when the body scrolled it out of view. */
+.dialog__error {
+  flex: none;
+  margin: 0;
+  padding: var(--space-3) var(--space-5) 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.dialog__footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+.dialog__spacer {
+  flex: 1;
+}
+
+.dialog__unit {
+  margin-left: var(--space-1);
+  color: var(--ink-muted);
+}
+
+.dialog__control {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.dialog__btn {
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.dialog__btn:hover {
+  background: var(--surface-hover);
+}
+
+.dialog__btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 550;
+}
+
+.dialog__btn--primary:hover {
+  background: var(--accent-strong);
+}
+
+/* Set apart from the rest of the row: irreversible actions get no border of
+   their own, only the danger ink, until hovered. */
+.dialog__btn--danger {
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.dialog__btn--danger:hover {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}

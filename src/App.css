@@ -1087,11 +1087,6 @@
   font-size: 11px;
 }
 
-.confirm {
-  min-width: 0;
-  max-width: 420px;
-}
-
 /* The row menu. A `<dialog>` for what `keystrokeIsCaptured` reads off it, but
    not a modal: it sits at the pointer, over a plan that must stay legible
    behind it, so every dialog default about placement has to be undone. */
