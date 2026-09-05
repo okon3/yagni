@@ -260,6 +260,13 @@ that isn't there.
   Everything about the chrome lives in that one file, the backdrop's dark alpha
   included — it sits beside the light one rather than in App.css's block of
   alpha veils, because a light/dark pair split across two files drifts apart.
+- **`.dialog` states the base size, 13px.** `.dialog__control` and
+  `.dialog__btn` are `font: inherit`: with no base they resolved against the
+  UA's 16px, which every content block corrected for itself (`.people__table`,
+  `.ranges`, `.taskinfo__field`, `.calendar__day`) and the footer buttons never
+  did. A field dropped straight into `.dialog__body` now comes out at 13 like
+  the rest. Sizes that are a deliberate step off it stay explicit: title 16,
+  confirm message 14, hints and errors 12.
 - **A descendant rule outranks a primitive.** A block rule reaching a control
   by element — `.block__row button` (0,1,1) — beats `.dialog__btn` /
   `.dialog__control` (0,1,0) whatever the source order, so the control keeps

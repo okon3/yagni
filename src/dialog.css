@@ -9,6 +9,11 @@
   /* Width is fixed per dialog and never grows with its content: `min-width` +
      content pressure is exactly the resize-on-expand bug this replaces. */
   width: min(var(--dialog-width), calc(100vw - 48px));
+  /* The base every `font: inherit` control resolves against. Unset, it is the
+     UA's 16px, which the content blocks each corrected to 13 on their own and
+     the footer buttons never did — a field added straight into `.dialog__body`
+     would have come out at 16. */
+  font-size: 13px;
   display: flex;
   flex-direction: column;
   /* Content-driven up to the cap; past it the body scrolls, footer stays put. */
