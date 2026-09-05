@@ -40,19 +40,21 @@ export function AvailabilityList({
         return (
           <div className="ranges__row" key={index}>
             <input
+              className="dialog__control ranges__date"
               type="date"
               value={period.from}
               onChange={(event) => update(index, { from: event.target.value })}
             />
             <span className="ranges__to">→</span>
             <input
+              className="dialog__control ranges__date"
               type="date"
               value={period.to}
               min={period.from}
               onChange={(event) => update(index, { to: event.target.value })}
             />
             <input
-              className="ranges__pct"
+              className="dialog__control ranges__pct"
               type="number"
               min={0}
               max={100}
@@ -67,7 +69,7 @@ export function AvailabilityList({
             />
             <span className="ranges__unit">%</span>
             <input
-              className="ranges__label"
+              className="dialog__control ranges__label"
               placeholder={percent === 0 ? 'Leave, time off...' : 'Reason (optional)'}
               value={period.label ?? ''}
               onChange={(event) => update(index, { label: event.target.value })}
@@ -79,6 +81,7 @@ export function AvailabilityList({
             </span>
             <button
               type="button"
+              className="dialog__btn dialog__btn--danger ranges__remove"
               onClick={() => onChange(periods.filter((_, position) => position !== index))}
               title="Remove"
             >
@@ -88,7 +91,7 @@ export function AvailabilityList({
         );
       })}
 
-      <button type="button" className="ranges__add" onClick={add}>
+      <button type="button" className="dialog__btn ranges__add" onClick={add}>
         Add period
       </button>
     </div>

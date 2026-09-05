@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { CalendarSpec, DayRange } from '../scheduler';
+import { Dialog } from './Dialog';
 import { DayRangeList } from './DayRangeList';
 
 const WEEKDAYS = [
@@ -22,14 +23,9 @@ export function CalendarDialog({
   onCancel(): void;
   onSave(calendar: CalendarSpec): void;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
   const [workingDays, setWorkingDays] = useState<number[]>(calendar.workingDays);
   const [holidays, setHolidays] = useState<DayRange[]>(calendar.holidays ?? []);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
 
   const toggleDay = (day: number) => {
     setWorkingDays((current) =>
@@ -50,9 +46,25 @@ export function CalendarDialog({
   };
 
   return (
-    <dialog ref={dialog} className="resources calendar" onCancel={onCancel} onClose={onCancel}>
-      <h2>Project calendar</h2>
-      <p className="resources__hint">
+    <Dialog
+      title="Project calendar"
+      width={560}
+      className="calendar"
+      onDismiss={onCancel}
+      error={error}
+      footer={
+        <>
+          <span className="dialog__spacer" />
+          <button type="button" className="dialog__btn" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className="dialog__btn dialog__btn--primary" onClick={save}>
+            Save
+          </button>
+        </>
+      }
+    >
+      <p className="dialog__hint">
         Company shutdowns apply to everyone and are excluded from the calendar: tasks shift
         forward, but their effort does not change. Individual absences are set in{' '}
         <strong>People</strong>.
@@ -81,22 +93,6 @@ export function CalendarDialog({
         labelPlaceholder="Reason (optional)"
         onChange={setHolidays}
       />
-
-      {error && (
-        <p className="resources__error" role="alert">
-          {error}
-        </p>
-      )}
-
-      <div className="resources__actions">
-        <span className="resources__spacer" />
-        <button type="button" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="button" className="resources__primary" onClick={save}>
-          Save
-        </button>
-      </div>
-    </dialog>
+    </Dialog>
   );
 }

@@ -317,7 +317,9 @@
   vertical-align: middle;
 }
 
-.resources__table input {
+/* Excludes migrated primitives: the pre-migration fallback for ResourceDialog's
+   still-legacy rows, retiring alongside `.resources__table` in T12.4/T12.6. */
+.resources__table input:not(.dialog__control) {
   font: inherit;
   padding: 4px 7px;
   border: 1px solid var(--line-strong);
@@ -367,7 +369,7 @@
 }
 
 .resources__actions button,
-.resources__table button {
+.resources__table button:not(.dialog__btn) {
   font: inherit;
   padding: 6px 12px;
   border: 1px solid var(--line-strong);
@@ -376,13 +378,13 @@
   cursor: pointer;
 }
 
-.resources__table button {
+.resources__table button:not(.dialog__btn) {
   padding: 3px 8px;
   color: var(--danger);
 }
 
 .resources__actions button:hover,
-.resources__table button:hover {
+.resources__table button:not(.dialog__btn):hover {
   background: var(--surface-hover);
 }
 
@@ -629,10 +631,6 @@
   color: var(--accent-strong);
 }
 
-.calendar {
-  min-width: 560px;
-}
-
 .calendar__week {
   display: flex;
   align-items: center;
@@ -680,17 +678,23 @@
   margin-bottom: 6px;
 }
 
-.ranges__row input {
-  font: inherit;
-  padding: 4px 7px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  background: var(--surface);
+/* A row sizes its dates to their content; the primitive's full width is meant
+   for stacked fields. Same specificity as `.dialog__control`, later file: it
+   wins on source order, which is why no `!important` is needed here. */
+.ranges__date {
+  width: auto;
+}
+
+/* The rows are dense — they keep the tighter padding until T13 unifies the two
+   list layouts. */
+.ranges__add,
+.ranges__remove {
+  padding: var(--space-1) var(--space-2);
 }
 
 .ranges__label {
   flex: 1;
-  min-width: 90px;
+  min-width: 0;
 }
 
 .ranges__to {
@@ -708,25 +712,6 @@
    saying out loud rather than leaving the user to wonder. */
 .ranges__count--none {
   color: var(--warn);
-}
-
-.ranges__row button,
-.ranges__add {
-  font: inherit;
-  padding: 4px 9px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  background: var(--surface);
-  cursor: pointer;
-}
-
-.ranges__row button {
-  color: var(--danger);
-}
-
-.ranges__add:hover,
-.ranges__row button:hover {
-  background: var(--surface-hover);
 }
 
 .resources__absences {

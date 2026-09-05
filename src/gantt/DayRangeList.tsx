@@ -37,12 +37,14 @@ export function DayRangeList({
       {ranges.map((range, index) => (
         <div className="ranges__row" key={index}>
           <input
+            className="dialog__control ranges__date"
             type="date"
             value={range.from}
             onChange={(event) => update(index, { from: event.target.value })}
           />
           <span className="ranges__to">→</span>
           <input
+            className="dialog__control ranges__date"
             type="date"
             value={range.to}
             // A single day is the common case, so the end follows the start when
@@ -51,7 +53,7 @@ export function DayRangeList({
             onChange={(event) => update(index, { to: event.target.value })}
           />
           <input
-            className="ranges__label"
+            className="dialog__control ranges__label"
             placeholder={labelPlaceholder}
             value={range.label ?? ''}
             onChange={(event) => update(index, { label: event.target.value })}
@@ -65,6 +67,7 @@ export function DayRangeList({
           </span>
           <button
             type="button"
+            className="dialog__btn dialog__btn--danger ranges__remove"
             onClick={() => onChange(ranges.filter((_, position) => position !== index))}
             title="Remove"
           >
@@ -73,7 +76,7 @@ export function DayRangeList({
         </div>
       ))}
 
-      <button type="button" className="ranges__add" onClick={add}>
+      <button type="button" className="dialog__btn ranges__add" onClick={add}>
         Add period
       </button>
     </div>
