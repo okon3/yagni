@@ -146,11 +146,20 @@ prove).
 **A commit that changes behaviour described in `docs/` updates the affected file
 in the same commit.** Docs are written tersely — keep them that way: every fact,
 no prose. README changes only when the feature set changes; retake
-`docs/assets/` screenshots when the UI drifts enough to misrepresent them. A
-significant feature adds a bullet to `CHANGELOG.md` in the same commit (a new
-version heading when a release warrants it) — features a user would notice,
-not fixes or plumbing, and never exhaustive: it holds the recent releases
-only, oldest entries get pruned. Git history is the full record.
+`docs/assets/` screenshots when the UI drifts enough to misrepresent them.
+
+**Changelog and versioning.** A significant feature adds a bullet to
+`CHANGELOG.md` in the same commit — features a user would notice, never fixes
+or plumbing. The first user-visible feature after a declared release opens a
+new minor heading (`## v1.2 — <date>`); every later feature adds a bullet
+under it and refreshes its date, across sessions and goals. Only the user
+closes a version, by declaring the release (the build is distributed) — never
+infer a close. When unsure
+whether the top version has shipped, ask. Major bump only for a breaking
+change to the `.gantt` file format. The parser accepts only
+`## v<version> — <date>` headings — never an Unreleased section. The log is
+never exhaustive: recent releases only, oldest entries pruned — git history is
+the full record.
 
 ## Conventions
 
