@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- People and Calendar dialogs restyled: columns that stay put whatever the
+  content, period rows aligned across both dialogs, weekday checkboxes on a
+  regular grid.
+
 ## v1.1 — 2026-09-05
 
 - Per-row toggle button in the grid to enable/disable a task without opening the row menu or the details dialog.

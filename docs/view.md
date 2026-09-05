@@ -276,6 +276,16 @@ that isn't there.
   sits inside the field (`.dialog__field`/`.dialog__suffix`, dialog.css), so
   the fixed track carries the whole field and not a bare input with a span
   beside it.
+- **The People table (`.people__table`) is `table-layout: fixed` with a
+  `<colgroup>`**, so no cell's content can move a column: Name auto (≈260 at
+  the dialog's 592px content box) · Availability 88 · Periods 160 · Tasks 48 ·
+  Remove 36 — all measured against both the header string and the widest cell
+  content (`scrollWidth <= clientWidth`), not derived on paper. In the
+  Availability and Tasks columns the widest content is the header string
+  itself, not the data. The expanded absences panel (`.people__offPanel`)
+  spans the table's content box — zero horizontal padding on `.people__offRow
+  td` plus the panel's own padding — so it reads as part of the row above
+  rather than a separate block.
 
 ## Undo and the draft
 

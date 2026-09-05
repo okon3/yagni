@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import { countWorkingDaysInRange, type AvailabilityOverride, type Resource } from '../scheduler';
 import { AvailabilityList } from './AvailabilityList';
 import { Dialog } from './Dialog';
@@ -145,6 +146,13 @@ export function ResourceDialog({
       </p>
 
       <table className="people__table">
+        <colgroup>
+          <col />
+          <col style={{ width: 88 }} />
+          <col style={{ width: 160 }} />
+          <col style={{ width: 48 }} />
+          <col style={{ width: 36 }} />
+        </colgroup>
         <thead>
           <tr>
             <th>Name</th>
@@ -166,23 +174,26 @@ export function ResourceDialog({
                 />
               </td>
               <td>
-                <input
-                  className="dialog__control people__pct"
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={draft.availability}
-                  onChange={(event) => update(index, { availability: event.target.value })}
-                />
-                <span className="dialog__unit">%</span>
+                <span className="dialog__field people__field">
+                  <input
+                    className="dialog__control people__pct"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={draft.availability}
+                    onChange={(event) => update(index, { availability: event.target.value })}
+                  />
+                  <span className="dialog__suffix">%</span>
+                </span>
               </td>
-              <td className="people__count">
+              <td>
                 <button
                   type="button"
                   className={`people__absences${
                     expanded === draft.id ? ' people__absences--open' : ''
                   }`}
                   onClick={() => setExpanded(expanded === draft.id ? null : draft.id)}
+                  title={periodSummary(draft)}
                 >
                   {periodSummary(draft)}
                 </button>
@@ -194,19 +205,22 @@ export function ResourceDialog({
                   className="dialog__btn dialog__btn--danger people__remove"
                   onClick={() => void remove(index)}
                   title="Remove"
+                  aria-label="Remove"
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               </td>
             </tr>,
             expanded === draft.id ? (
               <tr key={`${draft.id}-off`} className="people__offRow">
                 <td colSpan={5}>
-                  <AvailabilityList
-                    periods={draft.periods}
-                    workingWeekdays={workingWeekdays}
-                    onChange={(periods) => update(index, { periods })}
-                  />
+                  <div className="people__offPanel">
+                    <AvailabilityList
+                      periods={draft.periods}
+                      workingWeekdays={workingWeekdays}
+                      onChange={(periods) => update(index, { periods })}
+                    />
+                  </div>
                 </td>
               </tr>
             ) : null,

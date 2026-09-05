@@ -270,6 +270,7 @@
 
 .people__table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -277,19 +278,45 @@
 .people__table th {
   text-align: left;
   font-weight: 600;
-  padding: 0 6px 6px;
+  padding: 0 var(--space-2) var(--space-2);
   border-bottom: 1px solid var(--line);
   color: var(--ink-muted);
+  white-space: nowrap;
 }
 
 .people__table td {
-  padding: 4px 6px;
+  padding: var(--space-1) var(--space-2);
   vertical-align: middle;
 }
 
-.people__pct {
+.people__table th:first-child,
+.people__table td:first-child {
+  padding-left: 0;
+}
+
+.people__table th:last-child,
+.people__table td:last-child {
+  padding-right: 0;
+}
+
+/* .dialog__field defaults to width: 100% — in .ranges__row that fills a 68px
+   grid track, but inside a table cell it would fill the cell instead, pushing
+   the % suffix to the cell's edge rather than the field's. */
+.people__field {
   width: 68px;
+}
+
+.people__pct {
+  width: 100%;
+  padding-right: 22px;
   text-align: right;
+  appearance: textfield;
+}
+
+.people__pct::-webkit-outer-spin-button,
+.people__pct::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
 }
 
 .people__count {
@@ -594,6 +621,7 @@
   width: 100%;
 }
 
+.people__remove,
 .ranges__remove {
   width: 28px;
   height: 28px;
@@ -633,12 +661,16 @@
 
 .people__absences {
   font: inherit;
-  padding: 3px 9px;
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--line-strong);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--surface);
   color: var(--accent-strong);
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .people__absences--open {
@@ -647,14 +679,15 @@
 }
 
 .people__offRow td {
-  padding: 4px 6px 12px;
-  background: var(--surface-sunken);
+  padding: var(--space-1) 0 var(--space-3);
 }
 
-/* Dense table rows, like `.ranges__remove` — the tighter padding stays until
-   T13 unifies the two list layouts. */
-.people__remove {
-  padding: var(--space-1) var(--space-2);
+/* Zero horizontal cell padding above makes this span exactly the table's
+   content box, so the expansion reads as belonging to the row above. */
+.people__offPanel {
+  background: var(--surface-sunken);
+  border-radius: 6px;
+  padding: var(--space-2);
 }
 
 /* Wrapped in .dialog__field (dialog.css), which occupies the grid track;
@@ -663,6 +696,7 @@
   width: 100%;
   padding-right: 22px;
   text-align: right;
+  appearance: textfield;
 }
 
 .ranges__pct::-webkit-outer-spin-button,
