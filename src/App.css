@@ -811,9 +811,13 @@
   margin: 20px 0 8px;
 }
 
+/* Fixed tracks over the dialog's 512px content box (1fr = 128px) so the four
+   entries stop drifting with their content — see docs/view.md § Details
+   dialog. Widest strings measured to fit inside a track, not derived: header
+   "Total effort", data `31/12/2026` and `999.75 d`. */
 .taskinfo__readonly {
-  display: flex;
-  gap: 28px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   margin: 0;
   font-size: 13px;
 }
@@ -831,9 +835,23 @@
 }
 
 .taskinfo__note {
-  margin: 12px 0 0;
+  margin: 0;
   font-size: 12px;
   color: var(--ink-muted);
+}
+
+/* min-height is a real two-line .taskinfo__note, measured at this dialog's
+   width (12px font, 512px content box: 16px × 2) — not derived from
+   line-height, see docs/view.md § Details dialog. A one-line note then still
+   reserves the same floor a wrapped one would need; a longer or a second note
+   grows the region past it instead of clipping. Nothing in here changes while
+   the dialog is open, so the height only ever varies task-to-task. */
+.taskinfo__notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  min-height: 32px;
 }
 
 /* The colour of the ring around a critical bar, so the figure here and the mark
@@ -845,7 +863,9 @@
 .taskinfo__colors {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
+  row-gap: var(--space-2);
 }
 
 /* The browser's own picker: any colour, and it previews the current one by
@@ -873,10 +893,13 @@
   box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent);
 }
 
+/* Fixed pill: leftover row width lands in the gap before it, never in the
+   swatch itself. */
 .taskinfo__preview {
-  flex: 1;
+  flex: none;
+  width: 56px;
   height: 14px;
-  margin-left: 6px;
+  margin-left: auto;
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-raised);
 }

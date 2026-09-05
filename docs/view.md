@@ -110,6 +110,33 @@ that isn't there.
   - **The intro hint (`p.dialog__hint.taskinfo__intro`) reserves a min-height**
     for its normal/milestone text swap — both variants measure 48px at this
     dialog's width.
+  - **Computed (`.taskinfo__readonly`) is a fixed 4-track grid**
+    (`grid-template-columns: repeat(4, 1fr)`), not the flex row it was —
+    entries no longer drift with their content. Tracks measure 128px over the
+    512px content box; the widest strings (header `Total effort`, data
+    `31/12/2026`/`999.75 d`) fit inside a track with room to spare. `dt`/`dd`
+    stay the sole descendant exception (semantic structure, no primitive
+    reached); order and inks (`tabular-nums`, `gantt-stretched`,
+    `.taskinfo__critical`, the Float em-dash) unchanged.
+  - **Notes (`.taskinfo__notes`) are a region with a reserved minimum, not a
+    fixed band.** `min-height` is one real two-line `.taskinfo__note`,
+    measured at this width (12px font: 16px × 2 = 32px) — not derived from
+    line-height. A short one-line note still reserves that floor; a second
+    note or a longer wrap grows the region past it. Accepted trade-off:
+    `task`/`slack` are fixed at mount (the dialog remounts per open), so this
+    height only ever varies task-to-task, never mid-edit — cross-task pixel
+    parity isn't worth a permanent blank band under a one-line note, but a
+    note must never clip. Spacing between notes is the region's own
+    `gap: var(--space-2)`, not a per-note margin (a UA default `<p>` margin
+    would otherwise sneak back in if a per-note margin were reintroduced).
+  - **The colour preview (`.taskinfo__preview`) is a fixed 56×14px pill**, not
+    the elastic `flex: 1` it stretched to. `margin-left: auto` sends leftover
+    row width into the gap before it rather than into the pill.
+    `.taskinfo__colors` takes `flex-wrap: wrap` with `row-gap: var(--space-2)`
+    so a wider palette degrades to a second line instead of overflowing the
+    512px content box — at today's 7-swatch palette, picker + swatches +
+    preview still fit one line with margin to spare. Picker/swatch geometry
+    (34×28, 20px circles, `--on` ring) untouched.
 
 ## Bar tooltip
 

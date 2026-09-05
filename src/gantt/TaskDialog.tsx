@@ -357,39 +357,41 @@ export function TaskDialog({
           </dd>
         </div>
       </dl>
-      {/* Contention is said once. Where the criticality note below already names
-          the person it is contended with, this would be the second sentence
-          about the same fact. */}
-      {task.contended
-        ? !namesContention && (
-            <p className="taskinfo__note">
-              The resource is split with other tasks in progress, so the duration exceeds the
-              effort.
-            </p>
-          )
-        : task.shared && (
-            <p className="taskinfo__note">
-              The resource does not work full time in this period, so the duration exceeds the
-              effort.
-            </p>
-          )}
-      {slack === null ? (
-        <p className="taskinfo__note">
-          Past {CRITICAL_CHAIN_LIMIT} tasks the float is not measured: it costs a re-solve of the
-          plan for every day probed. Ask for the critical chain from the status bar.
-        </p>
-      ) : slack.isCritical ? (
-        <p className="taskinfo__note">
-          <strong>Critical{namesContention ? ` — contended on ${contendedWith}` : ''}.</strong>{' '}
-          {namesContention
-            ? `Its share is split with other tasks in progress: ${whatCostsWhat}.`
-            : `${whatCostsWhat[0].toUpperCase()}${whatCostsWhat.slice(1)}.`}
-        </p>
-      ) : (
-        <p className="taskinfo__note">
-          Can slip up to {formatDays(slack.floatDays)} d without moving the project end.
-        </p>
-      )}
+      <div className="taskinfo__notes">
+        {/* Contention is said once. Where the criticality note below already names
+            the person it is contended with, this would be the second sentence
+            about the same fact. */}
+        {task.contended
+          ? !namesContention && (
+              <p className="taskinfo__note">
+                The resource is split with other tasks in progress, so the duration exceeds the
+                effort.
+              </p>
+            )
+          : task.shared && (
+              <p className="taskinfo__note">
+                The resource does not work full time in this period, so the duration exceeds the
+                effort.
+              </p>
+            )}
+        {slack === null ? (
+          <p className="taskinfo__note">
+            Past {CRITICAL_CHAIN_LIMIT} tasks the float is not measured: it costs a re-solve of the
+            plan for every day probed. Ask for the critical chain from the status bar.
+          </p>
+        ) : slack.isCritical ? (
+          <p className="taskinfo__note">
+            <strong>Critical{namesContention ? ` — contended on ${contendedWith}` : ''}.</strong>{' '}
+            {namesContention
+              ? `Its share is split with other tasks in progress: ${whatCostsWhat}.`
+              : `${whatCostsWhat[0].toUpperCase()}${whatCostsWhat.slice(1)}.`}
+          </p>
+        ) : (
+          <p className="taskinfo__note">
+            Can slip up to {formatDays(slack.floatDays)} d without moving the project end.
+          </p>
+        )}
+      </div>
     </Dialog>
   );
 }

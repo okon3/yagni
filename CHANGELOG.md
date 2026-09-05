@@ -5,6 +5,9 @@
 - People and Calendar dialogs restyled: columns that stay put whatever the
   content, period rows aligned across both dialogs, weekday checkboxes on a
   regular grid.
+- Task details dialog restyled: rows that hold their height while you type or
+  switch tasks, a computed section that lines up in four steady columns, and a
+  colour row that no longer stretches its preview swatch.
 
 ## v1.1 — 2026-09-05
 
