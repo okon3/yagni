@@ -40,6 +40,15 @@ touching `src/gantt` code that talks to the library.
   `--dhx-gantt-task-background` at dhtmlx violet with the same specificity as
   the app default — hence the default is restated on both classes rather than
   left to import order.
+- **The built-in dark theme is an attribute, not a media query**:
+  `:root[data-gantt-theme=dark]` re-points ~20 `--dhx-gantt-base-colors-*`. Only
+  JS can set it (`theme.ts`, from `prefers-color-scheme`), and its canvas is
+  `#141414` — nothing like the app's surface — so `gantt.css` re-points those
+  base colours at the palette. Two traps in one rule there: a bare
+  `:root[data-gantt-theme=dark]` of ours only **ties** with dhtmlx's, leaving the
+  winner to Vite's bundling order (`html:root[…]` outranks it), and keying on the
+  attribute alone would leave the chart light if a `change` event went missing —
+  hence the media query beside it.
 - **`gantt.templates.scale_cell_class` was dropped in v6** and still compiles.
   Scale-cell classes go through `css` on the scale config. `timeline_cell_class`
   lives but shades whole cells — above day scale one cell spans working and

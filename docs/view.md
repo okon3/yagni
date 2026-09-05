@@ -8,6 +8,23 @@ Icons are lucide only (`lucide-react` in components, `lucide-static` strings
 in dhtmlx templates) — except the critical-chain/dirty CSS dots, the logo and
 the HelpDialog diagram, none of which are icons.
 
+## Colour scheme
+
+- **Follows the system, with no switch of its own.** A per-app theme is one more
+  piece of state to persist, to expose in the file or in `localStorage`, and to
+  disagree with the desktop around it. `prefers-color-scheme` already answers.
+- One palette, two sets of values: the dark scheme redefines the same variables
+  in `index.css` and no rule knows which one it is in. Accents *lighten* on
+  emphasis there — on a dark surface that is what "stronger" looks like.
+- **Task, avatar and swatch colours do not change.** They are the user's (or
+  keyed to a person's name); a palette that shifted with the desktop would make
+  the same plan two different pictures.
+- dhtmlx's own dark theme is taken for the parts we don't skin, with its base
+  colours re-pointed at the palette — [dhtmlx.md](dhtmlx.md) for how, and why the
+  rule is written twice.
+- **Paper stays light**: `planFigure` carries its own literals and `@media print`
+  puts the page back to white. A dark plan is a screen, not a document.
+
 ## Zoom and timeline range
 
 - Five zoom levels (days → quarters). Month columns top out ~10 months of plan;

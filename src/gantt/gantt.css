@@ -30,6 +30,37 @@
   transition: opacity 140ms ease;
 }
 
+/* dhtmlx v10 carries a dark theme of its own, keyed off `data-gantt-theme` on the
+   root element — `theme.ts` sets it, since an attribute is the one thing a
+   stylesheet cannot. Taking that theme whole would give the chart its greys
+   rather than the app's (its canvas is #141414 against our surface), so its base
+   colours are re-pointed at the palette here and what is left of it is the parts
+   we do not skin ourselves: link handles, icons, scrollbars.
+
+   Written against both selectors on purpose. Keyed on the attribute alone, a
+   `change` the browser fails to deliver would leave the chart light inside a
+   dark app; keyed on the media query alone, dhtmlx's own dark block outranks it
+   the moment the attribute is there. And `html:` is not decoration — dhtmlx's
+   blocks are `:root` and `:root[data-gantt-theme=dark]`, which a bare selector
+   only ties with, leaving the winner to whichever order Vite bundles the two
+   stylesheets in. */
+@media (prefers-color-scheme: dark) {
+  html:root,
+  html:root[data-gantt-theme='dark'] {
+    --dhx-gantt-base-colors-background: var(--surface);
+    --dhx-gantt-base-colors-background-alt: var(--surface-sunken);
+    --dhx-gantt-base-colors-border: var(--line-strong);
+    --dhx-gantt-base-colors-border-light: var(--line);
+    --dhx-gantt-base-colors-text-base: var(--ink);
+    --dhx-gantt-base-colors-text-light: var(--ink-muted);
+    --dhx-gantt-base-colors-icons: var(--ink-faint);
+    --dhx-gantt-base-colors-select: var(--surface-hover);
+    --dhx-gantt-base-colors-hover-color: var(--surface-hover);
+    --dhx-gantt-base-colors-primary: var(--accent);
+    --dhx-gantt-base-colors-error: var(--critical);
+  }
+}
+
 /* dhtmlx ships its own font stack and its own greys. Everything in this block
    only re-skins the library to the app's palette: no layout, no geometry. */
 .gantt_container,
@@ -224,13 +255,22 @@
    per task, so overriding `background` directly here would win over the task's
    own colour. Setting the variables keeps the inline value in charge. */
 .gantt_task_line.gantt-bar--shared {
-  --dhx-gantt-task-background: #edf1f7;
-  --dhx-gantt-task-border: #c3cddc;
+  --dhx-gantt-task-background: var(--bar-track);
+  --dhx-gantt-task-border: var(--bar-track-line);
 }
 
 .gantt_task_line.gantt-bar--shared .gantt_task_progress {
   --dhx-gantt-task-progress: #dae3ef;
   background: #dae3ef;
+}
+
+/* Between the track and its edge, and nowhere else — hence a literal rather
+   than a fourth track variable. */
+@media (prefers-color-scheme: dark) {
+  .gantt_task_line.gantt-bar--shared .gantt_task_progress {
+    --dhx-gantt-task-progress: #3a414e;
+    background: #3a414e;
+  }
 }
 
 /* The plan's end depends on this task.
@@ -341,10 +381,11 @@
   pointer-events: none;
 }
 
-/* Sits above the fill, on the pale part of the bar, so it needs dark ink. */
+/* Sits above the fill, on the bare track rather than on the colour, so it takes
+   the ink that track carries instead of the white the labels inside use. */
 .seg-pct--above {
   transform: translate(-50%, -2px);
-  color: #3c4757;
+  color: var(--bar-track-ink);
 }
 
 .gantt-stretched {
@@ -365,6 +406,16 @@
   height: 10px !important;
   margin-top: 7px;
   box-shadow: none;
+}
+
+/* The slate above is a fallback, so it has to read against the page rather than
+   against a colour the user picked: on a dark surface "flat and dark" is a shade
+   lighter than the rows, not darker. */
+@media (prefers-color-scheme: dark) {
+  .gantt_task_line.gantt-bar--summary {
+    --dhx-gantt-task-background: #6b7789;
+    --dhx-gantt-task-border: #8a95a6;
+  }
 }
 
 .gantt_task_line.gantt-bar--summary .gantt_task_progress {
@@ -700,8 +751,8 @@
   max-width: 280px;
   padding: 7px 9px;
   border-radius: 6px;
-  background: var(--ink);
-  color: #fff;
+  background: var(--inverse-surface);
+  color: var(--inverse-ink);
   font-size: 11px;
   line-height: 1.45;
   pointer-events: none;
@@ -712,8 +763,18 @@
   display: none;
 }
 
-.loadtip__when {
+/* Quieter than the lines around it, on the tooltip's own surface rather than the
+   page's — so it cannot take the muted ink the rest of the app uses. */
+.loadtip__when,
+.loadtip__free {
   color: #c6ccd8;
+}
+
+@media (prefers-color-scheme: dark) {
+  .loadtip__when,
+  .loadtip__free {
+    color: #a8b0bd;
+  }
 }
 
 .loadtip__headline {
@@ -722,7 +783,6 @@
 }
 
 .loadtip__free {
-  color: #c6ccd8;
   font-style: italic;
 }
 

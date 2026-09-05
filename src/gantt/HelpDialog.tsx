@@ -9,9 +9,11 @@ import { CRITICAL_CHAIN_LIMIT } from './project';
  */
 const PERSON = { initials: 'AL', colour: '#5b6ebd' };
 
-/** The colours a shared bar actually renders with, kept in step with gantt.css. */
-const TRACK = '#edf1f7';
-const TRACK_LINE = '#c3cddc';
+/**
+ * The fill of a shared bar, kept in step with gantt.css — same default blue, and
+ * it reads on either scheme. The bare track around it does not, so that one is
+ * `.help__track` and comes from the same variables the chart draws it with.
+ */
 const FILL = '#3b74d6';
 const FILL_LINE = '#2a539a';
 
@@ -101,8 +103,7 @@ function EffortDiagram() {
         width={COLUMN * 8}
         height={BAR_HEIGHT}
         rx={BAR_HEIGHT / 2}
-        fill={TRACK}
-        stroke={TRACK_LINE}
+        className="help__track"
       />
       <path
         clipPath="url(#help-bar-a)"
@@ -131,8 +132,7 @@ function EffortDiagram() {
         width={COLUMN * 2}
         height={BAR_HEIGHT}
         rx={BAR_HEIGHT / 2}
-        fill={TRACK}
-        stroke={TRACK_LINE}
+        className="help__track"
       />
       <path
         clipPath="url(#help-bar-b)"

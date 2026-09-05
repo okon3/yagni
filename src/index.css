@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 
   /* One palette for the whole app. Task bars are the exception: they carry the
      colour the user picked, so nothing here may override them. */
@@ -25,6 +25,22 @@
   --line: #edeef1;
   --line-strong: #dfe2e8;
 
+  /* A surface that stands against the ink rather than beside it: the brand
+     expansion and the load tooltip are labels laid over the plan, and in dark
+     they cannot simply keep painting white on --ink, which is by then light. */
+  --inverse-surface: #1f2430;
+  --inverse-ink: #fff;
+
+  /* The track of a shared bar, whose own colour lives in the profile drawn
+     inside it — not a user colour, and read by the chart, the help diagram and
+     the percentage sitting on it alike, which is why it is named here. */
+  --bar-track: #edf1f7;
+  --bar-track-line: #c3cddc;
+  --bar-track-ink: #3c4757;
+
+  /* Not --warn: "unsaved" is a state, not a caution about the plan. */
+  --dirty: #d08320;
+
   --radius: 8px;
   --radius-pill: 999px;
   --shadow-raised: 0 1px 2px rgb(24 28 40 / 6%);
@@ -32,6 +48,51 @@
 
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--ink);
+}
+
+/* The same palette, read in the dark. The app follows the system and offers no
+   switch of its own: a per-app theme is one more piece of state to persist and
+   to disagree with the desktop around it.
+
+   Only the values move — every name above keeps its meaning, so no rule has to
+   know which scheme it is in. The accents lighten rather than darken on
+   emphasis, since on a dark surface that is what "stronger" looks like. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #8b78ea;
+    --accent-strong: #a495f2;
+    --accent-soft: #2a2542;
+    --today: #6d9bf5;
+    --warn: #d9903f;
+    --danger: #dd8a68;
+    --danger-line: #7b4433;
+    --danger-soft: #2c1d18;
+    --critical: #ef6a80;
+
+    --ink: #e4e6ec;
+    --ink-muted: #99a0ac;
+    --ink-faint: #717886;
+
+    --surface: #1b1e24;
+    --surface-sunken: #16181d;
+    --surface-hover: #252932;
+    --line: #2b2f37;
+    --line-strong: #3d434e;
+
+    --inverse-surface: #333944;
+    --inverse-ink: #eef0f4;
+
+    --bar-track: #2c313b;
+    --bar-track-line: #4a515e;
+    --bar-track-ink: #ccd3e0;
+
+    --dirty: #e0a24a;
+
+    /* A shadow is a lack of light: on a dark surface the tinted greys of the
+       light scheme are invisible, and only near-black still reads as depth. */
+    --shadow-raised: 0 1px 2px rgb(0 0 0 / 45%);
+    --shadow-dialog: 0 18px 48px rgb(0 0 0 / 60%);
+  }
 }
 
 /* The chart fills the viewport, which needs an unbroken height chain from the
@@ -44,6 +105,6 @@ body,
 }
 
 body {
-  background: #fff;
+  background: var(--surface);
   overflow: hidden;
 }

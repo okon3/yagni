@@ -45,6 +45,17 @@ an inline editor works under a real keyboard only and took a person to settle.
 Tool key naming ≠ DOM naming: `Return` arrives with an **empty** `key` (does
 nothing); `Enter` arrives as `Enter`. A dead key is two questions, not one.
 
+## Emulated colour scheme
+
+Switching the pane's scheme flips `matchMedia('(prefers-color-scheme: dark)')
+.matches` and repaints every `@media` rule, but **fires no `change` event** — a
+listener on that query is never called (measured: `matches` went true→false with
+a probe listener armed, count stayed 0). So the JS half of the dark mode
+(`theme.ts` setting `data-gantt-theme`) can only be verified **on load**, with
+the scheme already set; a switch on a live page proves nothing about it. Which is
+why the chart's dhtmlx variables are keyed on the media query as well as on the
+attribute — see [dhtmlx.md](dhtmlx.md).
+
 ## Rules of thumb
 
 - **Verify visuals with `getComputedStyle`** — not the attribute, not the data
