@@ -10,8 +10,7 @@
   --accent: #6f5bd8;
   --accent-strong: #5b47c4;
   --accent-soft: #f1eefc;
-  /* Label ink on top of --accent. Dark measures ≈3.4:1 here, under the 4.5:1 a
-     13px label needs — palette retuning is T13's territory, not this one. */
+  /* Label ink on top of --accent. */
   --on-accent: #fff;
   --today: #3b6fe0;
   --warn: #b4530a;
@@ -76,7 +75,9 @@
     --accent: #8b78ea;
     --accent-strong: #a495f2;
     --accent-soft: #2a2542;
-    --on-accent: #fff;
+    /* The accent lightens here (see above), so white ink loses AA on it —
+       goes near-black instead, the palette's night-ink family. */
+    --on-accent: #0a0c12;
     --today: #6d9bf5;
     --warn: #d9903f;
     --danger: #dd8a68;

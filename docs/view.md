@@ -22,6 +22,12 @@ that isn't there.
 - **Task, avatar and swatch colours do not change.** They are the user's (or
   keyed to a person's name); a palette that shifted with the desktop would make
   the same plan two different pictures.
+- **Dark `--on-accent` is near-black (`#0a0c12`), not white.** Accents lighten
+  in dark (above), so white label ink loses AA on them (≈3.4:1); the near-black
+  clears 4.5:1 with margin (≈5.6:1 at rest, ≈7.6:1 on the `--accent-strong`
+  hover). Every accent-filled button — `.dialog__btn--primary`,
+  `.toolbar__primary`, `.empty__primary` — reads its ink from that variable;
+  none hardcodes a colour on an `--accent` background.
 - dhtmlx's own dark theme is taken for the parts we don't skin, with its base
   colours re-pointed at the palette — [dhtmlx.md](dhtmlx.md) for how, and why the
   rule is written twice.
@@ -286,6 +292,13 @@ that isn't there.
   spans the table's content box — zero horizontal padding on `.people__offRow
   td` plus the panel's own padding — so it reads as part of the row above
   rather than a separate block.
+- **`Dialog` takes an optional `bodyClassName`, appended to `.dialog__body`.**
+  The sanctioned per-dialog body override: an explicit class ties specificity
+  at (0,1,0) with the primitive and wins by App.css source order, rather than
+  a descendant selector that would outrank it and start the specificity war
+  above. `ConfirmDialog`'s `.confirm__body` is the case in hand — it trims the
+  body's bottom padding to `--space-2` so the message-to-buttons gap is 24px
+  (8 + the footer's 16) instead of the primitive's 40.
 
 ## Undo and the draft
 

@@ -21,6 +21,7 @@ export function ConfirmDialog({
     <Dialog
       width={420}
       className="confirm"
+      bodyClassName="confirm__body"
       // Escape closes the dialog, and that is a refusal like any other.
       onDismiss={() => onResolve(false)}
       footer={

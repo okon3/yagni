@@ -15,6 +15,7 @@ export function Dialog({
   title,
   width,
   className,
+  bodyClassName,
   onDismiss,
   error,
   footer,
@@ -26,6 +27,11 @@ export function Dialog({
   width: number;
   /** Appended to the base `dialog` class for the per-dialog content block. */
   className?: string;
+  /** Appended to `.dialog__body`. The sanctioned per-dialog body override: an
+   *  explicit class ties specificity at (0,1,0) with the primitive and wins by
+   *  App.css source order, where a descendant selector would outrank it and
+   *  start the specificity war `docs/view.md` § Dialogs documents. */
+  bodyClassName?: string;
   /** Wired to both the native `cancel` and `close` events — Esc and any
    *  programmatic `.close()` funnel through the same path as a footer button. */
   onDismiss(): void;
@@ -81,7 +87,7 @@ export function Dialog({
           </h2>
         </div>
       )}
-      <div className="dialog__body" ref={body}>
+      <div className={bodyClassName ? `dialog__body ${bodyClassName}` : 'dialog__body'} ref={body}>
         {children}
       </div>
       {error && (

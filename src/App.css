@@ -203,7 +203,7 @@
 
 .toolbar__primary {
   background: var(--accent) !important;
-  color: #fff !important;
+  color: var(--on-accent) !important;
   font-weight: 550;
 }
 
@@ -395,7 +395,7 @@
 .empty__primary {
   border: 1px solid var(--accent-strong);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .empty__primary:hover {
@@ -1069,6 +1069,10 @@
 .rowmenu__items button:focus-visible {
   background: var(--accent-soft);
   outline: none;
+}
+
+.confirm__body {
+  padding-bottom: var(--space-2);
 }
 
 .confirm__message {
