@@ -43,6 +43,12 @@
   --bar-track: #edf1f7;
   --bar-track-line: #c3cddc;
   --bar-track-ink: #3c4757;
+  /* Same figure as --on-accent's dark-mode value, and invariant for the same
+     reason: it inks a badge sitting on a task's own colour, which (like the
+     colour itself) never changes with the scheme, so this must not either —
+     no dark-mode redefinition below. `needsDarkInk` (colors.ts) decides when
+     a tint needs it instead of white. */
+  --bar-fill-ink-dark: #0a0c12;
 
   /* Not --warn: "unsaved" is a state, not a caution about the plan. */
   --dirty: #d08320;

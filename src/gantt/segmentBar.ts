@@ -1,4 +1,5 @@
 import type { ScheduledTask } from '../scheduler';
+import { needsDarkInk } from './colors';
 
 /** Narrower than this and the percentage would not fit or would collide. */
 const MIN_LABEL_WIDTH_PX = 30;
@@ -67,9 +68,10 @@ export function renderSegments(
       const style = inside
         ? `left:${centre.toFixed(2)}%;top:${(100 - segment.rate * 50).toFixed(2)}%`
         : `left:${centre.toFixed(2)}%;bottom:${(segment.rate * 100).toFixed(2)}%`;
-      labels.push(
-        `<span class="seg-pct${inside ? '' : ' seg-pct--above'}" style="${style}">${percent}%</span>`,
-      );
+      // Sitting on the fill, the badge's ink has to follow the fill: a pale
+      // tint needs dark ink the same way the empty track does above.
+      const modifier = inside ? (needsDarkInk(fill) ? ' seg-pct--dark' : '') : ' seg-pct--above';
+      labels.push(`<span class="seg-pct${modifier}" style="${style}">${percent}%</span>`);
     }
   });
   path += ' L 100,100 Z';

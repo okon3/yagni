@@ -8,6 +8,8 @@
 - Task details dialog restyled: rows that hold their height while you type or
   switch tasks, a computed section that lines up in four steady columns, and a
   colour row that no longer stretches its preview swatch.
+- Task colour picker widened from 7 to 14 tints, in English, chosen to stay
+  distinguishable from each other and from a person's avatar at a glance.
 
 ## v1.1 — 2026-09-05
 

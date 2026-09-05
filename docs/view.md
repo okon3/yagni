@@ -22,6 +22,32 @@ that isn't there.
 - **Task, avatar and swatch colours do not change.** They are the user's (or
   keyed to a person's name); a palette that shifted with the desktop would make
   the same plan two different pictures.
+- **`COLOR_OPTIONS`'s 14 tints (`colors.ts`) are distinguished by hue *and*
+  luminance, not hue alone** — the only way to keep this many apart on a 12px
+  bar, and it degrades gracefully for colour-blind users (minimum CIEDE2000
+  ΔE00 across every pair: 13.87). Chroma is not capped: clearing 3:1 on both
+  rows confines lightness to a narrow band, and inside it separation can only
+  come from chroma — the two most chromatic tints (`#9f2cdd`, `#dc28af`, OKLab
+  C ≈ 0.25) sit above every Material 500 tone. A deliberate trade, chosen
+  against a soberer set with fewer tints.
+  Every tint clears 3:1 (WCAG's non-text floor) against **both** chart
+  row backgrounds — white in light scheme, `#1b1e24` in dark — since a tint
+  never changes with the scheme but the row under it does.
+- **The `seg-pct` badge's ink adapts to the tint it sits on, rather than the
+  palette being capped to stay legible for one fixed ink.** `needsDarkInk`
+  (`colors.ts`) compares a tint's contrast against white and against a
+  near-black (`--bar-fill-ink-dark`, same figure as dark-mode `--on-accent`,
+  invariant for the same reason) and picks whichever wins; `segmentBar.ts`
+  reads it once per fill and emits `seg-pct--dark` beside the existing
+  `seg-pct--above`. Every tint clears 4.5:1 against whichever ink it gets.
+  Without this, no single fixed ink can stay legible across a palette that
+  also has to clear 3:1 against both rows — the two floors leave a band of
+  tints where a single ink reads at neither.
+- **`AVATAR_COLORS` is kept clear of the task palette** by neither a lightness nor
+  a chroma band (the task set now spans both, to read on both rows) but by a
+  verified CIEDE2000 floor: 11.2 between avatars, 11.8 against every tint —
+  on par with the tints' own 13.87 — so an avatar never reads as a task
+  colour.
 - **Dark `--on-accent` is near-black (`#0a0c12`), not white.** Accents lighten
   in dark (above), so white label ink loses AA on them (≈3.4:1); the near-black
   clears 4.5:1 with margin (≈5.6:1 at rest, ≈7.6:1 on the `--accent-strong`
@@ -134,9 +160,11 @@ that isn't there.
     row width into the gap before it rather than into the pill.
     `.taskinfo__colors` takes `flex-wrap: wrap` with `row-gap: var(--space-2)`
     so a wider palette degrades to a second line instead of overflowing the
-    512px content box — at today's 7-swatch palette, picker + swatches +
-    preview still fit one line with margin to spare. Picker/swatch geometry
-    (34×28, 20px circles, `--on` ring) untouched.
+    512px content box — at today's 14-swatch palette, picker + swatches +
+    preview still fit one line with margin to spare (measured: the row holds
+    at 28px, the picker button's own height — swatches are the shorter 20px
+    circles beside it). Picker/swatch geometry (34×28, 20px circles, `--on`
+    ring) untouched.
 
 ## Bar tooltip
 

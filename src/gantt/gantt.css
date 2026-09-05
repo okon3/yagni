@@ -408,6 +408,13 @@
   color: var(--bar-track-ink);
 }
 
+/* Sits on the fill itself, so unlike --above it must follow the tint's own
+   lightness rather than the (scheme-dependent) track: needsDarkInk (colors.ts)
+   decides per tint, this only supplies the invariant ink it decided on. */
+.seg-pct--dark {
+  color: var(--bar-fill-ink-dark);
+}
+
 .gantt-stretched {
   color: var(--warn);
   font-weight: 600;
