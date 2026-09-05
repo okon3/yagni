@@ -17,6 +17,12 @@ npx vitest run -t "compounds a reduced period"      # one case
 
 No vitest config file: it runs off `vite.config.ts` with defaults.
 
+On Windows `npm` resolves to `npm.ps1`, which **`Start-Process` hands to the
+shell's file association** — it opens the script in an editor instead of
+running it, and the dev server never starts. Run npm through the PowerShell
+tool directly (background it with the tool's own flag), or `Start-Process
+npm.cmd` if a detached process is really needed.
+
 After a structural CSS change, an `npm install`, or renaming a module-level
 constant, **restart the dev server** — Vite/HMR has served stale stylesheets
 and stale modules here repeatedly (a layout bug that isn't one; a
