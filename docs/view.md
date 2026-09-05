@@ -241,9 +241,8 @@ the HelpDialog diagram, none of which are icons.
   while the dialog is still closed (`showModal` runs later), which does
   nothing. `Dialog`'s own fallback looks
   for that same literal attribute to decide whether to focus the dialog itself
-  instead. TaskDialog's name field still uses React's `autoFocus` prop
-  (`src/gantt/TaskDialog.tsx`) — not yet migrated to `Dialog`, so its focus on
-  open works only because the field happens to be the first focusable child.
+  instead. TaskDialog's name field carries it the same way, through
+  `setAutofocus` (`src/gantt/TaskDialog.tsx`).
 - CSS: `src/dialog.css`, imported in `App.tsx` before `App.css` — an
   equal-specificity per-dialog override in App.css then wins by source order,
   which is how later migrations drop `!important` without a specificity war.

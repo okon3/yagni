@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { Resource } from '../scheduler';
+import { setAutofocus } from './autofocus';
+import { Dialog } from './Dialog';
 import { formatDays } from './format';
 import { CRITICAL_CHAIN_LIMIT, type MeasuredSlack } from './project';
 
@@ -73,7 +75,6 @@ export function TaskDialog({
   onSave(patch: TaskPatch): void;
   onDelete(): void;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState(task.name);
   // Kept as text so a half-typed number survives a re-render.
   const [effort, setEffort] = useState(String(task.nominalDays));
@@ -83,10 +84,6 @@ export function TaskDialog({
   const [progress, setProgress] = useState(String(Math.round(task.progress * 100)));
   const [disabled, setDisabled] = useState(task.disabled);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
 
   const save = () => {
     const trimmed = name.trim();
@@ -142,11 +139,28 @@ export function TaskDialog({
     : 'any delay here moves the project end';
 
   return (
-    <dialog ref={dialog} className="resources taskinfo" onCancel={onCancel} onClose={onCancel}>
-      <h2>
-        {task.isSummary ? 'Summary task' : isMilestone ? 'Milestone' : 'Task detail'}
-      </h2>
-      <p className="resources__hint">
+    <Dialog
+      title={task.isSummary ? 'Summary task' : isMilestone ? 'Milestone' : 'Task detail'}
+      width={560}
+      className="taskinfo"
+      onDismiss={onCancel}
+      error={error}
+      footer={
+        <>
+          <button type="button" className="dialog__btn dialog__btn--danger" onClick={onDelete}>
+            Delete
+          </button>
+          <span className="dialog__spacer" />
+          <button type="button" className="dialog__btn" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className="dialog__btn dialog__btn--primary" onClick={save}>
+            Save
+          </button>
+        </>
+      }
+    >
+      <p className="dialog__hint">
         {isMilestone ? (
           <>
             Effort <strong>0</strong>: a milestone, that is a date the plan reaches rather than
@@ -165,7 +179,12 @@ export function TaskDialog({
       <div className="taskinfo__grid">
         <label className="taskinfo__field taskinfo__field--wide">
           <span>Name</span>
-          <input value={name} onChange={(event) => setName(event.target.value)} autoFocus />
+          <input
+            className="dialog__control"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            ref={setAutofocus}
+          />
         </label>
 
         <label className="taskinfo__field">
@@ -173,7 +192,11 @@ export function TaskDialog({
           {task.isSummary ? (
             fromChildren
           ) : (
-            <select value={resourceId} onChange={(event) => setResourceId(event.target.value)}>
+            <select
+              className="dialog__control"
+              value={resourceId}
+              onChange={(event) => setResourceId(event.target.value)}
+            >
               <option value="">&mdash;</option>
               {resources.map((resource) => (
                 <option key={resource.id} value={resource.id}>
@@ -192,6 +215,7 @@ export function TaskDialog({
             <>
               <span className="taskinfo__inline">
                 <input
+                  className="dialog__control taskinfo__amount"
                   type="number"
                   min={0}
                   max={999}
@@ -199,7 +223,7 @@ export function TaskDialog({
                   value={effort}
                   onChange={(event) => setEffort(event.target.value)}
                 />
-                <span className="resources__unit">days</span>
+                <span className="dialog__unit">days</span>
               </span>
               {/* The only way to make a milestone, so the field has to say so:
                   there is no second control, because there is no second concept. */}
@@ -213,7 +237,12 @@ export function TaskDialog({
           {task.isSummary ? (
             fromChildren
           ) : (
-            <input type="date" value={start} onChange={(event) => setStart(event.target.value)} />
+            <input
+              className="dialog__control"
+              type="date"
+              value={start}
+              onChange={(event) => setStart(event.target.value)}
+            />
           )}
         </label>
 
@@ -221,6 +250,7 @@ export function TaskDialog({
           <span>Progress</span>
           <span className="taskinfo__inline">
             <input
+              className="dialog__control taskinfo__amount"
               type="number"
               min={0}
               max={100}
@@ -228,7 +258,7 @@ export function TaskDialog({
               value={progress}
               onChange={(event) => setProgress(event.target.value)}
             />
-            <span className="resources__unit">%</span>
+            <span className="dialog__unit">%</span>
           </span>
         </label>
 
@@ -344,25 +374,6 @@ export function TaskDialog({
           Can slip up to {formatDays(slack.floatDays)} d without moving the project end.
         </p>
       )}
-
-      {error && (
-        <p className="resources__error" role="alert">
-          {error}
-        </p>
-      )}
-
-      <div className="resources__actions">
-        <button type="button" className="taskinfo__delete" onClick={onDelete}>
-          Delete
-        </button>
-        <span className="resources__spacer" />
-        <button type="button" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="button" className="resources__primary" onClick={save}>
-          Save
-        </button>
-      </div>
-    </dialog>
+    </Dialog>
   );
 }

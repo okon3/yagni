@@ -726,10 +726,6 @@
   text-align: right;
 }
 
-.taskinfo {
-  min-width: 520px;
-}
-
 .taskinfo__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -753,23 +749,13 @@
   font-size: 12px;
 }
 
-.taskinfo__field input,
-.taskinfo__field select {
-  font: inherit;
-  padding: 5px 7px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--ink);
-}
-
 .taskinfo__inline {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.taskinfo__inline input {
+.taskinfo__amount {
   width: 90px;
   text-align: right;
 }
@@ -1027,18 +1013,6 @@
 .statusbar__load--on {
   color: var(--ink) !important;
   background: var(--surface-hover);
-}
-
-/* Set apart from the rest of the row: nothing else in a dialog is irreversible,
-   and there is no undo yet. */
-.taskinfo__delete {
-  color: var(--danger) !important;
-  border-color: transparent !important;
-}
-
-.taskinfo__delete:hover {
-  border-color: var(--danger-line) !important;
-  background: var(--danger-soft) !important;
 }
 
 .empty__steps kbd {
