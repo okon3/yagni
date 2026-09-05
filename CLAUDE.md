@@ -17,8 +17,11 @@ npx vitest run -t "compounds a reduced period"      # one case
 
 No vitest config file: it runs off `vite.config.ts` with defaults.
 
-After a structural CSS change, **restart the dev server** — Vite has served
-stale stylesheets here more than once, indistinguishable from a layout bug.
+After a structural CSS change, an `npm install`, or renaming a module-level
+constant, **restart the dev server** — Vite/HMR has served stale stylesheets
+and stale modules here repeatedly (a layout bug that isn't one; a
+`ReferenceError` on a name that exists; a fix that "doesn't work"). Reload
+before trusting any negative verdict from the browser.
 
 ## Architecture
 
