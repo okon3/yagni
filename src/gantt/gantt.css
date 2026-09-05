@@ -230,11 +230,16 @@
 }
 
 /* The task name always sits outside the bar, which keeps a short bar readable
-   and leaves the inside of the bar to the allocation profile. */
+   and leaves the inside of the bar to the allocation profile.
+
+   Above the time-off hatch: the hatch covers the bars on purpose (a stretched
+   bar has to show why), but that is about the bar's body — a name striped
+   through is just illegible. */
 .gantt_side_content.gantt_right {
   padding-left: 9px;
   font-size: 12px;
   color: var(--ink-muted);
+  z-index: 2;
 }
 
 .gantt_task_link .gantt_line_wrapper div {
