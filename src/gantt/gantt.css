@@ -59,6 +59,21 @@
     --dhx-gantt-base-colors-primary: var(--accent);
     --dhx-gantt-base-colors-error: var(--critical);
   }
+
+  /* The veils dhtmlx lays over a pane while its splitter is dragged are literal
+     light greys, not variables, so the re-pointing above cannot reach them: on a
+     dark chart they flash as bright bars for exactly the length of the drag.
+     What dims in the light has to glow in the dark — a translucent white, kept
+     faint. The `html` prefix, as above, to outrank rather than tie. */
+  html .gantt_grid_resize_area,
+  html .gantt_row_grid_resize_area,
+  html .gantt_drag_marker.gantt_row_grid_resize_area {
+    background-color: rgb(255 255 255 / 7%);
+  }
+
+  html .gantt_resizing {
+    background: var(--surface-hover);
+  }
 }
 
 /* dhtmlx ships its own font stack and its own greys. Everything in this block

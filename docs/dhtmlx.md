@@ -49,6 +49,14 @@ touching `src/gantt` code that talks to the library.
   winner to Vite's bundling order (`html:root[…]` outranks it), and keying on the
   attribute alone would leave the chart light if a `change` event went missing —
   hence the media query beside it.
+- **The splitter-drag veils are literal light greys, not variables** — during a
+  layout resize both panes take `.gantt_resizing` (`#f2f2f2`, opacity .7) and
+  other resizes paint `.gantt_grid_resize_area`/`.gantt_row_grid_resize_area`
+  (`#e7e7e780`); no theme or base-colour re-pointing reaches them, so in dark
+  they flash as bright bars for the length of the drag. Overridden in
+  `gantt.css`'s dark block. Synthetic note: the drag state arms on
+  `pointerdown` + `pointermove` (plain `mousedown` does nothing), and a
+  synthetic `pointerup` does not fully disarm it — reload after emulating.
 - **`gantt.templates.scale_cell_class` was dropped in v6** and still compiles.
   Scale-cell classes go through `css` on the scale config. `timeline_cell_class`
   lives but shades whole cells — above day scale one cell spans working and
