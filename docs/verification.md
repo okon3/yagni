@@ -14,6 +14,13 @@ at all.
   can't do (close and reopen the tab). Verify the print path by dispatching
   `beforeprint` on `window` (what `printPlan` listens to); the paper needs a
   person.
+- **Reloading with fixtures on screen raises the browser's own "Reload site?"**
+  — `App.tsx` arms a `beforeunload` guard while the project is dirty, and
+  building fixtures with `window.yagni` makes it dirty, so every reload asks.
+  It is a native dialog, not ours: nothing in the page can dismiss it. Under
+  chrome-devtools MCP call `handle_dialog`; otherwise build the fixtures once
+  and drive the page in place instead of reloading. A reload left unanswered
+  blocks every later command on that page.
 - **A `<dialog>`'s `close` event never fires here** — probed on a fresh
   `<dialog>`: `showModal()`, `close('bye')` → `returnValue` set, `open` false,
   but neither `onclose` nor `addEventListener('close')` ran. The tool's
