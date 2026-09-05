@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Resource } from '../scheduler';
+import type { AvailabilityOverride, Resource } from '../scheduler';
 import {
   nextResourceId,
   releasedBy,
@@ -54,6 +54,34 @@ describe('validateResources', () => {
       availabilityOverrides: [{ from: '2026-09-07', to: '2026-09-11', availability: 0 }],
     };
     expect(validateResources([resource])).toBeNull();
+  });
+
+  it('refuses a period whose availability field is missing', () => {
+    // The agent-API repro: `{from, to, ratio: 0}` — the field misspelt, so the
+    // share is undefined and would reach the scheduler as NaN capacity.
+    const resource: Resource = {
+      ...person('r1', 'Marta'),
+      availabilityOverrides: [
+        { from: '2026-09-07', to: '2026-09-11', ratio: 0 } as unknown as AvailabilityOverride,
+      ],
+    };
+    expect(validateResources([resource])).toMatch(/needs a numeric "availability" share/);
+  });
+
+  it('refuses a period whose date is not a day string', () => {
+    const resource: Resource = {
+      ...person('r1', 'Marta'),
+      availabilityOverrides: [{ from: '07/09/2026', to: '2026-09-11', availability: 0 }],
+    };
+    expect(validateResources([resource])).toMatch(/malformed date/);
+  });
+
+  it('refuses a period share above one', () => {
+    const resource: Resource = {
+      ...person('r1', 'Marta'),
+      availabilityOverrides: [{ from: '2026-09-07', to: '2026-09-11', availability: 2 }],
+    };
+    expect(validateResources([resource])).toBe('A period of "Marta" has a share outside 0..1');
   });
 });
 

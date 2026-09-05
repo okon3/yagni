@@ -1,4 +1,4 @@
-import type { AvailabilityOverride, Resource } from '../scheduler';
+import { isDayString, type AvailabilityOverride, type Resource } from '../scheduler';
 
 /**
  * The rules and transformations of the people list, with no form and no chart
@@ -93,6 +93,15 @@ export function validateResources(resources: Resource[]): string | null {
     }
     for (const period of resource.availabilityOverrides ?? []) {
       if (!period.from || !period.to) return `A period of "${name}" has no start or end`;
+      if (!isDayString(period.from) || !isDayString(period.to)) {
+        return `A period of "${name}" has a malformed date: expected YYYY-MM-DD`;
+      }
+      // A JS caller can hand the agent API an override without the field: the
+      // comparisons below are all false on undefined, and the NaN it becomes in
+      // the capacity math stalls the scheduler long after the write was accepted.
+      if (typeof period.availability !== 'number' || Number.isNaN(period.availability)) {
+        return `A period of "${name}" needs a numeric "availability" share, 0..1`;
+      }
       if (period.availability < 0 || period.availability > 1) {
         return `A period of "${name}" has a share outside 0..1`;
       }
