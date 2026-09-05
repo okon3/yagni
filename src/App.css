@@ -298,13 +298,13 @@
   max-width: 58ch;
 }
 
-.resources__table {
+.people__table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
 
-.resources__table th {
+.people__table th {
   text-align: left;
   font-weight: 600;
   padding: 0 6px 6px;
@@ -312,25 +312,13 @@
   color: var(--ink-muted);
 }
 
-.resources__table td {
+.people__table td {
   padding: 4px 6px;
   vertical-align: middle;
 }
 
-/* Excludes migrated primitives: the pre-migration fallback for ResourceDialog's
-   still-legacy rows, retiring alongside `.resources__table` in T12.4/T12.6. */
-.resources__table input:not(.dialog__control) {
-  font: inherit;
-  padding: 4px 7px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  background: var(--surface);
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.resources__pct {
-  width: 68px !important;
+.people__pct {
+  width: 68px;
   text-align: right;
 }
 
@@ -339,13 +327,13 @@
   color: var(--ink-muted);
 }
 
-.resources__count {
+.people__count {
   text-align: center;
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
 
-.resources__empty {
+.people__empty {
   padding: 14px 6px;
   color: var(--ink-muted);
   text-align: center;
@@ -368,8 +356,7 @@
   flex: 1;
 }
 
-.resources__actions button,
-.resources__table button:not(.dialog__btn) {
+.resources__actions button {
   font: inherit;
   padding: 6px 12px;
   border: 1px solid var(--line-strong);
@@ -378,13 +365,7 @@
   cursor: pointer;
 }
 
-.resources__table button:not(.dialog__btn) {
-  padding: 3px 8px;
-  color: var(--danger);
-}
-
-.resources__actions button:hover,
-.resources__table button:not(.dialog__btn):hover {
+.resources__actions button:hover {
   background: var(--surface-hover);
 }
 
@@ -714,7 +695,7 @@
   color: var(--warn);
 }
 
-.resources__absences {
+.people__absences {
   font: inherit;
   padding: 3px 9px;
   border: 1px solid var(--line-strong);
@@ -724,14 +705,20 @@
   cursor: pointer;
 }
 
-.resources__absences--open {
+.people__absences--open {
   background: var(--accent-soft);
   border-color: var(--line-strong);
 }
 
-.resources__offRow td {
+.people__offRow td {
   padding: 4px 6px 12px;
   background: var(--surface-sunken);
+}
+
+/* Dense table rows, like `.ranges__remove` — the tighter padding stays until
+   T13 unifies the two list layouts. */
+.people__remove {
+  padding: var(--space-1) var(--space-2);
 }
 
 .ranges__pct {

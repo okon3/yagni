@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { countWorkingDaysInRange, type AvailabilityOverride, type Resource } from '../scheduler';
 import { AvailabilityList } from './AvailabilityList';
+import { Dialog } from './Dialog';
 import { nextResourceId, releasedBy, validateResources } from './resources';
 
 export interface ResourceUsage {
@@ -57,15 +58,10 @@ export function ResourceDialog({
   onCancel(): void;
   onSave(resources: Resource[], releasedTaskIds: string[]): void;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
   const [drafts, setDrafts] = useState<DraftResource[]>(() => toDraft(resources));
   const [error, setError] = useState<string | null>(null);
   /** Which person's absences are expanded; only one at a time keeps it readable. */
   const [expanded, setExpanded] = useState<string | null>(null);
-
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
 
   /** Short summary for the collapsed row: how many days are away, how many reduced. */
   const periodSummary = (draft: DraftResource) => {
@@ -121,15 +117,34 @@ export function ResourceDialog({
   };
 
   return (
-    <dialog ref={dialog} className="resources" onCancel={onCancel} onClose={onCancel}>
-      <h2>People</h2>
-      <p className="resources__hint">
+    <Dialog
+      title="People"
+      width={640}
+      className="people"
+      onDismiss={onCancel}
+      error={error}
+      footer={
+        <>
+          <button type="button" className="dialog__btn" onClick={add}>
+            Add person
+          </button>
+          <span className="dialog__spacer" />
+          <button type="button" className="dialog__btn" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className="dialog__btn dialog__btn--primary" onClick={save}>
+            Save
+          </button>
+        </>
+      }
+    >
+      <p className="dialog__hint">
         Availability is the share of a working day the person gives to the project: 50% means half
         a day. In <strong>periods</strong> you can override it for specific ranges — 0% is an
         absence. Available effort is still split evenly across concurrent tasks.
       </p>
 
-      <table className="resources__table">
+      <table className="people__table">
         <thead>
           <tr>
             <th>Name</th>
@@ -144,6 +159,7 @@ export function ResourceDialog({
             <tr key={draft.id}>
               <td>
                 <input
+                  className="dialog__control"
                   value={draft.name}
                   placeholder="Full name"
                   onChange={(event) => update(index, { name: event.target.value })}
@@ -151,35 +167,40 @@ export function ResourceDialog({
               </td>
               <td>
                 <input
-                  className="resources__pct"
+                  className="dialog__control people__pct"
                   type="number"
                   min={1}
                   max={100}
                   value={draft.availability}
                   onChange={(event) => update(index, { availability: event.target.value })}
                 />
-                <span className="resources__unit">%</span>
+                <span className="dialog__unit">%</span>
               </td>
-              <td className="resources__count">
+              <td className="people__count">
                 <button
                   type="button"
-                  className={`resources__absences${
-                    expanded === draft.id ? ' resources__absences--open' : ''
+                  className={`people__absences${
+                    expanded === draft.id ? ' people__absences--open' : ''
                   }`}
                   onClick={() => setExpanded(expanded === draft.id ? null : draft.id)}
                 >
                   {periodSummary(draft)}
                 </button>
               </td>
-              <td className="resources__count">{usage.taskCounts.get(draft.id) ?? 0}</td>
+              <td className="people__count">{usage.taskCounts.get(draft.id) ?? 0}</td>
               <td>
-                <button type="button" onClick={() => void remove(index)} title="Remove">
+                <button
+                  type="button"
+                  className="dialog__btn dialog__btn--danger people__remove"
+                  onClick={() => void remove(index)}
+                  title="Remove"
+                >
                   ✕
                 </button>
               </td>
             </tr>,
             expanded === draft.id ? (
-              <tr key={`${draft.id}-off`} className="resources__offRow">
+              <tr key={`${draft.id}-off`} className="people__offRow">
                 <td colSpan={5}>
                   <AvailabilityList
                     periods={draft.periods}
@@ -192,32 +213,13 @@ export function ResourceDialog({
           ])}
           {drafts.length === 0 && (
             <tr>
-              <td colSpan={5} className="resources__empty">
+              <td colSpan={5} className="people__empty">
                 No people yet. Add one to be able to assign tasks.
               </td>
             </tr>
           )}
         </tbody>
       </table>
-
-      {error && (
-        <p className="resources__error" role="alert">
-          {error}
-        </p>
-      )}
-
-      <div className="resources__actions">
-        <button type="button" onClick={add}>
-          Add person
-        </button>
-        <span className="resources__spacer" />
-        <button type="button" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="button" className="resources__primary" onClick={save}>
-          Save
-        </button>
-      </div>
-    </dialog>
+    </Dialog>
   );
 }
