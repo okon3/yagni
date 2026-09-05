@@ -36,6 +36,24 @@ describe('parseChangelog', () => {
     expect(entries[1].notes).toEqual(['Nota B.', 'Nota C.']);
   });
 
+  // The release workflow parks upcoming bullets under a top `## Unreleased`
+  // heading: it must stay invisible (badge, popup, dialog) until renamed.
+  it('ignores a leading Unreleased section and its bullets', () => {
+    const text = `# Changelog
+
+## Unreleased
+
+- Pending feature.
+
+## v1.0 — 2026-09-04
+
+- Released feature.
+`;
+    expect(parseChangelog(text)).toEqual([
+      { version: 'v1.0', date: '2026-09-04', notes: ['Released feature.'] },
+    ]);
+  });
+
   it('returns an empty array for empty or garbage text', () => {
     expect(parseChangelog('')).toEqual([]);
     expect(parseChangelog('just some\nrandom text\nwith no headings')).toEqual([]);

@@ -150,14 +150,16 @@ no prose. README changes only when the feature set changes; retake
 
 **Changelog and versioning.** A significant feature adds a bullet to
 `CHANGELOG.md` in the same commit — features a user would notice, never fixes
-or plumbing. The first user-visible feature after a declared release opens a
-new minor heading (`## v1.2 — <date>`); every later feature adds a bullet
-under it and refreshes its date, across sessions and goals. Only the user
-closes a version, by declaring the release (the build is distributed) — never
-infer a close. When unsure
-whether the top version has shipped, ask. Major bump only for a breaking
-change to the `.gantt` file format. The parser accepts only
-`## v<version> — <date>` headings — never an Unreleased section. The log is
+or plumbing. During development, bullets accumulate under a `## Unreleased`
+heading at the **top** of the file: the parser skips headings without a `v`
+prefix, so the badge keeps showing the last released version, no popup fires,
+and the bullets stay out of the dialog until released. It must stay first —
+lower down, its bullets would attach to the release above it. **Releasing** =
+renaming that heading to `## v<next-minor> — <today>`, nothing else: the badge
+bumps and the changelog reopens once for everyone. Either side proposes the
+release at a natural wrap-up (a goal completes, a build is about to be
+distributed); the user always confirms before the rename. Major bump only for
+a breaking change to the `.gantt` file format. The log is
 never exhaustive: recent releases only, oldest entries pruned — git history is
 the full record.
 
