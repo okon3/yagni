@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, type Ref } from 'react';
 import { gantt, type ZoomLevel } from 'dhtmlx-gantt';
+import { Info, Ban } from 'lucide-static';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { barFactsOf, renderBarTooltip } from './barTooltip';
 import { formatDays } from './format';
@@ -97,16 +98,22 @@ function resourceClassesOf(solved: SolvedProject, id: string): string {
   return owners ? [...owners].map(resourceClass).join(' ') : '';
 }
 
-const INFO_ICON =
-  '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">' +
-  '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
-  '<circle cx="8" cy="4.6" r="0.95" fill="currentColor"/>' +
-  '<rect x="7.25" y="6.7" width="1.5" height="4.9" rx="0.75" fill="currentColor"/></svg>';
+/**
+ * `lucide-static` ships each icon at a fixed 24×24 with no `aria-hidden` —
+ * HTML keeps the *first* of a duplicate attribute, so appending a smaller
+ * width/height would lose to the original. Rewriting the attributes in place
+ * is the documented way around a string, short of pulling in React's
+ * server renderer for two icons.
+ */
+function sizedIcon(svg: string, size: number): string {
+  return svg
+    .replace(/\swidth="\d+"/, ` width="${size}"`)
+    .replace(/\sheight="\d+"/, ` height="${size}"`)
+    .replace('<svg', '<svg aria-hidden="true"');
+}
 
-const BAN_ICON =
-  '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">' +
-  '<circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
-  '<path d="M4.11 4.11 11.89 11.89" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
+const INFO_ICON = sizedIcon(Info, 15);
+const BAN_ICON = sizedIcon(Ban, 15);
 
 /**
  * Marks the scale cell holding today, whatever span that cell covers.

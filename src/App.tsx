@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent } from 'react';
+import { CircleHelp } from 'lucide-react';
 // ?inline: as a data URI the mark survives even a lone single-file index.html,
 // where a URL beside the page would have nothing to point at.
 import markUrl from './assets/favicon.svg?inline';
@@ -799,7 +800,7 @@ export default function App() {
           aria-label="How it works"
           onClick={() => setHelpOpen(true)}
         >
-          ?
+          <CircleHelp size={14} />
         </button>
       </header>
 

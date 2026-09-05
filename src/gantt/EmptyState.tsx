@@ -1,3 +1,5 @@
+import { Plus, FolderOpen } from 'lucide-react';
+
 /**
  * What is on screen when there is no plan yet.
  *
@@ -29,9 +31,11 @@ export function EmptyState({
 
         <div className="empty__actions">
           <button type="button" className="empty__primary" onClick={onAddTask}>
+            <Plus size={15} />
             Create the first task
           </button>
           <button type="button" className="empty__secondary" onClick={onOpen}>
+            <FolderOpen size={15} />
             Open a .gantt file
           </button>
         </div>

@@ -1,3 +1,16 @@
+import {
+  FilePlus2,
+  FolderOpen,
+  Save,
+  FileSpreadsheet,
+  Image,
+  Printer,
+  Undo2,
+  Redo2,
+  Plus,
+  Users,
+  CalendarDays,
+} from 'lucide-react';
 import type { Resource } from '../scheduler';
 import { avatarColorOf, initialsOf } from './colors';
 
@@ -48,12 +61,15 @@ export function Toolbar({
     <div className="toolbar">
       <div className="toolbar__group">
         <button type="button" onClick={onNew}>
+          <FilePlus2 size={15} />
           New
         </button>
         <button type="button" onClick={onOpen}>
+          <FolderOpen size={15} />
           Open
         </button>
         <button type="button" onClick={onSave}>
+          <Save size={15} />
           Save
         </button>
       </div>
@@ -67,6 +83,7 @@ export function Toolbar({
           onClick={onExportCsv}
           title="Export the solved plan to CSV (dates, effort and durations)"
         >
+          <FileSpreadsheet size={15} />
           CSV
         </button>
         <button
@@ -74,6 +91,7 @@ export function Toolbar({
           onClick={onExportPng}
           title="Export the plan as a PNG image"
         >
+          <Image size={15} />
           PNG
         </button>
         <button
@@ -81,6 +99,7 @@ export function Toolbar({
           onClick={onPrint}
           title="Print the plan, or save it as PDF from the print dialog (Ctrl+P)"
         >
+          <Printer size={15} />
           Print
         </button>
       </div>
@@ -97,7 +116,7 @@ export function Toolbar({
           aria-label={undoing ? `Undo: ${undoing}` : 'Undo change'}
           title={undoing ? `Undo: ${undoing} (Ctrl+Z)` : 'Nothing to undo'}
         >
-          ↶
+          <Undo2 size={15} />
         </button>
         <button
           type="button"
@@ -107,17 +126,20 @@ export function Toolbar({
           aria-label={redoing ? `Redo: ${redoing}` : 'Redo change'}
           title={redoing ? `Redo: ${redoing} (Ctrl+Shift+Z)` : 'Nothing to redo'}
         >
-          ↷
+          <Redo2 size={15} />
         </button>
       </div>
       <div className="toolbar__group">
         <button type="button" className="toolbar__primary" onClick={onAddTask}>
+          <Plus size={15} />
           Add task
         </button>
         <button type="button" onClick={onEditResources}>
+          <Users size={15} />
           People
         </button>
         <button type="button" onClick={onEditCalendar}>
+          <CalendarDays size={15} />
           Calendar
         </button>
       </div>

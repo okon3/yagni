@@ -4,6 +4,10 @@ The view wraps dhtmlx-gantt Community, **rendering only** — the engine doesn't
 know it exists. Library traps: [dhtmlx.md](dhtmlx.md). This file records the
 *decisions* and their reasons.
 
+Icons are lucide only (`lucide-react` in components, `lucide-static` strings
+in dhtmlx templates) — except the critical-chain/dirty CSS dots, the logo and
+the HelpDialog diagram, none of which are icons.
+
 ## Zoom and timeline range
 
 - Five zoom levels (days → quarters). Month columns top out ~10 months of plan;

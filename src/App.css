@@ -154,6 +154,10 @@
 }
 
 .toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font: inherit;
   padding: 5px 10px;
   border: 0;
@@ -161,6 +165,10 @@
   background: none;
   color: var(--ink-muted);
   cursor: pointer;
+}
+
+.toolbar button svg {
+  flex: none;
 }
 
 .toolbar button:hover {
@@ -430,6 +438,9 @@
 
 .empty__primary,
 .empty__secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -437,6 +448,10 @@
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.empty__actions svg {
+  flex: none;
 }
 
 .empty__primary {
@@ -587,6 +602,9 @@
 /* Always in the same place, whatever the toolbar does: it sits outside it, so a
    plan with twenty people cannot push it onto a second line. */
 .app__help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
   width: 24px;
   height: 24px;
@@ -973,6 +991,10 @@
 }
 
 .statusbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font: inherit;
   padding: 3px 9px;
   border: 0;
@@ -980,6 +1002,10 @@
   background: none;
   color: var(--ink-muted);
   cursor: pointer;
+}
+
+.statusbar button svg {
+  flex: none;
 }
 
 .statusbar button:hover {
@@ -1095,7 +1121,9 @@
 }
 
 .rowmenu__items button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
   padding: 7px 10px;
   border: 0;
@@ -1106,6 +1134,10 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.rowmenu__items button svg {
+  flex: none;
 }
 
 .rowmenu__items button:hover,

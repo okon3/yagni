@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Per-row toggle button in the grid to enable/disable a task without opening the row menu or the details dialog.
+- Every icon in the app now comes from lucide, replacing the hand-drawn glyphs in the toolbar, status bar, row menu, empty state, help button and grid buttons.
 
 ## v1.0 — 2026-09-04
 

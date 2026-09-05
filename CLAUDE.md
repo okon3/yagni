@@ -169,3 +169,7 @@ the full record.
 - Comments: the *why* only — never the *what*, never the previous state.
 - One commit per completed, tested feature, docs included.
 - Before committing: `npm test`, `npm run build`, `npm run lint` all clean.
+- **Icons are lucide, everywhere**: `lucide-react` components in React code,
+  `lucide-static` SVG strings in dhtmlx HTML templates. No hand-drawn icon SVGs.
+  The critical-chain and dirty state dots (CSS pseudo-elements), the logo and
+  the HelpDialog diagram are not icons and stay as they are.

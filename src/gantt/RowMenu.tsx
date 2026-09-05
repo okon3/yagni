@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { ListPlus, CornerDownRight, Milestone, Ban, CircleCheck } from 'lucide-react';
 
 /** What a creation from the menu means, resolved against the row it opened on. */
 export type RowMenuAction = 'sibling' | 'child' | 'milestone' | 'toggle-disabled';
@@ -23,11 +24,12 @@ export interface RowMenuTarget {
   disabled: boolean;
 }
 
-const ITEMS: { action: RowMenuAction; label: string }[] = [
-  { action: 'sibling', label: 'New task below' },
-  { action: 'child', label: 'New subtask' },
-  { action: 'milestone', label: 'New milestone below' },
-  { action: 'toggle-disabled', label: 'Disable' },
+const ITEMS: { action: RowMenuAction; label: string; icon: typeof ListPlus }[] = [
+  { action: 'sibling', label: 'New task below', icon: ListPlus },
+  { action: 'child', label: 'New subtask', icon: CornerDownRight },
+  { action: 'milestone', label: 'New milestone below', icon: Milestone },
+  // Overridden per render below — its icon depends on the target's state.
+  { action: 'toggle-disabled', label: 'Disable', icon: Ban },
 ];
 
 /**
@@ -114,31 +116,35 @@ export function RowMenu({
     <dialog ref={dialog} open className="rowmenu" aria-label={`Actions for ${target.name}`}>
       <p className="rowmenu__anchor">{target.name}</p>
       <ul className="rowmenu__items">
-        {ITEMS.map(({ action, label }) => (
-          <li key={action}>
-            <button
-              type="button"
-              onClick={() => onPick(action)}
-              onKeyDown={(event) => {
-                if (event.key === 'ArrowDown') {
-                  event.preventDefault();
-                  step(event.currentTarget, 1);
-                } else if (event.key === 'ArrowUp') {
-                  event.preventDefault();
-                  step(event.currentTarget, -1);
-                }
-              }}
-            >
-              {action === 'toggle-disabled'
-                ? target.disabled
-                  ? 'Enable'
-                  : 'Disable'
-                : action === 'child' && target.isSummary
-                  ? 'New task inside'
-                  : label}
-            </button>
-          </li>
-        ))}
+        {ITEMS.map(({ action, label, icon: Icon }) => {
+          const ActionIcon = action === 'toggle-disabled' ? (target.disabled ? CircleCheck : Ban) : Icon;
+          return (
+            <li key={action}>
+              <button
+                type="button"
+                onClick={() => onPick(action)}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    step(event.currentTarget, 1);
+                  } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    step(event.currentTarget, -1);
+                  }
+                }}
+              >
+                <ActionIcon size={15} />
+                {action === 'toggle-disabled'
+                  ? target.disabled
+                    ? 'Enable'
+                    : 'Disable'
+                  : action === 'child' && target.isSummary
+                    ? 'New task inside'
+                    : label}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </dialog>
   );

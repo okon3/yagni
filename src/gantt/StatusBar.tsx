@@ -1,4 +1,15 @@
 import type { Ref } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  ChartNoAxesColumn,
+  CalendarCheck,
+  Maximize2,
+  Minus,
+  Plus,
+} from 'lucide-react';
 import { CRITICAL_CHAIN_LIMIT, type ChainState } from './project';
 
 export interface StatusBarProps {
@@ -127,7 +138,7 @@ export function StatusBar({
               title="Previous match (Shift+Enter)"
               onClick={() => onStepMatch(-1)}
             >
-              ‹
+              <ChevronLeft size={14} />
             </button>
             <button
               type="button"
@@ -137,16 +148,18 @@ export function StatusBar({
               title="Next match (Enter)"
               onClick={() => onStepMatch(1)}
             >
-              ›
+              <ChevronRight size={14} />
             </button>
           </>
         )}
       </div>
       <div className="statusbar__rows">
         <button type="button" onClick={onCollapseAll} title="Collapse all tasks">
+          <ChevronsDownUp size={14} />
           Collapse
         </button>
         <button type="button" onClick={onExpandAll} title="Expand all tasks">
+          <ChevronsUpDown size={14} />
           Expand
         </button>
       </div>
@@ -174,6 +187,7 @@ export function StatusBar({
         title="Shows how busy each person is and where they still have capacity"
         onClick={onToggleLoad}
       >
+        <ChartNoAxesColumn size={14} />
         Resource load
       </button>
       {/* An agent reads the page text and the accessibility tree before it reads
@@ -183,23 +197,24 @@ export function StatusBar({
       </span>
       <span className="statusbar__spacer" />
       <button type="button" onClick={onToday}>
+        <CalendarCheck size={14} />
         Today
       </button>
       <span className="statusbar__scale">
         Scale: <strong>{scale}</strong>
       </span>
-      {/* Named, like every other button here whose face is a glyph: a `title`
-          is the accessible name only where there is no text at all, and a sign
-          counts as text — so without these the name announced is "−" and "+". */}
+      {/* Named, like every other icon-only button here: a `title` is the
+          accessible name where there is no text at all. */}
       <div className="statusbar__zoom">
         <button type="button" onClick={onZoomOut} aria-label="Zoom out" title="Zoom out">
-          −
+          <Minus size={14} />
         </button>
         <button type="button" onClick={onZoomIn} aria-label="Zoom in" title="Zoom in">
-          +
+          <Plus size={14} />
         </button>
       </div>
       <button type="button" onClick={onZoomToFit}>
+        <Maximize2 size={14} />
         Fit
       </button>
     </footer>
