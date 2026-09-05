@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { Dialog } from './Dialog';
 import { CRITICAL_CHAIN_LIMIT } from './project';
 
 /**
@@ -168,24 +168,22 @@ function EffortDiagram() {
  * front of nothing at all.
  */
 export function HelpDialog({ onClose }: { onClose(): void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const node = dialog.current;
-    node?.showModal();
-    // showModal hands the focus to the first focusable child, and here that is
-    // the close button at the very bottom: a dialog this long opens already
-    // scrolled past everything it is meant to say. Taking the focus onto the
-    // dialog keeps Escape and Tab working, but the scroll the button caused
-    // stays behind it, so it has to be undone as well.
-    node?.focus();
-    if (node) node.scrollTop = 0;
-  }, []);
-
   return (
-    <dialog ref={dialog} className="resources help" tabIndex={-1} onCancel={onClose}>
-      <h2>How it works</h2>
-      <p className="resources__hint">
+    <Dialog
+      title="How it works"
+      width={720}
+      className="help"
+      onDismiss={onClose}
+      footer={
+        <>
+          <span className="dialog__spacer" />
+          <button type="button" className="dialog__btn dialog__btn--primary" onClick={onClose}>
+            Close
+          </button>
+        </>
+      }
+    >
+      <p className="dialog__hint">
         A task declares two things: how much work it costs and from when it may start. Everything
         else — duration, end date, who is holding up whom — is computed by the engine, and cannot be
         typed by hand.
@@ -285,13 +283,6 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
           <strong>dashed</strong> to say so, and the same button redoes it.
         </p>
       </section>
-
-      <div className="resources__actions">
-        <span className="resources__spacer" />
-        <button type="button" className="resources__primary" onClick={onClose}>
-          Close
-        </button>
-      </div>
-    </dialog>
+    </Dialog>
   );
 }

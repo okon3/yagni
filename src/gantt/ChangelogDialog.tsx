@@ -1,21 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { Dialog } from './Dialog';
 import { CHANGELOG_ENTRIES } from './changelogEntries';
 
 /** Reached from the version badge in the header. */
 export function ChangelogDialog({ onClose }: { onClose(): void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const node = dialog.current;
-    node?.showModal();
-    node?.focus();
-    if (node) node.scrollTop = 0;
-  }, []);
-
   return (
-    <dialog ref={dialog} className="resources help" tabIndex={-1} onCancel={onClose}>
-      <h2>What's new</h2>
-
+    <Dialog
+      title="What's new"
+      width={720}
+      className="help"
+      onDismiss={onClose}
+      footer={
+        <>
+          <span className="dialog__spacer" />
+          <button type="button" className="dialog__btn dialog__btn--primary" onClick={onClose}>
+            Close
+          </button>
+        </>
+      }
+    >
       {CHANGELOG_ENTRIES.map((entry) => (
         <section key={entry.version} className="help__section">
           <h3>
@@ -28,13 +30,6 @@ export function ChangelogDialog({ onClose }: { onClose(): void }) {
           </ul>
         </section>
       ))}
-
-      <div className="resources__actions">
-        <span className="resources__spacer" />
-        <button type="button" className="resources__primary" onClick={onClose}>
-          Close
-        </button>
-      </div>
-    </dialog>
+    </Dialog>
   );
 }

@@ -507,15 +507,7 @@
   color: var(--accent);
 }
 
-/* Wider than the other dialogs and scrollable: this one is read, not filled in,
-   and the diagram needs the room. */
-.help {
-  max-width: 720px;
-  max-height: 82vh;
-  overflow: auto;
-}
-
-.help .resources__hint {
+.help .dialog__hint {
   max-width: none;
 }
 
