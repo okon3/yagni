@@ -122,13 +122,6 @@ function laneTrack(lane: LoadLane, geometry: LoadGeometry, tip: HTMLElement): HT
   const scroller = element('div', 'loadlane__scroll');
   scroller.style.width = `${geometry.timelineWidth}px`;
 
-  for (const band of geometry.nonWorking) {
-    const shade = element('div', 'loadlane__off');
-    shade.style.left = `${band.left}px`;
-    shade.style.width = `${band.width}px`;
-    scroller.append(shade);
-  }
-
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('class', 'loadlane__plot');
   svg.setAttribute('width', String(geometry.timelineWidth));
@@ -144,6 +137,18 @@ function laneTrack(lane: LoadLane, geometry: LoadGeometry, tip: HTMLElement): HT
   committed.setAttribute('style', `fill:${avatarColorOf(lane.resource.name)}`);
   svg.append(capacity, committed);
   scroller.append(svg);
+
+  // Appended after the plot, on purpose: the axis here is working minutes, where
+  // a weekend is no time at all, so a task spanning one paints the fill straight
+  // across it at full height. The veil is the only mark saying those pixels
+  // aren't working time, and it can only say so from on top.
+  for (const band of geometry.nonWorking) {
+    const shade = element('div', 'loadlane__off');
+    shade.style.left = `${band.left}px`;
+    shade.style.width = `${band.width}px`;
+    scroller.append(shade);
+  }
+
   track.append(scroller);
 
   // Reaching to the next segment's own left edge rather than to this one's right:

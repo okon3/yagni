@@ -748,13 +748,15 @@
   height: 100%;
 }
 
-/* The same runs the chart bands render, so a weekend cannot read one way on
-   the chart and another way below it. */
+/* The same runs the chart bands render — but not the same veil: this one sits
+   over the plot (`laneTrack()`), where `--band-nonworking`'s light grey would
+   read as a colour shift instead of a weekend. Do not point this back at
+   `--band-nonworking` to "match the chart" — that reinstates the wash-out. */
 .loadlane__off {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: var(--band-nonworking);
+  background: var(--band-nonworking-over);
 }
 
 .loadlane__plot {
@@ -765,8 +767,7 @@
 }
 
 /* The ceiling, as a line and not a fill: what matters is the room left between
-   it and the commitment below, and a fill would cover the weekend shading that
-   explains half of it. */
+   it and the commitment below. */
 .loadlane__capacity {
   fill: none;
   stroke: var(--ink-faint);

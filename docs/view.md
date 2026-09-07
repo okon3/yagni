@@ -19,12 +19,18 @@ that isn't there.
 - One palette, two sets of values: the dark scheme redefines the same variables
   in `index.css` and no rule knows which one it is in. Accents *lighten* on
   emphasis there — on a dark surface that is what "stronger" looks like.
-- **`--band-nonworking`** (chart bands, load lane, help diagram — one variable,
-  three consumers) is derived in light, flat in dark: a share of `--line-strong`
-  there, `rgb(0 0 0 / 18%)` here. A share of the line grey lightens over dark
-  rows, and a weekend that lightens stops reading as background — so dark stops
-  tracking `--line-strong` on purpose, and a later retune of the line grey will
-  not reach it.
+- **`--band-nonworking`** (chart bands, help diagram — one variable, two
+  consumers, both painted *under* their content) is derived in light, flat in
+  dark: a share of `--line-strong` there, `rgb(0 0 0 / 18%)` here. A share of
+  the line grey lightens over dark rows, and a weekend that lightens stops
+  reading as background — so dark stops tracking `--line-strong` on purpose,
+  and a later retune of the line grey will not reach it.
+- **`--band-nonworking-over`** is the load lane's own veil, since that one
+  paints *over* its content instead: the same light grey there would wash a
+  saturated fill out rather than read as a weekend over it. Black at low alpha
+  in both schemes — `rgb(0 0 0 / 18%)` in dark, same figure as its sibling;
+  a separately tuned low alpha in light, since a shared value would have to
+  serve two different jobs.
 - **Task, avatar and swatch colours do not change.** They are the user's (or
   keyed to a person's name); a palette that shifted with the desktop would make
   the same plan two different pictures.
@@ -284,7 +290,10 @@ that isn't there.
   stretches; capacity is taken from what the simulation granted, not re-resolved
   (a lane disagreeing with its schedule is worse than none).
 - X positions from the chart's `posFromDate`, following its horizontal scroll;
-  weekends shaded with the same runs and threshold as the timeline.
+  weekends shaded with the same runs and threshold as the timeline, but with
+  `--band-nonworking-over` and **over the plot, not under it**: the lane's axis
+  is working minutes, so a weekend is no time at all there, and a fill spanning
+  one crosses it at full height.
 
 ## In-app help
 

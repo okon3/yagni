@@ -30,9 +30,16 @@
   --surface-hover: #f5f6f9;
   --line: #edeef1;
   --line-strong: #dfe2e8;
-  /* One source for the chart bands, the load lane and the help diagram: a
-     weekend that read three ways would read as three different things. */
+  /* One source for the chart bands and the help diagram, which both paint it
+     under their content: a weekend that read two ways would read as two
+     different things. The load lane paints over its content and has its own
+     veil below — merging them would put a light grey over a saturated fill. */
   --band-nonworking: color-mix(in srgb, var(--line-strong) 55%, transparent);
+  /* The load lane's own veil, consumed only by `.loadlane__off`: that band
+     paints over the plot rather than under it, and a light grey doing that
+     washes a saturated fill out instead of reading as a weekend over it — a
+     plain black at low alpha darkens whatever it sits on instead. */
+  --band-nonworking-over: rgb(0 0 0 / 7%);
 
   /* A surface that stands against the ink rather than beside it: the brand
      expansion and the load tooltip are labels laid over the plan, and in dark
@@ -108,6 +115,10 @@
        being background. Untracked on purpose — a retune of --line-strong
        will not reach it. */
     --band-nonworking: rgb(0 0 0 / 18%);
+    /* Identical to --band-nonworking here: two decisions that coincide in this
+       scheme, not one shared with a second name. Merging them would tie the
+       lane's veil back to the chart's, which light cannot afford. */
+    --band-nonworking-over: rgb(0 0 0 / 18%);
 
     --inverse-surface: #333944;
     --inverse-ink: #eef0f4;
