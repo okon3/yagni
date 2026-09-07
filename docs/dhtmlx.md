@@ -69,6 +69,18 @@ touching `src/gantt` code that talks to the library.
   lives but shades whole cells — above day scale one cell spans working and
   non-working days, which is why non-working time is drawn as `posFromDate`
   bands instead.
+- **The link handle's geometry is on `:root`, so other rules can reuse it**:
+  `.gantt_link_control.task_right` is `right: 0` plus `translate(100%)` and
+  `offset + size` wide, and its dot is `flex-end`-aligned inside — so the dot
+  occupies the **outer `size`** of that span (8px to 18px past the bar's
+  padding box, at today's values), not the whole of it. Both
+  `--dhx-gantt-link-handle-offset` and `--dhx-gantt-link-handle-size` are
+  declared on `:root` (size 10px; the 16px variant lives under
+  `:root[data-gantt-theme=material]`, which `theme.ts` never sets, so it is
+  10px in both our schemes) and therefore inherit into
+  `.gantt_side_content.gantt_right` — which is why the label's `padding-left`
+  clears the dot with `calc()` on those two variables instead of a copied
+  pixel count. The label shares the dot's origin, so the arithmetic is exact.
 
 ## Rendering lifecycle
 
