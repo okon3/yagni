@@ -48,14 +48,30 @@ touching `src/gantt` code that talks to the library.
   the app default — hence the default is restated on both classes rather than
   left to import order.
 - **The built-in dark theme is an attribute, not a media query**:
-  `:root[data-gantt-theme=dark]` re-points ~20 `--dhx-gantt-base-colors-*`. Only
-  JS can set it (`theme.ts`, from `prefers-color-scheme`), and its canvas is
-  `#141414` — nothing like the app's surface — so `gantt.css` re-points those
-  base colours at the palette. Two traps in one rule there: a bare
+  `:root[data-gantt-theme=dark]` re-points ~20 `--dhx-gantt-base-colors-*`. Our
+  JS sets it (`theme.ts`, from `prefers-color-scheme`) — and so does dhtmlx
+  itself, next bullet — and its canvas is `#141414`, nothing like the app's
+  surface, so `gantt.css` re-points those base colours at the palette. Two
+  traps in one rule there: a bare
   `:root[data-gantt-theme=dark]` of ours only **ties** with dhtmlx's, leaving the
   winner to Vite's bundling order (`html:root[…]` outranks it), and keying on the
   attribute alone would leave the chart light if a `change` event went missing —
   hence the media query beside it.
+- **dhtmlx writes that attribute back, on a 100ms poll**: `setSkin` calls
+  `_addThemeClass()` → `documentElement.setAttribute('data-gantt-theme', skin)`,
+  while a `setInterval(…, 100)` on `gantt.$root` reads `--dhx-gantt-theme` and
+  calls `setSkin` whenever it differs from `gantt.skin`. Every theme's block
+  declares that variable to its own name, so attribute → variable → poll →
+  attribute is a fixed point and a clean load writes nothing (value already
+  equals skin). Three consequences. **Forcing the attribute in a verification
+  measures a state the app never produces**: forcing `dark` latches
+  `gantt.skin`, so removing it afterwards makes the poll write `terrace` back —
+  an agent that reads `terrace` on a light page produced it itself (`theme.ts`
+  is right, absent is the default). Nothing ever sets `material`, which is why
+  its 16px link handle cannot appear — but `gantt.setSkin('material')` would
+  silently widen the label padding that consumes it. And `contrast-white` /
+  `contrast-black` both declare the variable as plain `contrast`, which has no
+  block of its own, so the poll rewrites the attribute to an inert value.
 - **The splitter-drag veils are literal light greys, not variables** — during a
   layout resize both panes take `.gantt_resizing` (`#f2f2f2`, opacity .7) and
   other resizes paint `.gantt_grid_resize_area`/`.gantt_row_grid_resize_area`

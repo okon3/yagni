@@ -89,6 +89,12 @@ the scheme already set; a switch on a live page proves nothing about it. Which i
 why the chart's dhtmlx variables are keyed on the media query as well as on the
 attribute — see [dhtmlx.md](dhtmlx.md).
 
+Setting `data-gantt-theme` by hand instead is not a shortcut to the same state:
+dhtmlx polls the theme every 100ms and writes the attribute back, so forcing it
+latches `gantt.skin` and removing it later yields `terrace` on a light page —
+a value the app never sets. Load with the scheme already set, or measure only
+what the attribute selects for. Mechanism in [dhtmlx.md](dhtmlx.md).
+
 ## Rules of thumb
 
 - **Verify visuals with `getComputedStyle`** — not the attribute, not the data

@@ -461,9 +461,15 @@
 
 /* A section header, not a task: the name reads as a label above its children.
    The side content inherits the bar's height, and the summary's border-box is
-   10px with a line-height dhtmlx sets inline for a full-height bar — so the
-   label has to be re-centred on the content box (10px minus the 1px border on
-   each side) or it renders clipped. */
+   10px with the 22px line-height dhtmlx sets inline for a full-height bar — so
+   the label has to be re-centred on the content box (10px minus the 1px border
+   on each side) or it renders clipped: measured, the inherited line box lands
+   6.5px below the box centre and `overflow: hidden` cuts most of it.
+
+   Re-centred it still overflows: an 8px box holds a 15px line box, clipped 4px
+   above and 3px below. That band is the font's ascent and descent, not ink —
+   which holds only because the label is uppercase. Restoring lowercase here
+   means giving the descenders room. */
 .gantt_task_line.gantt-bar--summary .gantt_side_content.gantt_right {
   line-height: 8px;
   font-size: 11px;
