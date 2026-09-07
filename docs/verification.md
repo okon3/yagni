@@ -4,6 +4,17 @@ The app is developed and verified inside an embedded browser driven by an agent.
 Some APIs behave differently there; some verifications can't be trusted or made
 at all.
 
+## Two agents, one origin
+
+`localStorage` is per origin, not per agent: a second session on the same dev
+server overwrote a measurement's fixtures halfway through, silently and with
+no error, so the numbers described a project that was no longer the one under
+test. Each agent that can reach the origin takes its own named browser
+session — measured on `http://localhost:5173`, a key written under
+`--session a` is absent from `--session b` and survives `b` writing over it,
+so storage is isolated, not just cookies. The default unnamed session is the
+shared one; never verify in it.
+
 ## Dialogs
 
 - **`window.confirm` returns `false` instantly and shows nothing** — every
@@ -20,7 +31,15 @@ at all.
   It is a native dialog, not ours: nothing in the page can dismiss it. Under
   chrome-devtools MCP call `handle_dialog`; otherwise build the fixtures once
   and drive the page in place instead of reloading. A reload left unanswered
-  blocks every later command on that page.
+  blocks every later command on that page; once answered, the reload itself can
+  cost two `os error 10060` timeouts before the page is back. Those are the
+  wait, not a dead session: retry before concluding the app broke.
+- **A dialog the tool cannot see is still on screen** — with the autosaved
+  draft's question up, `dialog status` reported no dialog open and
+  `find text "Resume" click` reported success while leaving it open. Only
+  `snapshot -i`, then `click @eN` on the ref it printed, got out. A text match
+  that reports success is not evidence the element was hit; the accessibility
+  snapshot is.
 - **A `<dialog>`'s `close` event never fires here** — probed on a fresh
   `<dialog>`: `showModal()`, `close('bye')` → `returnValue` set, `open` false,
   but neither `onclose` nor `addEventListener('close')` ran. The tool's
