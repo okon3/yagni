@@ -698,8 +698,10 @@
   border-bottom: 0;
 }
 
-/* As wide as the grid, so a lane starts exactly where the bars above it do. The
-   width is written inline on every paint: the grid's edge can be dragged. */
+/* As wide as the timeline's own x origin, so a lane starts exactly where the
+   bars above it do (the grid's width alone lands short of it — see
+   `LoadGeometry.timelineOffset`). Written inline on every paint: the grid's
+   edge can be dragged. */
 .loadlane__label {
   display: flex;
   align-items: center;

@@ -1548,7 +1548,13 @@ export function GanttChart({
       renderLoadPanel(panel, lanesRef.current.lanes, {
         // Read every time: the grid can be resized by dragging its edge, and a
         // lane starting anywhere else than the bars do is worse than no lane.
-        gridWidth: gantt.$grid.offsetWidth,
+        //
+        // Measured, not the grid's width: two borders sit between the two, the
+        // layout root's own left border and the grid cell's right one, so the
+        // grid alone falls two pixels short of the timeline. `$task` and not
+        // `$task_data`, which dhtmlx slides by the scroll offset (`dateUnder`
+        // below) — `scrollX` already carries that.
+        timelineOffset: gantt.$task.getBoundingClientRect().left - gantt.$root.getBoundingClientRect().left,
         timelineWidth: gantt.posFromDate(to),
         scrollX: gantt.getScrollState().x,
         posOf: (date) => gantt.posFromDate(date),

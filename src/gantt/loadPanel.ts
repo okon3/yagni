@@ -22,8 +22,12 @@ export interface LoadLane {
  * so any second opinion about where a date sits would drift from the bars.
  */
 export interface LoadGeometry {
-  /** The grid's width, which the labels take so a lane starts where the bars do. */
-  gridWidth: number;
+  /**
+   * X of the timeline's own origin, measured against the gantt root the panel
+   * is anchored to as well — not the grid's width, which stops two borders
+   * short of it.
+   */
+  timelineOffset: number;
   /** The timeline's full content width in pixels. */
   timelineWidth: number;
   scrollX: number;
@@ -255,7 +259,7 @@ export function renderLoadPanel(
     // The same class the rows and bars carry, so highlighting one person
     // reaches their lane through the very rule that dims the chart.
     const row = element('div', `loadlane ${resourceClass(lane.resource.id)}`);
-    row.append(laneLabel(lane, geometry.gridWidth), laneTrack(lane, geometry, tip));
+    row.append(laneLabel(lane, geometry.timelineOffset), laneTrack(lane, geometry, tip));
     list.append(row);
   }
   root.replaceChildren(list, tip);

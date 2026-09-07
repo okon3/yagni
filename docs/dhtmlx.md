@@ -108,6 +108,19 @@ touching `src/gantt` code that talks to the library.
   paint in DOM order (before `$bars_area` = under bars, after = over).
   `$task_bg`'s *height* is the full-rows height (the data area itself is only
   viewport-tall and scrolls).
+- **`$grid.offsetWidth` is not the timeline's x origin** — two borders sit
+  between them, the layout root's own left border and the grid cell's
+  `gantt_layout_cell_border_right` (2px here, and `config.grid_width` counts
+  the second one while `$grid` does not). The resizer cell is not one of them:
+  its `offsetLeft` equals the timeline cell's, so it overlays the timeline's
+  first pixel and takes no horizontal space. For an overlay of ours that must
+  start where the bars do, measure `$task`'s left against `$root` —
+  scroll-invariant, unlike `$task_data`'s, which slides by the scroll offset.
+  `$task` is in the typings at the same tier as `$grid` and `$root`.
+- **At the horizontal scrollbar's maximum `getScrollState().x` over-reports by
+  1px** the translation dhtmlx actually applied to `$task_data` (2245 against
+  2244), so an overlay positioned from it lands a pixel off in that one state
+  and nowhere else.
 - **Hand-set row classes don't survive a redraw** — classes must come from
   templates. (Also: a re-render replaces the node under the pointer, killing
   hover.)

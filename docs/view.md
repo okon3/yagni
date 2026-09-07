@@ -290,6 +290,8 @@ that isn't there.
   stretches; capacity is taken from what the simulation granted, not re-resolved
   (a lane disagreeing with its schedule is worse than none).
 - X positions from the chart's `posFromDate`, following its horizontal scroll;
+  the lane starts at the timeline's measured origin, not at the grid's width,
+  which stops two borders short of it;
   weekends shaded with the same runs and threshold as the timeline, but with
   `--band-nonworking-over` and **over the plot, not under it**: the lane's axis
   is working minutes, so a weekend is no time at all there, and a fill spanning
