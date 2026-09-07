@@ -10,6 +10,7 @@
   colour row that no longer stretches its preview swatch.
 - Task colour picker widened from 7 to 14 tints, in English, chosen to stay
   distinguishable from each other and from a person's avatar at a glance.
+- Task bars now outlined in a darker tint of their own colour.
 
 ## v1.1 — 2026-09-05
 

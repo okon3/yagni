@@ -232,7 +232,11 @@
 .gantt_task_line,
 .gantt_task_line.gantt_milestone {
   --dhx-gantt-task-background: #3b74d6;
-  --dhx-gantt-task-border: #2a539a;
+  /* dhtmlx consumes this as the whole `border` shorthand, so width and style
+     must be spelled out here or nothing paints. Same 0.72 multiplier as
+     shade() in colors.ts, in CSS rather than in a literal because only here can
+     it read the fill dhtmlx sets inline per task. */
+  --dhx-gantt-task-border: 1px solid color-mix(in srgb, var(--dhx-gantt-task-background) 72%, #000);
 }
 
 .gantt_task_line {
@@ -276,7 +280,7 @@
    own colour. Setting the variables keeps the inline value in charge. */
 .gantt_task_line.gantt-bar--shared {
   --dhx-gantt-task-background: var(--bar-track);
-  --dhx-gantt-task-border: var(--bar-track-line);
+  --dhx-gantt-task-border: 1px solid var(--bar-track-line);
 }
 
 .gantt_task_line.gantt-bar--shared .gantt_task_progress {
@@ -426,7 +430,8 @@
    variable inline and that shade wins. */
 .gantt_task_line.gantt-bar--summary {
   --dhx-gantt-task-background: #55637a;
-  --dhx-gantt-task-border: #3c4757;
+  /* No border of its own: the base rule derives it from whatever fill wins on
+     the element, so a summary the user coloured is outlined in that colour. */
   /* Rounded like every other bar: a rectangle among capsules read as a
      different kind of object rather than as a rollup of them. */
   border-radius: var(--radius-pill);
@@ -441,7 +446,6 @@
 @media (prefers-color-scheme: dark) {
   .gantt_task_line.gantt-bar--summary {
     --dhx-gantt-task-background: #6b7789;
-    --dhx-gantt-task-border: #8a95a6;
   }
 }
 
@@ -454,11 +458,12 @@
 }
 
 /* A section header, not a task: the name reads as a label above its children.
-   The side content inherits the bar's height, and the summary bar is 10px tall
-   with a line-height dhtmlx sets inline for a full-height bar — so the label has
-   to be re-centred on the thin bar or it renders clipped. */
+   The side content inherits the bar's height, and the summary's border-box is
+   10px with a line-height dhtmlx sets inline for a full-height bar — so the
+   label has to be re-centred on the content box (10px minus the 1px border on
+   each side) or it renders clipped. */
 .gantt_task_line.gantt-bar--summary .gantt_side_content.gantt_right {
-  line-height: 10px;
+  line-height: 8px;
   font-size: 11px;
   font-weight: 650;
   text-transform: uppercase;

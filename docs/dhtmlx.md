@@ -30,6 +30,13 @@ touching `src/gantt` code that talks to the library.
   inline per task. A stylesheet `background` silently beats a task's colour; set
   the variable instead. A colourless bar falls back to dhtmlx blue: fix the
   default by setting the variable in a rule (inline still wins).
+- **`--dhx-gantt-task-border` is a whole `border` shorthand, in the same rule
+  as `box-sizing: border-box`.** A bare colour paints nothing (`border-style:
+  none`) while `borderColor` still reports it — a border that never existed
+  can measure as a colour. Once it paints, it eats the content box (24px bar →
+  22px, summary 10px → 8px): anything sized against the bar's inner height
+  moves. `.gantt_milestone{border:none}` outranks the variable (0,2,0 vs
+  0,1,0), so a milestone never gets a ring.
 - **A CSS rule beats an SVG presentation attribute** — the allocation profile's
   colour is an inline `style` on the path, not a `fill` attribute.
 - **Milestone bar element is `visibility: hidden`**: what paints is
