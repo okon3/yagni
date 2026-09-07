@@ -19,6 +19,12 @@ that isn't there.
 - One palette, two sets of values: the dark scheme redefines the same variables
   in `index.css` and no rule knows which one it is in. Accents *lighten* on
   emphasis there — on a dark surface that is what "stronger" looks like.
+- **`--band-nonworking`** (chart bands, load lane, help diagram — one variable,
+  three consumers) is derived in light, flat in dark: a share of `--line-strong`
+  there, `rgb(0 0 0 / 18%)` here. A share of the line grey lightens over dark
+  rows, and a weekend that lightens stops reading as background — so dark stops
+  tracking `--line-strong` on purpose, and a later retune of the line grey will
+  not reach it.
 - **Task, avatar and swatch colours do not change.** They are the user's (or
   keyed to a person's name); a palette that shifted with the desktop would make
   the same plan two different pictures.

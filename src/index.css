@@ -30,6 +30,9 @@
   --surface-hover: #f5f6f9;
   --line: #edeef1;
   --line-strong: #dfe2e8;
+  /* One source for the chart bands, the load lane and the help diagram: a
+     weekend that read three ways would read as three different things. */
+  --band-nonworking: color-mix(in srgb, var(--line-strong) 55%, transparent);
 
   /* A surface that stands against the ink rather than beside it: the brand
      expansion and the load tooltip are labels laid over the plan, and in dark
@@ -100,6 +103,11 @@
     --surface-hover: #252932;
     --line: #2b2f37;
     --line-strong: #3d434e;
+    /* Flat, not a share of --line-strong like the light value: a share of the
+       line grey lightens over dark rows, and a weekend that lightens stops
+       being background. Untracked on purpose — a retune of --line-strong
+       will not reach it. */
+    --band-nonworking: rgb(0 0 0 / 18%);
 
     --inverse-surface: #333944;
     --inverse-ink: #eef0f4;

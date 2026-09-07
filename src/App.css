@@ -493,10 +493,8 @@
   stroke: var(--bar-track-line);
 }
 
-/* The same translucent grey the timeline bands use, so a weekend reads the same
-   here as it does on the chart. */
 .help__weekend {
-  fill: color-mix(in srgb, var(--line-strong) 55%, transparent);
+  fill: var(--band-nonworking);
 }
 
 .help__gridline {

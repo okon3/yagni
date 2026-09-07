@@ -180,7 +180,7 @@
 /* Translucent, so the column lines it covers still show through: a weekend is
    background, and background does not hide the grid. */
 .gantt-bands__nonworking {
-  background: color-mix(in srgb, var(--line-strong) 55%, transparent);
+  background: var(--band-nonworking);
 }
 
 .gantt-bands__timeoff {
@@ -748,13 +748,13 @@
   height: 100%;
 }
 
-/* The same translucent grey the timeline bands use, and the same runs, so a
-   weekend cannot read one way on the chart and another way below it. */
+/* The same runs the chart bands render, so a weekend cannot read one way on
+   the chart and another way below it. */
 .loadlane__off {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: color-mix(in srgb, var(--line-strong) 55%, transparent);
+  background: var(--band-nonworking);
 }
 
 .loadlane__plot {
