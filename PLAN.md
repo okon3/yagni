@@ -1,5 +1,15 @@
 # Plan
 
+## Decisione aperta — quale goal adesso
+
+Goal B e' chiuso e rilasciato (v1.2). Serve la decisione utente su cosa apre
+il prossimo goal, perche' oggi il piano non ha un goal con massa: **C** ha un
+solo task (T16, un audit), e **T26**, **T31**, **T32** stanno in manutenzione,
+dove per definizione non ricevono la goal review. T32 ha gia' la sua guardia
+scritta (un goal e' dovuto alla consegna del suo report). Non appendere task
+nuovi a manutenzione per inerzia: era il difetto che ha impedito a B di
+chiudersi per tre giorni.
+
 ## Goal C — valutazione mobile-friendly                              [aperto]
 Agevolare la visualizzazione da smartphone/tablet nascondendo le azioni
 superflue; non tutto deve funzionare da mobile.
