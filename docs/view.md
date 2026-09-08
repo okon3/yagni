@@ -45,6 +45,13 @@ that isn't there.
   Every tint clears 3:1 (WCAG's non-text floor) against **both** chart
   row backgrounds — white in light scheme, `#1b1e24` in dark — since a tint
   never changes with the scheme but the row under it does.
+- **A bar's outline is a darker mix of its own fill, not a fixed line colour**
+  (`--dhx-gantt-task-border`, `gantt.css`): 14 tints instead of 7 put
+  neighbouring tints close enough that two adjacent bars merge without a
+  separator, and one fixed grey would fight half the palette. Same 0.72
+  multiplier as `shade()` (`colors.ts`), spelled in CSS because only there can
+  it read the fill dhtmlx sets inline per task. It costs 2px of the bar's
+  content box — [dhtmlx.md](dhtmlx.md) for what that moves.
 - **The `seg-pct` badge's ink adapts to the tint it sits on, rather than the
   palette being capped to stay legible for one fixed ink.** `needsDarkInk`
   (`colors.ts`) compares a tint's contrast against white and against a
