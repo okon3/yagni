@@ -238,7 +238,12 @@
   font-weight: 650;
   line-height: 1;
   /* The colour is inline, per person, so nothing here may set a background. */
-  opacity: 0.55;
+  /* Veiled, not faded out: the veil composites the initials too, so at 0.55
+     they washed out to 1.98:1 against their own fill in light. 0.85 keeps the
+     unpinned avatars receding and the hover lift readable (the hover is
+     functional — it highlights the person in the chart) while the initials
+     stay legible; see CLAUDE.md (*How good is good enough*). */
+  opacity: 0.85;
 }
 
 .toolbar .toolbar__person:hover {
