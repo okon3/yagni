@@ -142,6 +142,30 @@ file would replace the open project). Details:
 React-controlled fields, `ResizeObserver` — what synthetic input can and cannot
 prove).
 
+## How good is good enough
+
+This is an internal, local-use Gantt tool. It owes no accessibility audit and
+no pixel contract to anyone. **On anything visual, ~80% of the achievable
+precision is the target**; the last 20% needs a reason of its own, and "the
+threshold exists" is not one. A change that costs a new mechanism, a modifier
+class or a docs pass to move a perceptual metric by a fraction is overkill —
+fix the defect a user actually sees, then stop.
+
+**A measured floor is evidence, not a goal.** The trap is to measure a
+threshold and let it become the task's objective: T22 asked for WCAG AA
+(4.5:1) on 24px avatar initials and the real defect was that a 55% veil washed
+them out. Lifting the veil to 85% took one character and recovered most of the
+legibility; chasing the standard would have meant adaptive ink on two
+surfaces, or reopening a settled palette, for a fraction of a ratio nobody
+reads at that size. When a number and the visible defect disagree, fix the
+defect.
+
+**This does not extend to correctness.** The *Invariants* above, the
+day-boundary rule, effort conservation and the file format's strict gate are
+absolute: they are semantics, not polish, and a wrong schedule is not 80% of a
+right one. The 80% rule is about how far to push perceptual precision, never
+about how much of a rule to honour.
+
 ## Documentation map — keep it current
 
 | File | Contents |
