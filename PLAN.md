@@ -1,40 +1,5 @@
 # Plan
 
-## Goal B — restyling dei dialog                 [aperto — review: fix-first]
-Dialog di persone, calendario e task info: struttura condivisa, gerarchia,
-allineamenti, dimensioni stabili (niente resize all'aprirsi di una sezione);
-palette colori ampliata a ~12-14 tinte ben distinte.
-
-La **goal review e' girata** (2026-09-08, Fable 5.1 self-reported): verdetto
-`fix-first`, MISSING nessuno. Verificato nell'app in esecuzione, in entrambi
-gli schemi: una sola chrome `Dialog` sotto tutti e sei i dialog; People resta
-a 640px con una riga periodi espansa, Calendar 560->560 dopo l'aggiunta di una
-riga; TaskDialog altezze di riga identiche fra leaf, summary, milestone e
-effort a metà edit; 14 swatch distinti in chiaro e scuro. Il difetto che il
-goal nominava — il resize all'aprirsi di una sezione — e' chiuso e misurato.
-Consegnato da T12-T15, T19, T20. Il bar era **mutilato** (le righe Accept di
-T12-T15 e T19 potate prima della review, errore dell'hub, e `PLAN.md`
-gitignorato: non recuperabili) e cosi' e' stato dichiarato al reviewer, con
-l'istruzione di non convertire un criterio illeggibile in un MISSING. T36
-chiude questa falla per il futuro.
-
-I due ACTIONS della review sono chiusi; T39 e' nato dal critic di T38 e sta
-sotto B perche' l'ha introdotto un task di B. Il goal chiude con T39.
-
-- [x] T37 [impl] — Placeholder troncati nelle righe periodo — `c31052d`
-- [x] T38 [impl] — Una sola grammatica per i sottotitoli di dialog — `5607d50`
-- [x] Fuori bar, dallo stesso giro: `669639c` (ragione di palette del bordo
-      barra), `9f0c9f4` (scrollWidth non vede un placeholder), `fa17e5f` (il
-      20px resta px, e perche').
-
-- [x] T39 [self] — Un solo meccanismo per scavalcare una primitiva — `ff012b6`
-
-**Nessun task aperto sotto B.** La condizione meccanica di chiusura e'
-soddisfatta. La goal review e' pero' **gia' girata oggi** e i suoi due ACTIONS
-sono chiusi e verificati: se ne deve una seconda passata o il bar e' gia'
-soddisfatto e' collisione fra il meccanismo della skill e la sua stessa
-economia — va all'utente, non decisa qui.
-
 ## Goal C — valutazione mobile-friendly                              [aperto]
 Agevolare la visualizzazione da smartphone/tablet nascondendo le azioni
 superflue; non tutto deve funzionare da mobile.
@@ -76,23 +41,7 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
       legittimo); il body di Help non cambia larghezza, misurato.
       Depends: nessuna.
 
-- [ ] T36 [self] — Tracciare il piano e il binding in git
-      Scope: `.gitignore:26-28` ignora `.claude` e `PLAN.md` sotto il commento
-      "# Agent/editor workspace config" — sono finiti in un bucket pensato per
-      la config dell'editor e nessuno li ha riclassificati. Decisione utente
-      (2026-09-08): tracciare **solo i durevoli**, `PLAN.md` e
-      `.claude/orchestrate.md`; restano ignorati `.claude/briefs/`,
-      `.claude/specs/` e `.claude/orchestrator.lock` — il lock viene riscritto
-      a ogni tool call dall'heartbeat e sporcherebbe ogni `git status`.
-      Accept: `git check-ignore -v PLAN.md .claude/orchestrate.md` non riporta
-      nulla e i due file sono tracciati; `git check-ignore -v
-      .claude/orchestrator.lock .claude/briefs/x.md` li riporta ancora
-      ignorati; `git status` pulito dopo il commit con il dev server acceso
-      (il lock non deve comparire). Da qui in poi "git e' l'archivio" diventa
-      vero per piano e binding, e la riga corrispondente in
-      `.claude/orchestrate.md` va corretta nello stesso commit.
-      Depends: nessuna. Da applicare a review di B conclusa — non mentre un
-      reviewer legge l'albero.
+- [x] T36 [self] — Tracciare il piano e il binding in git — `35483e0`
 
 - [ ] T31 [sonnet] — L'ultimo pixel di scroll orizzontale disallinea la corsia
       Scope: al massimo dello scrollbar orizzontale `getScrollState().x`
@@ -203,17 +152,11 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   da splittare (T35 a 215k, T18 a 182k+250k); il critic costa 100-160k a
   passata; un giro di correzione sullo stesso agente via SendMessage costa meno
   di un fresh spawn (che ripaga ~40k di ingresso).
-- Goal review di B (2026-09-08): 181k token, 57 tool use, Fable 5.1 confermato
-  nell'header. Ha verificato nel browser cio' che nessun critic per-task poteva
-  vedere: le altezze *fra* dialog, non dentro. Il bar mutilato non le ha
-  impedito un verdetto — dichiararlo e' bastato.
 - T37+T38 (batchati, un brief): impl 92k / 75 tool use, critic 102k / 49, zero
   giri di correzione. Batchare due micro-task ha pagato: un solo ingresso da
   ~40k e una sola passata di critic.
 - Il critic ha invalidato un criterio di accept scritto dall'hub
   (`scrollWidth <= clientWidth` non vede un placeholder: sarebbe passato sul
   codice rotto). Graduato in docs/verification.md § Rules of thumb.
-- T39: il critic ha misurato la variante scartata invece di argomentarla —
-  modificatore iniettato a 7px (vince), poi la regola descendant rimessa
-  accanto (torna a 0px, il modificatore diventa inerte). E' la forma di prova
-  che CLAUDE.md chiede. Costo 87k.
+- 2026-09-08 Goal B chiuso e potato. Il rito di rilascio (rename di
+  `## Unreleased`) e' in attesa di conferma utente.
