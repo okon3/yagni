@@ -414,8 +414,11 @@ that isn't there.
 - CSS: `src/dialog.css`, imported in `App.tsx` before `App.css` — an
   equal-specificity per-dialog override in App.css then wins by source order,
   which is how later migrations drop `!important` without a specificity war.
-  `.dialog__control` and `.dialog__btn` (+ `--primary`/`--danger`) are explicit
-  classes on each element, never descendant selectors, for the same reason.
+  Every `.dialog__*` primitive is reached by an explicit class on its own
+  element — never by a per-dialog descendant selector, for the same reason. A
+  combinator between two primitives inside dialog.css itself
+  (`.dialog__header + .dialog__body`) is not that case: nothing outside the
+  file is reaching in, so no per-dialog override is outranked.
   Everything about the chrome lives in that one file, the backdrop's dark alpha
   included — it sits beside the light one rather than in App.css's block of
   alpha veils, because a light/dark pair split across two files drifts apart.
@@ -465,6 +468,10 @@ that isn't there.
   one that opens a body straight under its hint adds
   `.dialog__subhead--flush` (the hint's own bottom margin already spaces it)
   rather than forking the grammar or reaching for a descendant selector.
+- **`.dialog__hint` caps its measure at 58ch**, which keeps a caption from
+  outrunning the fields below it. A hint that is the dialog's whole prose adds
+  `.dialog__hint--wide` (`max-width: none`) — Help's opening paragraph, whose
+  body has no field grid to measure against.
 - **`Dialog` takes an optional `bodyClassName`, appended to `.dialog__body`.**
   The sanctioned per-dialog body override: an explicit class ties specificity
   at (0,1,0) with the primitive and wins by App.css source order, rather than

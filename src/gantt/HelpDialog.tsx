@@ -183,7 +183,7 @@ export function HelpDialog({ onClose }: { onClose(): void }) {
         </>
       }
     >
-      <p className="dialog__hint">
+      <p className="dialog__hint dialog__hint--wide">
         A task declares two things: how much work it costs and from when it may start. Everything
         else — duration, end date, who is holding up whom — is computed by the engine, and cannot be
         typed by hand.

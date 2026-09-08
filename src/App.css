@@ -452,10 +452,6 @@
   color: var(--accent);
 }
 
-.help .dialog__hint {
-  max-width: none;
-}
-
 .help__section {
   margin-top: 16px;
 }

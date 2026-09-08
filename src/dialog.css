@@ -1,9 +1,12 @@
 /* Generic dialog chrome and primitives, shared by every modal `<dialog>` in
-   the app — see docs/view.md (*Dialogs*). `.dialog__control` and `.dialog__btn`
-   are explicit classes on each element, never descendant selectors: a modifier
-   on the same element ties specificity at (0,1,0), so a later-loaded,
-   equal-specificity per-dialog override in App.css always wins by source
-   order alone — no `!important` needed anywhere in a dialog rule. */
+   the app — see docs/view.md (*Dialogs*). No per-dialog block reaches a
+   `.dialog__*` primitive through a descendant selector — that outranks it and
+   makes every modifier on it inert. Each primitive carries an explicit class on
+   its own element, where a modifier ties specificity at (0,1,0), so a
+   later-loaded per-dialog override in App.css wins by source order alone — no
+   `!important` needed anywhere in a dialog rule. A combinator between two
+   primitives inside this file (`.dialog__header + .dialog__body`) is not that
+   case: nothing outside is reaching in. */
 
 .dialog {
   /* Measured, not chosen: the native height a `select`/`date` `.dialog__control`
@@ -78,6 +81,15 @@
   font-size: 12px;
   color: var(--ink-muted);
   max-width: 58ch;
+}
+
+/* A hint that is the dialog's own prose rather than a caption over a form: the
+   58ch measure keeps a caption from outrunning the fields under it, and in a
+   body that is prose all the way down (Help) it only leaves a ragged column.
+   Ties at (0,1,0) with the primitive and wins by source order, per the
+   sanctioned override in docs/view.md § Dialogs. */
+.dialog__hint--wide {
+  max-width: none;
 }
 
 /* One grammar for every section subhead across dialogs (Calendar, Task info).
