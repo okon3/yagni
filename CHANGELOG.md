@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.2 — 2026-09-08
 
 - The name of the last task on the plan is no longer cut off after an edit: the
   timeline now keeps room for it past the last bar, whether the plan was opened
