@@ -141,6 +141,13 @@ restart happens *before* the measurement, not during it.
 
 - **Verify visuals with `getComputedStyle`** — not the attribute, not the data
   field. More than one bug was invisible from the code.
+- **`scrollWidth` on an `<input>` ignores its placeholder.** An overflowing
+  placeholder still reports `scrollWidth === clientWidth`, so the usual overflow
+  test passes on unfixed code — it was prescribed as T37's accept criterion and
+  would have accepted the defect. Measure the string's width at the live font
+  against the input's **content box**, and mind which box: one field here is
+  104px of track, 102px of padding box and 86px of content box, so a figure
+  quoted without its box invites a second agent to disagree with the first.
 - **Smart rendering**: off-screen bars have no DOM node. Read the task data, or
   `showTask(id)` first.
 - A synthetic `wheel` doesn't reproduce the scroll/zoom capture-phase interplay
