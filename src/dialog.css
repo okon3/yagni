@@ -85,12 +85,15 @@
    uppercase + letter-spacing + fainter ink is what reads as a level above a
    field label rather than a same-size sibling of it. */
 .dialog__subhead {
+  /* Raw px, and the only one in this file: the scale has no 20px step (4/8/12/
+     16/24), and rounding this margin to a token would move a grammar that was
+     just settled for the sake of the grain. */
+  margin: 20px 0 8px;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--ink-faint);
-  margin: 20px 0 8px;
 }
 
 /* Outside the scroll on purpose: an error triggered from a footer button must
