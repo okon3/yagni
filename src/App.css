@@ -588,12 +588,6 @@
   cursor: pointer;
 }
 
-/* Margin only — the grammar itself is `.dialog__subhead` (dialog.css), shared
-   with Task info. Only the first subhead sits flush with the hint above it. */
-.calendar .dialog__subhead:first-of-type {
-  margin-top: 0;
-}
-
 .ranges {
   font-size: 13px;
 }

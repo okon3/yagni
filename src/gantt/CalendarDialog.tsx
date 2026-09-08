@@ -70,7 +70,7 @@ export function CalendarDialog({
         <strong>People</strong>.
       </p>
 
-      <h3 className="dialog__subhead">Working days</h3>
+      <h3 className="dialog__subhead dialog__subhead--flush">Working days</h3>
       <div className="calendar__days">
         {WEEKDAYS.map(({ day, label }) => (
           <label key={day} className="calendar__day">

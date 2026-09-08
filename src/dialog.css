@@ -96,6 +96,13 @@
   color: var(--ink-faint);
 }
 
+/* A subhead that opens a dialog body straight under its hint: the hint's own
+   bottom margin already spaces it. Ties at (0,1,0) with the primitive and wins
+   by source order, per the sanctioned override in docs/view.md § Dialogs. */
+.dialog__subhead--flush {
+  margin-top: 0;
+}
+
 /* Outside the scroll on purpose: an error triggered from a footer button must
    stay visible even when the body scrolled it out of view. */
 .dialog__error {
