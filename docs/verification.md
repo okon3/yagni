@@ -103,6 +103,32 @@ latches `gantt.skin` and removing it later yields `terrace` on a light page —
 a value the app never sets. Load with the scheme already set, or measure only
 what the attribute selects for. Mechanism in [dhtmlx.md](dhtmlx.md).
 
+## Driving the CLI
+
+Measured over 1179 real `agent-browser` invocations in this project's
+transcripts. The failure rate is ~17%, not the 7.7% the tool-result error flag
+reports — the gap is the first rule.
+
+- **Never `;` between two `agent-browser` calls — `&&`, or one call per
+  command.** With `;` a mid-chain failure still lets the last segment run, and
+  a successful last segment marks the whole command a success: ~108 failures
+  hid that way, visible only to whoever read the full output. `&&` doesn't
+  prevent the failure, it stops it from being silent.
+- **`Failed to read: … (os error 10060)` and `Invalid response: EOF … (daemon
+  may be busy)` are worth exactly one immediate retry.** The largest failure
+  bucket (35 calls, 8 sessions of 11) and mostly not the reload-after-dialog
+  pattern above — only 4 of the 35 involve a reload. The daemon recovers on
+  its own within seconds more often than not; the session is not dead.
+- **`click` always takes an explicit selector.** `agent-browser click` alone is
+  the single most repeated error signature in the corpus (`Missing arguments
+  for: click`, six sessions, identical) — a reflex from CLIs where `click`
+  follows the last match. Use `find … click`, or `snapshot` then `click @refN`.
+
+What no rule fixes: JS errors in a hand-written `eval` (36 calls — a bug in the
+script, not the tool), a selector covered by the sticky header, and `open` /
+`wait --load networkidle` timing out on a cold server. The last is why the cold
+restart happens *before* the measurement, not during it.
+
 ## Rules of thumb
 
 - **Verify visuals with `getComputedStyle`** — not the attribute, not the data
