@@ -136,13 +136,60 @@ touching `src/gantt` code that talks to the library.
 
 - **Range is computed at render time only.** `refreshData` redraws bars but
   never scales → a task outside the range is simply not drawn (empty chart, row
-  in grid). `zoomToFit` pins the range in `config.start_date/end_date` and the
-  pin outranks data — clearing both is part of widening. `fitRangeToPlan` does
-  this; `fit_tasks` honours the pin and misses exactly the case that matters.
-- **A too-fine zoom level silently crops**: `zoomToFit` clamps anchored at the
-  end; no scrollbar, no warning. Coarsest level must fit the longest expected
-  plan (month columns ≈ 10 months max). Quarters are custom (`<unit>_start` +
-  `add_<unit>`, dhtmlx ships neither).
+  in grid). `config.start_date/end_date` pin it and outrank the data;
+  `fitRangeToPlan` re-pins on the plan plus the widest task name, `zoomToFit`
+  pins on the plan alone. `fit_tasks` honours the pin and misses exactly the
+  case that matters.
+- **Both keys or neither**: the pin is read only when `start_date` **and**
+  `end_date` are set — `end_date` alone does nothing.
+- **The library's own padding is one column, conditionally.** Pinned, it floors
+  the end to the column and adds one *only* if the end fell mid-column: land on
+  a boundary and the margin is zero. Unpinned, the range comes from the data
+  padded by ±1 column of the level's finest scale (`scales[1]`, so `day` and
+  `week` levels pad identically). A margin that has to hold something — a name
+  beside the last bar — is counted in `config.min_column_width`, the narrowest a
+  column ever renders at: columns stretch to fill the timeline and give that
+  stretch back as their number grows, so the width on screen comes out short.
+- **`zoomToFit` preserves a pin it finds**: `rangeMode` defaults to `preserve`
+  as soon as both config keys are set, so Fit then only picks a level. Worse, it
+  saves the pin on its first run and restores it on every later one — a range
+  the plan has since outgrown comes back, and the bars past it are drawn clamped
+  on the timeline's edge, lying about their dates. The app spells
+  `rangeMode: 'target'` out. Measured without it: one Fit, then a plan grown to
+  3 Nov, then Fit again → `max_date` back to 19 Oct, last bar clamped. Fit's own
+  pin does not survive either way — the `onAfterZoom` below replaces it as soon
+  as the level lands — but under `target` the level is applied against the
+  plan's range instead of the restored one, and the scroll centres on the plan
+  rather than on wherever the viewport happened to be.
+- **`onAfterZoom` is where a pin measured in pixels is re-measured**: the same
+  two dates are worth fewer of them once the columns are coarser. Recomputed
+  there from plan and level, never repaired against the standing pin — widening
+  only would keep every widening the coarse levels needed and ratchet the range
+  up over a zoom out and back (measured: `day` reached straight, 2470px past the
+  last bar; the same plan reached via `Years`, 10590px). `render()` inside that
+  handler does not recurse — the event is fired by `_applyChartConfig` and by
+  `_applyState` (`resetZoom`, `_abortFit`, neither reachable from this app),
+  both of which render *before* firing it and neither of which `render` goes
+  through (measured: one event per zoom step, widening or not). It fires
+  **after** the extension's own render and its scroll, so a widening there is a
+  second render landing on the centring just done — measured harmless, the
+  visible date held on every step. A step that leaves the pin where it is costs
+  one render, a step that moves it two. Nothing fires before `gantt.init()`:
+  `_applyChartConfig` guards on `$root`.
+- **A range narrower than the plan crops silently**: the bars past it pile on
+  the timeline's right edge, and when the range is narrow enough that the
+  timeline no longer overflows the viewport there is no scrollbar either —
+  nothing says a bar is missing. Measured: a 20-year plan pinned to Sep–Dec 2026
+  → 556px of timeline against a 556px viewport, max scroll 0, all 20 bars on the
+  edge. **No path in the app reaches that state.** `fitRangeToPlan` and the
+  `onAfterZoom` repin above pin a range that holds the plan, so even `zoomToFit`
+  called with the library's default `rangeMode` lands on the canonical one —
+  measured on that plan, both routes gave the same pin, 6090px of timeline
+  against a 541px viewport, a scrollbar, no bar on the edge. The coarsest level
+  does **not** fit an arbitrarily long plan, and what that costs is scrolling,
+  not bars: [view.md](view.md).
+- Quarters are a custom scale unit (`<unit>_start` + `add_<unit>`, dhtmlx ships
+  neither).
 - **Zoom ext's `useKey` is dead**: binds `mousewheel`, which Chromium no longer
   fires. The app binds `wheel` itself (`passive: false` to stop page zoom;
   `useKey` stays out or Firefox zooms twice). Wheel flicks and pinches arrive as

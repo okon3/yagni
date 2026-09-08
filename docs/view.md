@@ -81,8 +81,35 @@ that isn't there.
   listener, one step per gesture burst.
 - **The window widens whenever the plan no longer fits** (dhtmlx computes range
   at render; a pinned range outranks data → empty chart with rows in the grid).
-  It only grows; *Fit* tightens it again. Not per-edit — a full redraw per
-  edit isn't worth it.
+  An edit only ever grows it; a zoom or *Fit* recomputes it. Not per-edit — a
+  full redraw per edit isn't worth it.
+- **The widened window is pinned, on the plan plus the widest task name**, so
+  that the room past the last bar is the app's answer rather than the path's:
+  a plan reached by editing gets what the same plan reached by opening its file
+  gets. Left to the data, the margin is one column — 90px against a name that
+  renders 214, and a name sliced mid-word there is unreachable at any scroll,
+  since the timeline ends where the range does. The trailing space an edit gains
+  is the price and is deliberate.
+- **Wide enough is decided in pixels, at the scale on screen** — a pin is two
+  dates, and dates go short on their own: coarser columns buy fewer pixels for
+  the same pin, and a plan grown to just inside it keeps one column. So a change
+  of scale asks the question again, and the answer is the widest name measured
+  off the stylesheet, kept against the names it was measured on (a third of the
+  edit it rides on, on 300 rows; rebuilding the key is free).
+- **A change of scale recomputes the window from the plan, it does not repair
+  it**: an edit may only widen — the room a user is looking through is not taken
+  back from under a keystroke — but a zoom that only widened would keep every
+  widening the coarse levels needed, and the same plan at the same level would
+  end up wider for having been zoomed out and back. Plan and level decide the
+  window; the route there does not.
+- *Fit* picks the level for the plan alone and the margin goes back on top, so
+  the margin is what Fit leaves off screen. **Bars can be off screen too**, and
+  not because of the margin: columns never render narrower than dhtmlx's
+  `min_column_width`, so a plan too wide for the window at the coarsest level
+  cannot be on screen whole — 9 tasks over four years in a 1264px window fit to
+  *Years* and still spill 264px left and 251px right of the view. Off screen,
+  not lost: the timeline scrolls to them. The limit is the library's, with the
+  margin or without it ([dhtmlx.md](dhtmlx.md)).
 - **An opened plan is collapsed and fitted at once**: shape first, leaves one
   click away. Status-bar count is the plan's, not the screen's. Collapsing never
   changes the dates spanned; open branches are view state — none of it marks the

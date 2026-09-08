@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The name of the last task on the plan is no longer cut off after an edit: the
+  timeline now keeps room for it past the last bar, whether the plan was opened
+  from a file or edited into shape.
 - People and Calendar dialogs restyled: columns that stay put whatever the
   content, period rows aligned across both dialogs, weekday checkboxes on a
   regular grid.
