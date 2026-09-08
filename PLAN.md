@@ -10,6 +10,16 @@ scritta (un goal e' dovuto alla consegna del suo report). Non appendere task
 nuovi a manutenzione per inerzia: era il difetto che ha impedito a B di
 chiudersi per tre giorni.
 
+Posta all'utente al checkpoint di T40 (2026-09-08); la risposta e' stata
+*fermarsi*, non aprire un goal. La decisione resta quindi aperta ma non e'
+inesplorata, e va riaperta come scelta gia' istruita, non come domanda nuova:
+sul tavolo c'erano **T32** come analisi del refactor della vista (raccomandata
+— i Log misurano il costo di ricostruire il contesto di GanttChart.tsx, ed e'
+una tassa che ogni goal futuro paga), **T16** per portare C alla sua review, e
+**T31** come difetto puntuale. Nessuna e' stata scartata. Nota emersa
+scegliendo: T32 e T16 consegnano entrambe un report, quindi prenderle in fila
+sono due analisi di seguito senza codice in mezzo.
+
 ## Goal C — valutazione mobile-friendly                              [aperto]
 Agevolare la visualizzazione da smartphone/tablet nascondendo le azioni
 superflue; non tutto deve funzionare da mobile.
@@ -130,6 +140,9 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   abilitazione del plugin) e la spec T33, che il piano stesso chiama
   "materiale per decidere". Non incluse per non allargare una decisione
   dell'utente per iniziativa. Da riproporre.
+  Non riproposta al checkpoint di T40, deliberatamente: la scelta del goal era
+  gia' sul tavolo e due decisioni impilate nello stesso messaggio non si
+  rispondono. E' la prima cosa da chiedere al checkpoint dopo.
 
 ## Log
 - Cap: 40 righe, una-due per voce, nessun elenco di task chiusi (il commit e'
