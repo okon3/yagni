@@ -33,7 +33,8 @@ arrivati come richieste singole. **Non ricevono la goal review**, ed e' il
 prezzo di stare qui — dichiarato adesso, non scoperto alla fine. Se uno dei
 tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 
-- [ ] T40 [self] — L'ultimo descendant override di una primitiva di dialog
+- [ ] T40 [self] — **PROSSIMO TASK** (scelto dall'utente, 2026-09-08)
+      L'ultimo descendant override di una primitiva di dialog
       Scope: `src/App.css:455` — `.help .dialog__hint { max-width: none }` a
       (0,2,0) e' la stessa trappola che T39 ha rimosso per i subhead: un futuro
       `.dialog__hint--*` sarebbe inerte dentro `.help`. Preesistente, non
@@ -137,6 +138,16 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   rimasti si ripaga sul goal dopo, non su questo. Da riproporre solo con un
   goal nuovo. **Prima di scopare la leva 1**: provare che la browser mode di
   vitest parta su questa macchina Windows, mai fatto.
+
+## Sollevato all'utente, non deciso
+
+- **Tracciare anche `settings.local.json` e `.claude/specs/T33-report.md`?**
+  T36 ha tracciato `PLAN.md` e `.claude/orchestrate.md` per scelta utente
+  ("solo i durevoli"). Restano fuori due cose che sono comunque durevoli e
+  vivono su un disco solo: `settings.local.json` (soglia di contesto a 160k +
+  abilitazione del plugin) e la spec T33, che il piano stesso chiama
+  "materiale per decidere". Non incluse per non allargare una decisione
+  dell'utente per iniziativa. Da riproporre.
 
 ## Log
 - Cap: 40 righe, una-due per voce, nessun elenco di task chiusi (il commit e'
