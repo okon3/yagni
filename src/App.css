@@ -744,14 +744,13 @@
 /* Wrapped in .dialog__field (dialog.css), which occupies the grid track; this
    sizes to that wrapper and leaves room for the .dialog__suffix, same pattern
    as .ranges__pct / .people__pct. Left-aligned (not right, unlike those): a
-   right-aligned value would run into the suffix inside this field.
-   min-height: measured, text/number .dialog__control renders at 27px in this
-   dialog, select/date at 29px (browser sizing, not a CSS difference — see
-   docs/view.md § Details dialog); 29px keeps this field's row even with its
-   Resource/Start sibling regardless of which control sits in it. */
+   right-aligned value would run into the suffix inside this field. Its own
+   min-height (--dialog-control-h, dialog.css) keeps it even with its
+   Resource/Start sibling regardless of which control sits there — not
+   supplied by `.dialog__control` (see dialog.css), so it stays here. */
 .taskinfo__amount {
   width: 100%;
-  min-height: 29px;
+  min-height: var(--dialog-control-h);
   padding-right: 40px;
   text-align: left;
   appearance: textfield;
@@ -767,7 +766,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 29px;
+  min-height: var(--dialog-control-h);
 }
 
 /* Values a summary rolls up from its children: shown as prose, not as a field
@@ -782,14 +781,12 @@
 /* The field-grid row-height rule, split from the meaning above: applies only
    to the derived spans standing in for a grid cell's control (Resource/Start
    "from subtasks", the colour row's "inherited from the parent task"), never
-   to the Float em-dash. min-height matches this dialog's tallest rendered
-   .dialog__control (measured: text/number inputs render at 27px, select and
-   date at 29px — a platform quirk, not a CSS difference — so 29px keeps a
-   summary's row no shorter than a leaf's). */
+   to the Float em-dash. min-height keeps a summary's row no shorter than a
+   leaf's (--dialog-control-h, dialog.css). */
 .taskinfo__derived--cell {
   display: inline-flex;
   align-items: center;
-  min-height: 29px;
+  min-height: var(--dialog-control-h);
 }
 
 /* A note about what a field accepts, not about the value it holds — hence not

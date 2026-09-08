@@ -166,7 +166,12 @@ that isn't there.
   in App.css). Numbers measured in the browser, never derived: this dialog's
   `.dialog__control` renders at 27px for text/number, 29px for select/date —
   a browser sizing quirk, not a stylesheet difference — so anything matching a
-  control's height uses the taller, 29px.
+  control's height uses the taller, 29px, from one `--dialog-control-h: 29px`
+  custom property on `.dialog` (`dialog.css`). The floor lives on the three
+  row-matching rules below, not on `.dialog__control` itself: a row whose only
+  control is text/number (no select/date sibling to already hold it at 29px)
+  has nothing else to absorb the difference, so putting the floor on the
+  primitive grows that row by ~2px instead of leaving it stable.
   - **The "0 = milestone" hint is always rendered**, hidden with
     `visibility: hidden` (`.taskinfo__hint--reserved`) rather than removed, on
     a leaf whose effort isn't 0 and on a summary's Effort cell (never a
@@ -175,12 +180,13 @@ that isn't there.
   - **`.taskinfo__derived` carries only the semantics** (italic, `--ink-faint`)
     — it is shared with the Float em-dash in the Computed `dl`, which must stay
     a plain inline span. The height rule (`display: inline-flex; align-items:
-    center; min-height: 29px`) is the modifier `.taskinfo__derived--cell`,
-    applied only to the spans standing in for a grid cell (`fromChildren`, the
-    colour row's "inherited from the parent task"). `.taskinfo__checkbox` gets
-    the same 29px `min-height` directly. `.taskinfo__amount` also gets it,
-    since its native 27px would otherwise leave a leaf's row 2px short of the
-    same row on a summary (whose Effort cell shows the 29px derived span).
+    center; min-height: var(--dialog-control-h)`) is the modifier
+    `.taskinfo__derived--cell`, applied only to the spans standing in for a
+    grid cell (`fromChildren`, the colour row's "inherited from the parent
+    task"). `.taskinfo__checkbox` gets the same `min-height` directly.
+    `.taskinfo__amount` also gets it, since its native 27px would otherwise
+    leave a leaf's row 2px short of the same row on a summary (whose Effort
+    cell shows the 29px derived span).
   - **The intro hint (`p.dialog__hint.taskinfo__intro`) reserves a min-height**
     for its normal/milestone text swap — both variants measure 48px at this
     dialog's width.

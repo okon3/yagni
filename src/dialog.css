@@ -6,6 +6,14 @@
    order alone — no `!important` needed anywhere in a dialog rule. */
 
 .dialog {
+  /* Measured, not chosen: the native height a `select`/`date` `.dialog__control`
+     renders at here, 2px taller than a `text`/`number` one — a platform sizing
+     quirk, not a stylesheet difference. Read by the row-matching `.taskinfo__*`
+     rules, never by `.dialog__control` itself: a row whose only control is
+     text/number (TaskDialog `Name`, ResourceDialog's people row) has nothing
+     else to hold it at 29px, so putting the floor on the primitive grows it by
+     ~2px (measured: 47->49px and 36.5->37.5px). */
+  --dialog-control-h: 29px;
   /* Width is fixed per dialog and never grows with its content: `min-width` +
      content pressure is exactly the resize-on-expand bug this replaces. */
   width: min(var(--dialog-width), calc(100vw - 48px));
@@ -92,11 +100,6 @@
 
 .dialog__spacer {
   flex: 1;
-}
-
-.dialog__unit {
-  margin-left: var(--space-1);
-  color: var(--ink-muted);
 }
 
 /* A field with its unit set inside it rather than beside it, so the unit
