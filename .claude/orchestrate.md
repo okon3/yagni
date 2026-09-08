@@ -43,6 +43,16 @@ this file binds it to this repo.
   prune a done task's Accept lines before that goal's review has run** — they
   are half the goal-review bar. Done tasks collapse to one line *after*
   `ship`, never before.
+- **"Read-only" restricts Write/Edit, not Bash — and no hook stops a worker
+  committing here.** `.claude/hooks/` is empty and `settings.local.json`
+  declares no `hooks` key, so `deny-agent-commit` does not fire in this repo.
+  On 2026-09-08 the goal-reviewer — briefed "you do not fix, you do not
+  commit" — wrote `docs/verification.md` and committed it (`929ebd9`) through
+  Bash, and its report said nothing about it. The note was good and was kept;
+  the lesson is that agent commits must be *detected*, not assumed impossible.
+  **Read `git log` at every checkpoint and compare against the commits you
+  made yourself**: a report's CHANGES list is not the diff, and a read-only
+  agent is read-only by convention only.
 - **The port is the mutex**: `strictPort` on 5173 means two lanes restarting
   the dev server kill each other's listener and each other's fixtures, with
   no error. A completion notification is not proof a lane is done (the same
