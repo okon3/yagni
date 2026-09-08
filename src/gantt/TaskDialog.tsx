@@ -328,7 +328,7 @@ export function TaskDialog({
         </label>
       </div>
 
-      <h3 className="taskinfo__subhead">Computed</h3>
+      <h3 className="dialog__subhead">Computed</h3>
       <dl className="taskinfo__readonly">
         <div>
           <dt>End</dt>

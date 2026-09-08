@@ -70,7 +70,7 @@ export function CalendarDialog({
         <strong>People</strong>.
       </p>
 
-      <h3 className="calendar__subhead">Working days</h3>
+      <h3 className="dialog__subhead">Working days</h3>
       <div className="calendar__days">
         {WEEKDAYS.map(({ day, label }) => (
           <label key={day} className="calendar__day">
@@ -84,7 +84,7 @@ export function CalendarDialog({
         ))}
       </div>
 
-      <h3 className="calendar__subhead">Shutdowns</h3>
+      <h3 className="dialog__subhead">Shutdowns</h3>
       <DayRangeList
         ranges={holidays}
         workingWeekdays={workingDays}

@@ -459,6 +459,12 @@ that isn't there.
   spans the table's content box — zero horizontal padding on `.people__offRow
   td` plus the panel's own padding — so it reads as part of the row above
   rather than a separate block.
+- **`.dialog__subhead` is the one grammar for a section subhead inside a
+  dialog body** (12px/600/uppercase/`letter-spacing: 0.06em`/`--ink-faint`) —
+  Calendar's "Working days"/"Shutdowns" and Task info's "Computed" share it;
+  a dialog needing its first subhead flush with the hint above scopes the
+  margin override to itself (`.calendar .dialog__subhead:first-of-type`,
+  App.css) rather than forking the grammar.
 - **`Dialog` takes an optional `bodyClassName`, appended to `.dialog__body`.**
   The sanctioned per-dialog body override: an explicit class ties specificity
   at (0,1,0) with the primitive and wins by App.css source order, rather than
