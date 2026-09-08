@@ -142,6 +142,39 @@ file would replace the open project). Details:
 React-controlled fields, `ResizeObserver` — what synthetic input can and cannot
 prove).
 
+## What a verification may claim
+
+Thirteen false premises in three days of work, every one plausible and every
+one wrong. The pattern, not the anecdotes:
+
+- **A recon reports what it saw, never what does not exist.** "No handler in
+  this repo" is not "no handler" — the library is an actor, not a backdrop
+  (dhtmlx updates `grid_width` through its own internal handler). "It looks
+  fine" is not "it measures fine": the absence of a measurement is not the
+  absence of a problem.
+- **Measure; don't derive.** A number computed at the desk, a cost observed in
+  one colour scheme, a geometry deduced from a stylesheet — each has been
+  wrong here. And **measure the variant you chose not to ship**: that is what
+  turns a justification into a proof, because it shows what the rejected path
+  would have done.
+- **An inherited premise is not a verified one.** Shortening another agent's
+  comment inherits its premise — abbreviating is not verifying. An
+  out-of-scope finding still needs checking before it is archived. A premise
+  that passes three hands becomes an institutional trap.
+- **A probe must not measure its own prompts.** Grepping a string across a
+  corpus that contains the briefs quoting that string counts itself. Filter to
+  the field that records real invocations before drawing a number.
+- **Check your own instructions against each other.** When a task carries both
+  an objective and a rule of economy — or an accept and the mechanism proposed
+  to reach it — verify them on every path that activates them: the bar
+  outranks the mechanism. And a numeric floor invented here can quietly crush
+  a decision the user already made; when a measure and a stated preference
+  collide, the collision goes to the user with the numbers.
+- **A completion notification is not a completion** — the same agent can
+  notify again and resume. With `strictPort` the dev port is a mutex: two
+  lanes restarting the server destroy each other's fixtures, silently. Check
+  that no other lane is live before touching the origin or the port.
+
 ## How good is good enough
 
 This is an internal, local-use Gantt tool. It owes no accessibility audit and
