@@ -124,6 +124,14 @@ reports — the gap is the first rule.
   for: click`, six sessions, identical) — a reflex from CLIs where `click`
   follows the last match. Use `find … click`, or `snapshot` then `click @refN`.
 
+- **An `eval` chained straight onto `open` races the app's first render.**
+  `open` returns when the page is loaded, not when React has mounted and
+  `window.yagni` exists: a fixture-building eval fired immediately throws
+  inside its own callback (`at Array.forEach`), and with `&&` the rest of the
+  chain never runs. A read taken that early reports zero elements and looks
+  like a missing feature. Wait for a selector the app itself renders, or run
+  the fixture as its own call and check what it returns.
+
 What no rule fixes: JS errors in a hand-written `eval` (36 calls — a bug in the
 script, not the tool), a selector covered by the sticky header, and `open` /
 `wait --load networkidle` timing out on a cold server. The last is why the cold
