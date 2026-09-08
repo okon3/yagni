@@ -158,5 +158,6 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 - Il critic ha invalidato un criterio di accept scritto dall'hub
   (`scrollWidth <= clientWidth` non vede un placeholder: sarebbe passato sul
   codice rotto). Graduato in docs/verification.md § Rules of thumb.
-- 2026-09-08 Goal B chiuso e potato. Il rito di rilascio (rename di
-  `## Unreleased`) e' in attesa di conferma utente.
+- 2026-09-08 Goal B chiuso, potato e rilasciato come v1.2 (`48322e8`). Dopo
+  T36 il piano e' tracciato: le sue modifiche vanno in commit propri, e una
+  potatura e' recuperabile con `git show`.
