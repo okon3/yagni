@@ -300,6 +300,12 @@ export interface GanttHandle {
   collapseAll(): void;
   expandAll(): void;
   scrollToToday(): void;
+  /**
+   * Collapses the task grid to zero width, or restores it to the width it had
+   * a moment before — exactly, even across a divider drag in between. View
+   * state only, and not persisted: it does not survive a reload.
+   */
+  toggleGridCollapsed(): void;
 }
 
 function typeOf(task: ProjectTask, solved: SolvedProject): string {
@@ -734,6 +740,20 @@ export function GanttChart({
   // to come from a template, and a template asking one question of one value
   // cannot fall out of step with the query the way a copy per row would.
   const searchKeyRef = useRef('');
+  // The grid's width the moment it was collapsed, null while it is open.
+  // `$grid.offsetWidth` is read live rather than `config.grid_width` — not
+  // because the latter is known stale (dhtmlx's own `onGridResizeEnd` does
+  // keep it in step with a real drag, measured in docs/dhtmlx.md), but
+  // defensively: no handler in this app's own code observes that event, so
+  // nothing here should depend on an internal side effect it doesn't own.
+  // The DOM is what a drag is guaranteed to have moved.
+  const savedGridWidthRef = useRef<number | null>(null);
+  // The constant gap between `$grid.offsetWidth` and what `config.grid_width`
+  // expects — measured once, right after init (docs/dhtmlx.md: two borders sit
+  // between grid and timeline, and config counts one that `$grid` does not).
+  // A property of the layout, not of the width, so one measurement holds for
+  // every collapse.
+  const gridWidthGapRef = useRef(0);
   const suppressTooltipRef = useRef(suppressTooltip);
 
   useEffect(() => {
@@ -1111,6 +1131,22 @@ export function GanttChart({
       collapseAll: () => setEveryBranchOpen(false),
       expandAll: () => setEveryBranchOpen(true),
       scrollToToday: () => gantt.showDate(new Date()),
+      toggleGridCollapsed: () => {
+        const grid = gantt.$grid;
+        if (!grid) return;
+        if (savedGridWidthRef.current === null) {
+          savedGridWidthRef.current = grid.offsetWidth + gridWidthGapRef.current;
+          gantt.config.grid_width = 0;
+        } else {
+          gantt.config.grid_width = savedGridWidthRef.current;
+          savedGridWidthRef.current = null;
+        }
+        // `setSizes` is a literal alias of `render` in the installed build;
+        // the non-refresh branch it takes calls `$layout.resize()`, which is
+        // what actually reapplies `grid_width` to the DOM (as in
+        // `setEveryBranchOpen` and the `showLoad` effect).
+        gantt.render();
+      },
     }),
     [applySolution, loadProject, reportChainState],
   );
@@ -1439,6 +1475,10 @@ export function GanttChart({
       repinRangeToScale(solvedRef.current.schedule);
     });
     gantt.init(container);
+    // Right after init, `config.grid_width` still agrees with `$grid` exactly
+    // as it was just computed — the one moment the gap between them is known
+    // good, before any divider drag this app cannot see could move it.
+    gridWidthGapRef.current = gantt.config.grid_width - gantt.$grid.offsetWidth;
 
     /**
      * What a bar says when the pointer rests on it.

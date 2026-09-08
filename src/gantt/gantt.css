@@ -707,12 +707,33 @@
   align-items: center;
   gap: 7px;
   flex: none;
-  box-sizing: border-box;
-  padding: 0 10px;
   overflow: hidden;
   white-space: nowrap;
   font-size: 12px;
-  border-right: 1px solid var(--line);
+  /* A flex item's implicit `min-width: auto` floors it at its content's size
+     whatever `width` is written on it inline — the inline width above is
+     meant to be authoritative, so the auto floor has to go. Necessary but not
+     sufficient on its own: `padding`/`border-right` used to live on this same
+     box, and a border-box element cannot render narrower than its own padding
+     plus border regardless of `min-width` (a negative content area clamps to
+     0, not to the requested total) — measured on an empty, childless clone:
+     21px rendered against a requested 1px, exactly 2x10px padding + 1px
+     border. That is why the spacing moved to the children's margins below,
+     and the divider to the `box-shadow` beneath instead of a real border: a
+     shadow paints without adding to the box it is drawn on. */
+  min-width: 0;
+  /* Same right-edge line a `border-right` would draw, without a border's
+     footprint (see above) — inset so it stays inside the box regardless of
+     `overflow: hidden`, which an outset shadow would otherwise get clipped by. */
+  box-shadow: inset -1px 0 0 0 var(--line);
+}
+
+.loadlane__label > :first-child {
+  margin-left: 10px;
+}
+
+.loadlane__label > :last-child {
+  margin-right: 10px;
 }
 
 .loadlane__name {

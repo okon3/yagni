@@ -14,6 +14,8 @@
 - Task colour picker widened from 7 to 14 tints, in English, chosen to stay
   distinguishable from each other and from a person's avatar at a glance.
 - Task bars now outlined in a darker tint of their own colour.
+- Toolbar button to collapse the task grid to give the chart the whole window,
+  and restore it to the exact width it had — even after dragging the divider.
 
 ## v1.1 — 2026-09-05
 

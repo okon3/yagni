@@ -95,6 +95,12 @@ export default function App() {
   // Off by default: the chart is what the plan is edited in, and the lanes are
   // what it is checked against — asked for, and taking room only then.
   const [showLoad, setShowLoad] = useState(false);
+  // Display-only mirror of the chart's own collapsed flag: the width it
+  // restores lives in a ref inside GanttChart (the only thing a divider drag
+  // keeps current), this just says which icon the toggle should show. The two
+  // can only change together — this button is the one place that calls
+  // `toggleGridCollapsed`.
+  const [gridCollapsed, setGridCollapsed] = useState(false);
   // Searching marks and walks; it never filters. The query is App's because the
   // matches are: the chart answers which rows match, App decides which one the
   // eye is on.
@@ -480,6 +486,11 @@ export default function App() {
     setCalendarOpen(true);
   }, []);
 
+  const toggleGridCollapsed = useCallback(() => {
+    chart.current?.toggleGridCollapsed();
+    setGridCollapsed((collapsed) => !collapsed);
+  }, []);
+
   const saveCalendar = useCallback((calendar: CalendarSpec) => {
     chart.current?.setCalendar(calendar);
     setCalendarOpen(false);
@@ -783,6 +794,7 @@ export default function App() {
           pinned={pinnedResource}
           undoing={undoLabel(history)}
           redoing={redoLabel(history)}
+          gridCollapsed={gridCollapsed}
           onNew={() => void handleNew()}
           onOpen={() => void handleOpen()}
           onSave={handleSave}
@@ -795,6 +807,7 @@ export default function App() {
           onEditResources={openResources}
           onEditCalendar={openCalendar}
           onHighlight={setPinnedResource}
+          onToggleGridCollapsed={toggleGridCollapsed}
         />
         {/* Outside the toolbar so it keeps its place when the avatars wrap. */}
         <button

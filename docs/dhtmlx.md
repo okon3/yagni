@@ -229,6 +229,16 @@ touching `src/gantt` code that talks to the library.
 - **`grid_width` is a budget**: new columns shrink existing resizable ones
   toward `min_column_width`, silently (name column went 230→152px). Compute
   `grid_width` from the columns' widths so the timeline pays instead.
+- **The grid/timeline divider does keep `config.grid_width` in step with a real
+  drag** — dhtmlx's own internal `onGridResizeEnd` handler writes the new width
+  back into `config.grid_width` (measured: 706/705 before a 150px drag,
+  856/855 after, same 1px gap both times). No handler in this app's own code
+  attaches to that event, and nothing here should start depending on the
+  internal one firing reliably in every case (touch input, programmatic
+  resize, a future dhtmlx version) — `toggleGridCollapsed`
+  (`GanttChart.tsx`) still measures `$grid.offsetWidth` fresh rather than
+  trusting `config.grid_width`, and that choice costs nothing since the two
+  agree here anyway.
 - **`select_task` doesn't select from grid clicks** (only bars). App adds a
   `click` listener calling `selectTask` — on the **bubble** phase: selecting
   re-renders the row, and dhtmlx's delegated handlers only fire while the

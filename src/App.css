@@ -201,6 +201,12 @@
   line-height: 1;
 }
 
+/* A toggle like the ones in the status bar, so it shows its state the same way. */
+.toolbar__icon--on {
+  color: var(--ink) !important;
+  background: var(--surface-hover);
+}
+
 .toolbar__primary {
   background: var(--accent) !important;
   color: var(--on-accent) !important;

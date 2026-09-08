@@ -133,6 +133,15 @@ that isn't there.
 - Editor keys: Tab/Shift+Tab walk editable cells across rows saving each on
   leave; Enter saves+closes; Esc closes without saving. Focused field carries
   the app's violet focus ring.
+- **Collapse to zero width, toolbar toggle** (`toggleGridCollapsed`), so the
+  chart alone can fill the window. Remembers the width to restore by measuring
+  `$grid.offsetWidth` at the moment of collapsing, not `config.grid_width` —
+  not because the config value is known stale (dhtmlx's own internal listener
+  does keep it in step with a real drag, [dhtmlx.md](dhtmlx.md)), but
+  defensively: no handler in this app's own code observes that drag, so
+  nothing here depends on an internal side effect it doesn't own. Not
+  persisted — it does not survive a reload, and it is view state only: no
+  undo entry, no dirty flag.
 
 ## Right-click add
 
@@ -323,6 +332,22 @@ that isn't there.
   `--band-nonworking-over` and **over the plot, not under it**: the lane's axis
   is working minutes, so a weekend is no time at all there, and a fill spanning
   one crosses it at full height.
+- **`.loadlane__label` carries no padding or border**, unlike a typical labelled
+  box, so it can render at any width `toggleGridCollapsed` drives it to,
+  including 0 — `paintLoad`'s `timelineOffset` is otherwise correct at every
+  width, collapsed included. Two independent floors had to go, not one:
+  a flex item's implicit `min-width: auto` ignores an inline `width` in favour
+  of its content's own minimum (fixed with `min-width: 0`), and, separately, a
+  `box-sizing: border-box` element can never render narrower than its own
+  padding plus border, whatever `min-width` says (a negative content area
+  clamps to 0, not to the requested total) — measured on an empty clone: 21px
+  rendered against a requested 1px, exactly the label's 2×10px padding + 1px
+  border. Spacing moved to `margin` on the label's first/last child, and the
+  divider that was `border-right` is now an inset `box-shadow` (paints without
+  adding to the box, and stays inside it regardless of `overflow: hidden` —
+  an outset shadow would be clipped by it). At a fully collapsed grid the
+  avatar and name simply clip away (nothing to label); the lane's origin
+  still lines up with the chart's bars exactly, as pinned by T30/T31.
 
 ## In-app help
 
