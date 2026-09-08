@@ -33,25 +33,7 @@ arrivati come richieste singole. **Non ricevono la goal review**, ed e' il
 prezzo di stare qui — dichiarato adesso, non scoperto alla fine. Se uno dei
 tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 
-- [ ] T40 [self] — **PROSSIMO TASK** (scelto dall'utente, 2026-09-08)
-      L'ultimo descendant override di una primitiva di dialog
-      Scope: `src/App.css:455` — `.help .dialog__hint { max-width: none }` a
-      (0,2,0) e' la stessa trappola che T39 ha rimosso per i subhead: un futuro
-      `.dialog__hint--*` sarebbe inerte dentro `.help`. Preesistente, non
-      introdotto da Goal B, e non coperto da nessuna regola dichiarata — la
-      frase "mai un descendant selector" in dialog.css e' scoped a
-      `.dialog__control`/`.dialog__btn`, quindi `.dialog__hint` non ricadeva
-      sotto nessun divieto. Trovato dal critic di T39, fuori dal suo bar.
-      Fix atteso, per simmetria con T39: un modificatore al call site invece
-      del descendant rule, e la frase in dialog.css estesa a ogni primitiva
-      invece che a due.
-      Accept: nessun descendant selector il cui soggetto sia una primitiva
-      `.dialog__*` sopravvive (il critic di T39 ha enumerato i 955 selettori
-      caricati dal CSSOM e ne restano due con un combinatore: questo e
-      `.dialog__header + .dialog__body`, che vive dentro dialog.css ed e'
-      legittimo); il body di Help non cambia larghezza, misurato.
-      Depends: nessuna.
-
+- [x] T40 [self] — L'ultimo descendant override di una primitiva di dialog — `1d2cb2e`
 - [x] T36 [self] — Tracciare il piano e il binding in git — `35483e0`
 
 - [ ] T31 [sonnet] — L'ultimo pixel di scroll orizzontale disallinea la corsia
@@ -176,9 +158,6 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 - T37+T38 (batchati, un brief): impl 92k / 75 tool use, critic 102k / 49, zero
   giri di correzione. Batchare due micro-task ha pagato: un solo ingresso da
   ~40k e una sola passata di critic.
-- Il critic ha invalidato un criterio di accept scritto dall'hub
-  (`scrollWidth <= clientWidth` non vede un placeholder: sarebbe passato sul
-  codice rotto). Graduato in docs/verification.md § Rules of thumb.
-- 2026-09-08 Goal B chiuso, potato e rilasciato come v1.2 (`48322e8`). Dopo
-  T36 il piano e' tracciato: le sue modifiche vanno in commit propri, e una
-  potatura e' recuperabile con `git show`.
+- T40: `[self]`, zero deleghe, critic saltato — il gemello T39 era gia'
+  passato dal critic sullo stesso spazio di selettori, e l'accept e' stato
+  chiuso col controfattuale invece che con una seconda lettura.
