@@ -37,5 +37,9 @@ export default defineConfig(({ mode }) => ({
   // Relative, so the build works from a sub-path too — the app has no router
   // and nothing else that assumes the site root.
   base: './',
+  // A stale server holding 5173 used to push the new one to 5174, and whoever
+  // was measuring in the browser then measured the wrong app. Failing loudly
+  // is the cheaper end of that trade; `npm run dev:fresh` clears the port.
+  server: { port: 5173, strictPort: true },
   plugins: [react(), llmsTxt(), ...(mode === 'single' ? [viteSingleFile()] : [])],
 }))

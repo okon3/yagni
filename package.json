@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:fresh": "node scripts/dev-fresh.mjs",
     "build": "tsc -b && vite build",
     "build:single": "tsc -b && vite build --mode single",
     "lint": "oxlint",

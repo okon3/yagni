@@ -5,7 +5,8 @@ Guidance for Claude Code working in this repository.
 ## Commands
 
 ```bash
-npm run dev            # Vite dev server on :5173
+npm run dev            # Vite dev server on :5173 (strictPort: fails if taken)
+npm run dev:fresh      # same, after killing whatever still holds :5173
 npm test               # vitest run
 npm run test:watch
 npm run build          # tsc -b && vite build
@@ -27,7 +28,9 @@ After a structural CSS change, an `npm install`, or renaming a module-level
 constant, **restart the dev server** — Vite/HMR has served stale stylesheets
 and stale modules here repeatedly (a layout bug that isn't one; a
 `ReferenceError` on a name that exists; a fix that "doesn't work"). Reload
-before trusting any negative verdict from the browser.
+before trusting any negative verdict from the browser. `npm run dev:fresh` is
+that restart in one command; the port is pinned, so a server that refuses to
+start means an old one is still up — not that the port moved.
 
 ## Architecture
 

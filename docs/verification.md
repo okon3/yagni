@@ -4,6 +4,14 @@ The app is developed and verified inside an embedded browser driven by an agent.
 Some APIs behave differently there; some verifications can't be trusted or made
 at all.
 
+## The origin is fixed
+
+Always `http://localhost:5173`: `strictPort` makes the dev server refuse to
+start rather than slide to 5174, so a server that won't come up means an old
+one is still holding the port — never that the app moved. `npm run dev:fresh`
+kills that listener and starts a cold one. A measurement taken on a second
+port was taken on a second app.
+
 ## Two agents, one origin
 
 `localStorage` is per origin, not per agent: a second session on the same dev
