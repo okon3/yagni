@@ -73,7 +73,7 @@ export function AvailabilityList({
             </span>
             <input
               className="dialog__control ranges__label"
-              placeholder={percent === 0 ? 'Leave, time off...' : 'Reason (optional)'}
+              placeholder={percent === 0 ? 'Leave' : 'Reason'}
               value={period.label ?? ''}
               onChange={(event) => update(index, { label: event.target.value })}
             />

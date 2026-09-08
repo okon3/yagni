@@ -88,7 +88,7 @@ export function CalendarDialog({
       <DayRangeList
         ranges={holidays}
         workingWeekdays={workingDays}
-        labelPlaceholder="Reason (optional)"
+        labelPlaceholder="Reason"
         onChange={setHolidays}
       />
     </Dialog>
