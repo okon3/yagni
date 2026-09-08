@@ -157,3 +157,10 @@ restart happens *before* the measurement, not during it.
   under the pointer fires no event.
 - `ResizeObserver` never fires here — code resizing the chart's container must
   call `gantt.setSizes()` itself.
+- **Every `CSSStyleRule` carries a truthy but empty `cssRules`** (CSS
+  nesting), so the usual container test — `if (r.cssRules) recurse(); else
+  read(r.selectorText)` — walks the whole CSSOM and reads nothing: it
+  reported 0 selectors on a page holding 955, which is indistinguishable from
+  a page with no stylesheet. Read `selectorText` first and recurse only on
+  `r.cssRules.length`. Then check the count against a known one before
+  trusting the list it produced.
