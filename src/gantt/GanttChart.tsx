@@ -1705,6 +1705,17 @@ export function GanttChart({
      * render. The alignment is bought back by taking every x from
      * `posFromDate` and following the chart's horizontal scroll.
      */
+    // `getScrollState().x` reports what the chart was asked to scroll; at some
+    // device pixel ratios it over-reports what dhtmlx actually drew, by a
+    // fraction of a pixel at the scrollbar's maximum (docs/dhtmlx.md has the
+    // ratios and the ceiling on this recipe). `$task` stays put while
+    // `$task_data` carries the real translation, so their difference is the
+    // applied offset rather than the claimed one. Deliberately not rounded:
+    // the applied translation is itself fractional there, and rounding it is
+    // what puts the lane off.
+    const appliedScrollX = () =>
+      gantt.$task.getBoundingClientRect().left - gantt.$task_data.getBoundingClientRect().left;
+
     const paintLoad = () => {
       const panel = loadHost.current;
       if (!panel) return;
@@ -1729,10 +1740,10 @@ export function GanttChart({
         // layout root's own left border and the grid cell's right one, so the
         // grid alone falls two pixels short of the timeline. `$task` and not
         // `$task_data`, which dhtmlx slides by the scroll offset (`dateUnder`
-        // below) — `scrollX` already carries that.
+        // below) — `appliedScrollX` carries that instead, off the same pair.
         timelineOffset: gantt.$task.getBoundingClientRect().left - gantt.$root.getBoundingClientRect().left,
         timelineWidth: gantt.posFromDate(to),
-        scrollX: gantt.getScrollState().x,
+        scrollX: appliedScrollX(),
         posOf: (date) => gantt.posFromDate(date),
         nonWorking: nonWorkingSpans(),
         nameOf: (id) => names.get(id) ?? id,
@@ -1955,13 +1966,16 @@ export function GanttChart({
       // The lanes are as wide as the whole timeline and are moved rather than
       // redrawn, so following the chart costs nothing per scrolled pixel.
       //
-      // The offset comes from getScrollState and deliberately not from the
-      // event's own `left`: one scroll fires this three times, and two of them
-      // carry the position the chart has just left rather than the one it
-      // reached, so a lane driven by the argument settles wherever the last
-      // stale report happened to land. The state is already correct in all three.
+      // Measured off `$task`/`$task_data` (`appliedScrollX`) and deliberately
+      // not from the event's own `left`: this fires several times per scroll —
+      // how many depends on the gesture — and some of those carry the position
+      // the chart has just left rather than the one it reached, so a lane
+      // driven by the argument settles wherever the last stale report happened
+      // to land. A fresh measurement is right in every firing. This is also
+      // the only site a horizontal scroll reaches: it re-renders nothing, so
+      // `paintLoad`'s geometry is never re-evaluated on the way through.
       gantt.attachEvent('onGanttScroll', () => {
-        if (loadHost.current) scrollLoadPanel(loadHost.current, gantt.getScrollState().x);
+        if (loadHost.current) scrollLoadPanel(loadHost.current, appliedScrollX());
       }, undefined),
       gantt.attachEvent('onTaskClick', (id, event) => {
         const target = event?.target as HTMLElement | null;

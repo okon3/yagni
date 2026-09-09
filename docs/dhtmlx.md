@@ -117,10 +117,32 @@ touching `src/gantt` code that talks to the library.
   start where the bars do, measure `$task`'s left against `$root` —
   scroll-invariant, unlike `$task_data`'s, which slides by the scroll offset.
   `$task` is in the typings at the same tier as `$grid` and `$root`.
-- **At the horizontal scrollbar's maximum `getScrollState().x` over-reports by
-  1px** the translation dhtmlx actually applied to `$task_data` (2245 against
-  2244), so an overlay positioned from it lands a pixel off in that one state
-  and nowhere else.
+- **At the horizontal scrollbar's maximum `getScrollState().x` can over-report
+  the translation dhtmlx actually applied to `$task_data` — at some device
+  pixel ratios, and never by a whole pixel in any condition measured.** The
+  cause is measured: the timeline cell's `clientWidth` is the integer rounding
+  of a fractional CSS width, so the scroller's maximum and the timeline's
+  disagree by that rounding. Worst obtained **0.665px at dpr 1.5**; at dpr
+  1.25 ≤0.003px, and at the maximum itself 0; at dpr 1 exactly 0. Only dpr 1,
+  1.25 and 1.5 were ever measured — nothing here says what 1.75, 2 or an OS
+  zoom do, so a whole-pixel offset on a 175% display does not rule this
+  mechanism out. Breadth, per ratio: at dpr 1, 701 grid widths, 101 fractional
+  container widths, five zoom levels, the collapsed-grid states, a native
+  scrollbar-thumb drag and programmatic overshoot; at dpr 1.5, 221 grid
+  widths; at dpr 1.25, three. An earlier note here claimed 1px (2245 against
+  2244) and no measured condition reproduces it: a fractional pair printed as
+  integers. Read the applied translation instead of asking for it,
+  **unrounded** —
+  `$task.getBoundingClientRect().left - $task_data.getBoundingClientRect().left`.
+  The translation is fractional exactly where it diverges, so rounding it puts
+  the overlay off by up to 0.4px in states where `getScrollState().x` was
+  exact.
+  **The recipe has a CSSOM ceiling**: an inline `left` serialises to six
+  significant digits, so the fraction survives only while the offset is small
+  — measured, `-1708.8337` kept `-1708.83px` but `-34178.6667` became
+  `-34178.7px`, and a seven-digit offset rounds to whole pixels. Under the
+  device pixel today; a long enough timeline eats the exactness the unrounded
+  read buys.
 - **Hand-set row classes don't survive a redraw** — classes must come from
   templates. (Also: a re-render replaces the node under the pointer, killing
   hover.)
@@ -277,9 +299,15 @@ touching `src/gantt` code that talks to the library.
   nothing else (measured rects 673/613/549 at scrolls 0/60/125). Adding
   `getScrollState().x` double-counts — invisible until scrolled. The load lanes
   *do* add it and aren't a precedent: they draw in their own panel.
-- **`onGanttScroll`'s `left` argument is stale** in 2 of the 3 firings per
-  scroll. `gantt.getScrollState().x` is correct in all three (what the lanes
-  read).
+- **`onGanttScroll`'s `left` argument is stale in some firings, and the
+  firing count depends on the gesture** — measured: a `scrollTo` that moves
+  fires 4 times, 2 with a stale `left`; a `scrollTo` to the position already
+  held fires 3 times, none stale; a real thumb drag fires once per mouse-move
+  step, `left` stale every time. Never dedupe on a count. Read the position
+  back instead of taking the argument (the lanes measure it off
+  `$task`/`$task_data`; `getScrollState().x` is right too except at the
+  maximum at some device pixel ratios — 0.665px at dpr 1.5, 0 at 1.25 and at
+  1, above).
 - **`ResizeObserver` never fires in the embedded browser** (not even the initial
   callback). dhtmlx measures its container at `init` and window resize only —
   anything of ours changing the chart's height (e.g. the load panel) must call
