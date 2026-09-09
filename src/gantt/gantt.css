@@ -269,6 +269,15 @@
   z-index: 2;
 }
 
+/* The dot shares this element's origin (see the padding comment above), so
+   a stacking context this label wins leaves the handle underneath it: a
+   mousedown aimed at the dot hits the label instead and drags the bar.
+   One step above is enough to give the handle the pointer back; see
+   docs/dhtmlx.md for the measurement. */
+.gantt_link_control {
+  z-index: 3;
+}
+
 .gantt_task_link .gantt_line_wrapper div {
   background: var(--line-strong);
 }

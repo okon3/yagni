@@ -2069,6 +2069,16 @@ export function GanttChart({
       // updated, with nothing but an uncaught error to show for it.
       gantt.attachEvent('onBeforeLinkAdd', (_id, link) => {
         if (applyingRef.current) return true;
+        // The type is a view concept — the scripted surface always passes FS
+        // (addLink above) — and syncLinks reads every link as finish-to-start
+        // source→target regardless of what was drawn, so a link dragged from
+        // the left dot would schedule as something other than what it shows.
+        if (String(link.type) !== String(gantt.config.links.finish_to_start)) {
+          rejectRef.current?.(
+            "Only finish-to-start dependencies: drag from the predecessor's right dot to the successor's left dot",
+          );
+          return false;
+        }
         const problem = rejectionForLink(
           projectRef.current,
           String(link.source),

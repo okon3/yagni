@@ -303,6 +303,17 @@ that isn't there.
   Decided from **predecessors**, never the start constraint.
 - Today: exact vertical line at every zoom + a pill on the scale cell holding it.
 
+## Dependencies
+
+- The link handle sits above the task label (`.gantt_link_control { z-index:
+  3 }` in `gantt.css`): the label used to cover the dot whole, and a mousedown
+  aimed at it dragged the bar instead of drawing a link.
+- Only finish-to-start links: dragging from the predecessor's left dot is
+  rejected in `onBeforeLinkAdd` with a message, never scheduled. The type is a
+  view concept — `syncLinks` reads every link as finish-to-start
+  source→target regardless of what dhtmlx drew, so a start-to-start gesture
+  would show one thing and schedule another.
+
 ## Non-working time shading
 
 - Two registers: **non-working days** grey (calendar-driven — a 4-day week
