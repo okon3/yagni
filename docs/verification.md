@@ -28,6 +28,12 @@ shared one; never verify in it.
 - **`window.confirm` returns `false` instantly and shows nothing** — every
   guarded action becomes a silent no-op. Use `ConfirmDialog` (App owns it, hands
   it out as a promise; nested `<dialog>`s stack correctly).
+- **dhtmlx's own confirm is not `window.confirm`, so deleting a link works.**
+  Double-clicking a link opens `div.gantt_modal_box.gantt-alert` on `body`
+  (z-index 18, OK/Cancel) — a DOM modal `gantt.confirm` builds itself; the OK is
+  clickable and the deletion lands in undo. Nothing of ours configures it. The
+  rule above does not reach it: reading the opposite out of the vendor source
+  put a false premise in the plan, and only the running app removed it.
 - **`window.print()` is the exception: it blocks.** Real modal dialog, invisible
   while the pane is hidden; every script hangs until dismissed, which an agent
   can't do (close and reopen the tab). Verify the print path by dispatching
@@ -131,6 +137,20 @@ reports — the gap is the first rule.
   chain never runs. A read taken that early reports zero elements and looks
   like a missing feature. Wait for a selector the app itself renders, or run
   the fixture as its own call and check what it returns.
+
+- **`eval --stdin` from the PowerShell tool returns `null` with no error** — the
+  pipe never reaches the daemon, so the read looks empty rather than failed. Use
+  `eval -b <base64>`; every script carrying quotes goes through base64.
+- **`mouse move` wants integer coordinates** — `Missing arguments` on `200.5`.
+- **`elementFromPoint` inside a `.gantt_line_wrapper` returns its inner 2px div,
+  not the wrapper.** Test with `contains`, not `===`, or every segment of a link
+  reads as covered.
+- **`dblclick <sel>` refuses when anything covers the target's centre** —
+  including a sibling wrapper of the same link. Give the segment you want an id
+  via `eval` and click that.
+- **`window.gantt` is readable from an `eval`**: `getLinks`, `config` and
+  `attachEvent` without touching code. Link ids are `"1->2"` strings after
+  `loadText` (the app assigns them) and timestamps when drawn with the mouse.
 
 What no rule fixes: JS errors in a hand-written `eval` (36 calls — a bug in the
 script, not the tool), a selector covered by the sticky header, and `open` /

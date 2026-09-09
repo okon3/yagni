@@ -1,32 +1,27 @@
 # Plan
 
-## Decisione aperta — quale goal adesso
+## Goal da aprire — dal report di T26                        [in attesa utente]
 
-Goal B e' chiuso e rilasciato (v1.2). Serve la decisione utente su cosa apre
-il prossimo goal, perche' oggi il piano non ha un goal con massa: **C** ha un
-solo task (T16, un audit), e **T26**, **T31**, **T32** stanno in manutenzione,
-dove per definizione non ricevono la goal review. T32 ha gia' la sua guardia
-scritta (un goal e' dovuto alla consegna del suo report). Non appendere task
-nuovi a manutenzione per inerzia: era il difetto che ha impedito a B di
-chiudersi per tre giorni.
+La guardia di T26 e' scattata: il report e' consegnato
+(`.claude/specs/T26-report.md`), quindi **un goal e' dovuto** e il suo
+enunciato si scrive da quel report, non prima. Posta all'utente al checkpoint
+del 2026-09-09; l'enunciato dipende dalla risposta, percio' l'intestazione del
+goal non e' ancora scritta.
 
-Posta all'utente al checkpoint di T40 (2026-09-08); la risposta e' stata
-*fermarsi*, non aprire un goal. La decisione resta quindi aperta ma non e'
-inesplorata, e va riaperta come scelta gia' istruita, non come domanda nuova:
-sul tavolo c'erano **T32** come analisi del refactor della vista (raccomandata
-— i Log misurano il costo di ricostruire il contesto di GanttChart.tsx, ed e'
-una tassa che ogni goal futuro paga), **T16** per portare C alla sua review, e
-**T31** come difetto puntuale. Nessuna e' stata scartata. Nota emersa
-scegliendo: T32 e T16 consegnano entrambe un report, quindi prenderle in fila
-sono due analisi di seguito senza codice in mezzo.
+Sul tavolo, dal report: **O1+O2** (una riga CSS piu' un rifiuto dei tipi
+non-FS nel handler esistente) chiudono il difetto riportato *e* la corruzione
+del dato che ne discende, e sono la raccomandazione. **O4** (editor delle
+dipendenze) e' l'unica risposta all'accumulo di link sugli stessi pixel, ed e'
+la scelta che decide se il goal e' stretto o ampio. Adottate come stanno, con
+la raccomandazione dell'analisi e riapribili: O2b (nascondere l'handle
+sinistro) no, O3b (`ConfirmDialog` al posto del modale vendor) no, O5
+(annullare l'alzata di 10 px della label) no.
 
-Riaperta al checkpoint del 2026-09-09 e ancora **non chiusa**: l'utente ha
-scelto di fare **solo T31** e fermarsi, senza aprire un goal. T32 resta la
-raccomandazione, T16 la strada per portare C alla sua review. **Se scegli
-T16, la guardia di T32 va scritta anche su Goal C prima di partire**: T16 e'
-il suo unico task e consegna un report, quindi alla sua chiusura la goal
-review scatta meccanicamente su un diff che non esiste — lo stesso buco in
-cui e' caduta la review di B.
+**Se invece si scegliesse T16**, la guardia di T32 va scritta anche su Goal C
+prima di partire: T16 e' il suo unico task e consegna un report, quindi alla
+sua chiusura la goal review scatta su un diff che non esiste — il buco in cui
+e' caduta la review di B. T32 resta la raccomandazione di fondo (la tassa di
+contesto su GanttChart.tsx che ogni goal futuro paga).
 
 ## Goal C — valutazione mobile-friendly                              [aperto]
 Agevolare la visualizzazione da smartphone/tablet nascondendo le azioni
@@ -56,29 +51,8 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 
 - [x] T31 [impl] — Il pixel di scroll: premessa falsa, nota nei docs corretta — `d9d2356`
 
-- [ ] T26 [opus] — Valutazione: UX di creazione e cancellazione dei link
-      Scope: quando un task ha già una dipendenza, il pallino per crearne una
-      nuova e la linea esistente si contendono il puntatore, e diventa
-      difficile prendere l'uno o l'altra (secondo screenshot dell'utente). Non
-      è un fix a una riga: va capito come si creano, si cancellano e si
-      accumulano più dipendenze su uno stesso task senza contesa di hit area.
-      Punti di partenza da accertare, non da assumere: `drag_links` è attivo
-      (GanttChart.tsx:1072); i link passano da `onBeforeLinkAdd` (1874, dove
-      vengono rifiutati) e `onAfterLinkDelete` (1891); `.gantt_line_wrapper` e
-      `.gantt_link_arrow` hanno `cursor: pointer` e una hit area di libreria
-      che nessuna nostra regola tocca (dimensioni da misurare); l'agent API ha
-      già un unlink (930-938). **Come si cancella un link oggi dall'UI va
-      accertato per prima cosa**: dhtmlx di default chiede conferma, e in
-      questo browser `window.confirm` ritorna `false` subito (CLAUDE.md), il
-      che potrebbe rendere la cancellazione impossibile a mano — se è così, è
-      un difetto a sé e va riportato subito, prima del resto dell'analisi.
-      Accertare anche che cosa sposta la label in alto quando esiste un link:
-      nessuna nostra regola CSS lo fa, quindi o è comportamento di libreria o
-      è un effetto ottico, e il resto dell'analisi non deve poggiare su
-      un'assunzione (lezione T21).
-      Output: report con opzioni e raccomandazione — NESSUNA implementazione;
-      i task implementativi si scopano dopo, col confronto utente.
-      Depends: soddisfatta (T25 ha chiuso la geometria attorno al pallino).
+- [x] T26 [architect] — UX dei link: analisi consegnata, tre premesse del
+      piano cadute — `.claude/specs/T26-report.md`, trappole nei docs `HEAD`
 - [ ] T32 [architect] — Riorganizzazione del codice della vista: analisi e piano
       Scope: GanttChart.tsx è a 2115 righe e App.tsx a 933, i due file di
       produzione più grossi del repo. Ogni task di questo goal è passato di lì,
@@ -126,6 +100,12 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   rimasti si ripaga sul goal dopo, non su questo. Da riproporre solo con un
   goal nuovo. **Prima di scopare la leva 1**: provare che la browser mode di
   vitest parta su questa macchina Windows, mai fatto.
+- `.claude/specs/T26-report.md` — UX dei link, tutto misurato nell'app. Regge
+  il bar dei task implementativi che ne discendono: **non cancellarlo** finche'
+  quei task non sono chiusi (lo sweep degli orfani lo prenderebbe, T26 e'
+  `[x]`). Dentro, oltre a O1-O5: la §9 elenca cio' che non e' stato misurato
+  (schema chiaro, altri zoom, summary e milestone, undo della *creazione* di un
+  link), e va letta prima di dare per coperto un caso.
 
 ## Log
 - Cap: 40 righe, una-due per voce, nessun elenco di task chiusi (il commit e'
@@ -135,9 +115,11 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 - Un task il cui accept e' una campagna di misura va scopato come task di sola
   misura: T31 chiedeva misura + modifica e ha saturato tre contesti (impl 186k,
   critic 180k e 218k alla ripresa) per un diff di 21 righe.
-- Una trappola annotata nei nostri docs e' una premessa ereditata come le
-  altre: quella di T31 reggeva da T30 e non si e' riprodotta in nessuna
-  condizione. Rimisurare prima di scopare un task su una nota.
+- Ricognizione `Explore` a monte del brief: paga. Su T26 due agenti sonnet
+  (51k l'uno, morti col loro contesto) hanno ucciso tre premesse del piano
+  prima di spendere un token di Fable — due righe stantie e l'assunzione su
+  `window.confirm`. I fatti trovati vanno nel brief come *Fatti accertati*,
+  cosi' la corsia costosa non li ri-paga.
 - Per T32: nessun brief di T12-T31 esiste piu' (`.gitignore:27-28` ignora
   `.claude` e `PLAN.md`, nessun commit li ha mai toccati). Il conteggio degli
   accept sui task chiusi e' una stima, non un dato.
@@ -151,6 +133,7 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 - T37+T38 (batchati, un brief): impl 92k / 75 tool use, critic 102k / 49, zero
   giri di correzione. Batchare due micro-task ha pagato: un solo ingresso da
   ~40k e una sola passata di critic.
-- T40: `[self]`, zero deleghe, critic saltato — il gemello T39 era gia'
-  passato dal critic sullo stesso spazio di selettori, e l'accept e' stato
-  chiuso col controfattuale invece che con una seconda lettura.
+- T26: architect (fable-5-1 confermato in header) 191k / 77 tool use, piu' 2×
+  Explore da 51k. Al limite dei ~200k anche essendo di sola misura: cinque
+  misure nel browser piu' le varianti sono il massimo che sta in un contesto.
+  Critic saltato — nessun diff da recensire; i check girati dall'hub, verdi.

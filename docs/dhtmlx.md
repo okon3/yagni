@@ -97,6 +97,19 @@ touching `src/gantt` code that talks to the library.
   `.gantt_side_content.gantt_right` — which is why the label's `padding-left`
   clears the dot with `calc()` on those two variables instead of a copied
   pixel count. The label shares the dot's origin, so the arithmetic is exact.
+- **A rule of ours stacked over the bars can steal the link handle's pointer** —
+  and one did. `.gantt_side_content.gantt_right` carries `z-index: 2` (`be35a75`,
+  to clear the time-off hatch) and shares the dot's origin, so it covered the
+  right handle whole. Measured on a task with no link: the dot reachable on 0 of
+  10 px, the handle receiving the pointer on 1 px of its 24 — and a mousedown on
+  the drawn dot dragged the bar instead, rewriting a declared start.
+  `.gantt_link_control { z-index: 3 }` puts the handle back on top (12/12 rows
+  sampled, linked and linkless). Anything of ours above a bar must still let the
+  pointer reach the handles.
+- **`.gantt_side_content.gantt_link_crossing { margin-top: -10px }` is a vendor
+  rule**: dhtmlx lifts the label 10px on a task with an outgoing link. Measured,
+  not optical — and it is why the handle is partly reachable once a link exists
+  and almost unreachable before.
 
 ## Rendering lifecycle
 
@@ -291,6 +304,14 @@ touching `src/gantt` code that talks to the library.
   second, `applySolution` has already written the solved start onto the row.
   Unconditional pull-back turns derived into input (constraint creeps; drag
   lands twice in undo). `pullFromView` accepts a start only while ≠ solved.
+- **Dragging from the *left* handle creates a type-1 (start-to-start) link**,
+  and `syncLinks` reads every link as finish-to-start source→target: drawn SS,
+  scheduled FS, redrawn FS after a reload (the file carries no `type`). Refuse
+  non-FS in `onBeforeLinkAdd` — the type is a view concept, so the rule belongs
+  in the handler, not in `rejectionForLink`.
+- **`onLinkDblClick` fires in the Community build, and `return false` suppresses
+  the vendor modal.** Deletion is dhtmlx's own `gantt.confirm`, not
+  `window.confirm` — see [verification.md](verification.md).
 - **`onAfterTaskMove` reports only the new parent**, not sibling reorders — read
   order back off the grid (`getChildren`, not `eachTask`: closed branches still
   have an order), or the reorder dies at the next save/undo.
