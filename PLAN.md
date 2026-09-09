@@ -20,6 +20,14 @@ una tassa che ogni goal futuro paga), **T16** per portare C alla sua review, e
 scegliendo: T32 e T16 consegnano entrambe un report, quindi prenderle in fila
 sono due analisi di seguito senza codice in mezzo.
 
+Riaperta al checkpoint del 2026-09-09 e ancora **non chiusa**: l'utente ha
+scelto di fare **solo T31** e fermarsi, senza aprire un goal. T32 resta la
+raccomandazione, T16 la strada per portare C alla sua review. **Se scegli
+T16, la guardia di T32 va scritta anche su Goal C prima di partire**: T16 e'
+il suo unico task e consegna un report, quindi alla sua chiusura la goal
+review scatta meccanicamente su un diff che non esiste — lo stesso buco in
+cui e' caduta la review di B.
+
 ## Goal C — valutazione mobile-friendly                              [aperto]
 Agevolare la visualizzazione da smartphone/tablet nascondendo le azioni
 superflue; non tutto deve funzionare da mobile.
@@ -46,19 +54,7 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 - [x] T40 [self] — L'ultimo descendant override di una primitiva di dialog — `1d2cb2e`
 - [x] T36 [self] — Tracciare il piano e il binding in git — `35483e0`
 
-- [ ] T31 [sonnet] — L'ultimo pixel di scroll orizzontale disallinea la corsia
-      Scope: al massimo dello scrollbar orizzontale `getScrollState().x`
-      sovra-riporta di 1px la traslazione che dhtmlx ha applicato davvero a
-      `$task_data` (2245 contro 2244), quindi le bande della corsia cadono 1px
-      a sinistra di quelle del chart — in quello stato solo, e in nessun altro
-      (misurato dal critic di T30 due volte, a due posizioni del divisore).
-      Preesistente: vive nel campo `scrollX` che il brief di T30 aveva
-      congelato, e T30 ha ridotto lo scostamento in quello stato da 3px a 1px.
-      La trappola è già annotata in docs/dhtmlx.md.
-      Accept: bande allineate a differenza 0 anche al massimo scroll, in
-      entrambe le direzioni del drag; nessun ritorno del disallineamento
-      costante che T30 ha chiuso (misurare anche a scroll 0 e intermedi).
-      Depends: soddisfatta (T30 chiuso).
+- [x] T31 [impl] — Il pixel di scroll: premessa falsa, nota nei docs corretta — `d9d2356`
 
 - [ ] T26 [opus] — Valutazione: UX di creazione e cancellazione dei link
       Scope: quando un task ha già una dipendenza, il pallino per crearne una
@@ -131,33 +127,17 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   goal nuovo. **Prima di scopare la leva 1**: provare che la browser mode di
   vitest parta su questa macchina Windows, mai fatto.
 
-## Sollevato all'utente, non deciso
-
-- **Tracciare anche `settings.local.json` e `.claude/specs/T33-report.md`?**
-  T36 ha tracciato `PLAN.md` e `.claude/orchestrate.md` per scelta utente
-  ("solo i durevoli"). Restano fuori due cose che sono comunque durevoli e
-  vivono su un disco solo: `settings.local.json` (soglia di contesto a 160k +
-  abilitazione del plugin) e la spec T33, che il piano stesso chiama
-  "materiale per decidere". Non incluse per non allargare una decisione
-  dell'utente per iniziativa. Da riproporre.
-  Non riproposta al checkpoint di T40, deliberatamente: la scelta del goal era
-  gia' sul tavolo e due decisioni impilate nello stesso messaggio non si
-  rispondono. E' la prima cosa da chiedere al checkpoint dopo.
-
 ## Log
 - Cap: 40 righe, una-due per voce, nessun elenco di task chiusi (il commit e'
   il record). Vedi `.claude/orchestrate.md`. La disciplina sulle premesse
   false e sul "quanto basta" e' graduata in CLAUDE.md (*What a verification
   may claim*, *How good is good enough*) e non vive piu' qui.
-- Per T31: nella corsia, `$task` e' invariante allo scroll, `$task_data`
-  slitta (707->207 dopo 500px) — usarlo raddoppierebbe lo scroll che `scrollX`
-  gia' porta. I 2px all'origine sono due bordi (border-left del layout root +
-  `gantt_layout_cell_border_right` della cella griglia), non il resizer
-  handle, che occupa zero; `config.grid_width` conta il secondo, `$grid.
-  offsetWidth` no.
-- Per T31: il velo del weekend sulla corsia e' `--band-nonworking-over`, un
-  secondo velo con un mestiere diverso (dipinge sopra il contenuto, non
-  sotto). In dark coincide con `--band-nonworking` per caso, non per vincolo.
+- Un task il cui accept e' una campagna di misura va scopato come task di sola
+  misura: T31 chiedeva misura + modifica e ha saturato tre contesti (impl 186k,
+  critic 180k e 218k alla ripresa) per un diff di 21 righe.
+- Una trappola annotata nei nostri docs e' una premessa ereditata come le
+  altre: quella di T31 reggeva da T30 e non si e' riprodotta in nessuna
+  condizione. Rimisurare prima di scopare un task su una nota.
 - Per T32: nessun brief di T12-T31 esiste piu' (`.gitignore:27-28` ignora
   `.claude` e `PLAN.md`, nessun commit li ha mai toccati). Il conteggio degli
   accept sui task chiusi e' una stima, non un dato.

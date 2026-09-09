@@ -43,6 +43,12 @@ this file binds it to this repo.
   prune a done task's Accept lines before that goal's review has run** — they
   are half the goal-review bar. Done tasks collapse to one line *after*
   `ship`, never before.
+  Riproposto il 2026-09-09 se tracciare anche `settings.local.json` e
+  `.claude/specs/T33-report.md`: risposta **no**, la regola vale come scritta.
+  Chiusa, non riproporre. `T33-report.md` resta non tracciato e **non va
+  cancellato** dallo sweep degli orfani finche' il piano lo elenca sotto
+  *Analisi in giacenza*: e' materiale di decisione, non la spec di un task
+  chiuso.
 - **"Read-only" restricts Write/Edit, not Bash — and no hook stops a worker
   committing here.** `.claude/hooks/` is empty and `settings.local.json`
   declares no `hooks` key, so `deny-agent-commit` does not fire in this repo.
