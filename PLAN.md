@@ -72,7 +72,7 @@ l'alzata di 10 px della label si accetta (O5).
       a chi l'ha appena fatto). Corretto dall'hub nominando i due estremi.
       Difetto del brief, non della corsia.
 
-- [ ] T42 [impl] — Il banner di rifiuto che non se ne va
+- [x] T42 [impl] — Il banner di rifiuto che non se ne va — `9630ea5`
       Scope: il canale del messaggio di rifiuto (`App.tsx:82,825`) non ha un
       percorso di pulizia sul successo. Misurato dal critic di T41: dopo un
       drag rifiutato il messaggio resta sullo schermo mentre una `yagni.link`
@@ -91,6 +91,33 @@ l'alzata di 10 px della label si accetta (O5).
       Il rifiuto continua a comparire quando serve: lo stesso gesto sbagliato
       ripetuto due volte mostra il messaggio entrambe le volte.
       Depends: T41 (`d970ca0`) e' dentro.
+      Nota di chiusura: `setError(null)` in testa all'imbuto `onChange`, una
+      riga. Il critic ha rimisurato tutti e sei gli accept e ha chiuso la
+      domanda che il brief gli aveva posto: **nessun percorso fa scattare
+      l'imbuto senza un'azione utente** — `loadProject` non chiama
+      `applySolution`, quindi `adopt`/`reset`/`travel` non ci passano (Undo
+      resta disabled dopo `newProject`/`loadText`), nove comandi di sola vista
+      lasciano il banner intatto, e `travel` non distrugge il ramo di redo.
+
+- [ ] T43 [impl] — Il banner che sposta la riga sotto il mouse
+      Scope: `.app__error` e' un `<p>` in flusso dentro `.app__body`, quindi
+      la sua comparsa **spinge in basso l'intera griglia**. Misurato dal critic
+      di T42 al viewport 1264px: `.app__body` da y=48 a y=83, le righe da
+      117/153/189 a 152/188/224 — 35 px, ossia **una riga intera**. Effetto:
+      dopo un rifiuto il secondo tentativo di link mira alla riga sbagliata,
+      e chi riprova dove aveva appena sbagliato manca di nuovo per una ragione
+      diversa dalla prima. Il difetto e' preesistente a T42, ma sta dentro
+      l'enunciato di Goal D — mirare a un bersaglio che si e' spostato — e non
+      in manutenzione.
+      Da accertare prima di scegliere, non da assumere: se il banner debba
+      diventare un overlay, o se basti riservargli lo spazio sempre. Le due
+      strade hanno costi diversi e una sola va misurata contro l'altra.
+      Accept (misurato nell'app, non dedotto dal foglio di stile): con e senza
+      banner, il `getBoundingClientRect().top` di una riga campione e' lo
+      stesso a meno di 1 px; **e** lo stesso gesto di link ripetuto dopo un
+      rifiuto colpisce la riga a cui mira. La regola dell'80% vale: si corregge
+      lo spostamento, non si ridisegna il banner.
+      Depends: T42 (`9630ea5`) e' dentro.
 
 ## Maintenance — no goal
 Task che non servono una milestone: difetti puntuali e salute del codice,
@@ -160,40 +187,35 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   link), e va letta prima di dare per coperto un caso.
 
 ## Log
-- Cap: 40 righe, una-due per voce, nessun elenco di task chiusi (il commit e'
-  il record). Vedi `.claude/orchestrate.md`. La disciplina sulle premesse
-  false e sul "quanto basta" e' graduata in CLAUDE.md (*What a verification
-  may claim*, *How good is good enough*) e non vive piu' qui.
-- Un task il cui accept e' una campagna di misura va scopato come task di sola
-  misura: T31 chiedeva misura + modifica e ha saturato tre contesti (impl 186k,
-  critic 180k e 218k alla ripresa) per un diff di 21 righe.
-- Ricognizione `Explore` a monte del brief: paga. Su T26 due agenti sonnet
-  (51k l'uno, morti col loro contesto) hanno ucciso tre premesse del piano
-  prima di spendere un token di Fable — due righe stantie e l'assunzione su
-  `window.confirm`. I fatti trovati vanno nel brief come *Fatti accertati*,
-  cosi' la corsia costosa non li ri-paga.
-- Per T32: nessun brief di T12-T31 esiste piu' (`.gitignore:27-28` ignora
-  `.claude` e `PLAN.md`, nessun commit li ha mai toccati). Il conteggio degli
-  accept sui task chiusi e' una stima, non un dato.
-- Per T32: la domanda "modularizzare o testare?" appartiene a T33 e non va
-  riaperta qui — due analisi che si contendono la stessa domanda si
-  contraddicono.
+- Cap: 40 righe, una-due per voce, nessun elenco di task chiusi (il commit e' il
+  record; il resto della regola sta in `.claude/orchestrate.md`).
 - Dimensionamento, dai costi misurati: impl oltre ~200k = task sovradimensionato
   da splittare (T35 a 215k, T18 a 182k+250k); il critic costa 100-160k a
   passata; un giro di correzione sullo stesso agente via SendMessage costa meno
   di un fresh spawn (che ripaga ~40k di ingresso).
-- T41: impl 117k / 103 tool use, critic 117k / 69, zero giri di correzione (la
-  sola correzione e' stata dell'hub, su una stringa che il brief aveva
-  prescritto sbagliata). Batchare O1+O2 ha pagato: una campagna di misura
-  sola per due modifiche che vivono nello stesso gesto.
+- Un task il cui accept e' una campagna di misura va scopato come task di sola
+  misura: T31 chiedeva misura + modifica e ha saturato tre contesti per 21
+  righe di diff. T42 e' la conferma per la via opposta — una riga di codice piu'
+  sei accept nel browser, scopato come misura, 99k/135k e zero correzioni.
+- Ricognizione `Explore` a monte del brief: paga. Su T26 due agenti sonnet (51k
+  l'uno, morti col loro contesto) hanno ucciso tre premesse del piano prima di
+  spendere un token di Fable; su T42 una sola passata sonnet ha dato tutti i
+  `file:line` del brief e la corsia non ha ri-esplorato nulla. I fatti trovati
+  vanno nel brief come *Fatti accertati*.
 - Un brief che prescrive un testo *verbatim* si assume la responsabilita' di
   quel testo: il messaggio di T41 copriva un gesto rifiutato su tre. Se il
   brief fissa una stringa, deve enumerare i casi che quella stringa incontra.
 - Il critic che rimisura al viewport di default annulla le deviazioni
-  d'ambiente della corsia: quello di T41 ha rifatto tutti e cinque gli accept
-  a 1264px e ha coperto due lacune dichiarate nella §9 del report (undo della
-  creazione, summary e milestone). Vale il costo.
-- T26: architect (fable-5-1 confermato in header) 191k / 77 tool use, piu' 2×
-  Explore da 51k. Al limite dei ~200k anche essendo di sola misura: cinque
-  misure nel browser piu' le varianti sono il massimo che sta in un contesto.
-  Critic saltato — nessun diff da recensire; i check girati dall'hub, verdi.
+  d'ambiente della corsia e trova cio' che l'accept non chiedeva: quello di T41
+  ha coperto due lacune della §9 di T26, quello di T42 ha trovato lo
+  spostamento di riga che e' diventato T43. Vale il costo, ogni volta.
+- **Chiedere al critic la domanda che fa paura.** Il brief di T42 gli ha
+  ordinato di cercare i percorsi in cui l'imbuto scatta *senza* azione utente:
+  e' l'unico rischio della decisione, e la risposta misurata (nessuno) e' cio'
+  che ha reso il pass un pass e non una speranza.
+- Per T32: nessun brief di T12-T31 esiste piu', il conteggio degli accept sui
+  task chiusi e' una stima. E la domanda "modularizzare o testare?" appartiene
+  a T33 e non va riaperta li'.
+- T41: impl 117k / 103 tool use, critic 117k / 69, zero giri. T42: impl 99k /
+  74, critic 135k / 78, zero giri; l'unica modifica dell'hub una parola in
+  `view.md` (il banner ritira anche errori non di link).
