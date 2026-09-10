@@ -129,6 +129,8 @@
   background: var(--danger-soft);
   color: var(--danger);
   font-size: 13px;
+  /* Above the dropzone (20) and the empty state (10), below the brand tooltip
+     (30), the loadtip (40) and the row menu (60). */
   z-index: 25;
   pointer-events: none;
 }
