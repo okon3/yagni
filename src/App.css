@@ -113,9 +113,15 @@
   pointer-events: none;
 }
 
+/* In flow, the banner would shift every row under a pointer mid-gesture.
+   pointer-events: none protects the grid header and its column resizers
+   underneath. */
 .app__error {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   margin: 0;
-  flex: none;
   padding: 8px 12px;
   border: 1px solid var(--danger-line);
   border-left: 3px solid var(--danger);
@@ -123,6 +129,8 @@
   background: var(--danger-soft);
   color: var(--danger);
   font-size: 13px;
+  z-index: 25;
+  pointer-events: none;
 }
 
 .toolbar {

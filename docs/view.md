@@ -316,7 +316,9 @@ that isn't there.
 - The error banner (`.app__error`, `App.tsx`) — a rejected link, a failed open,
   a failed PNG export — clears on the next successful model change, not on a
   timeout: it's reset in the `onChange` funnel, the same place every model
-  change flows through.
+  change flows through. It's an absolutely positioned overlay inside
+  `.app__body`, not in flow, so its appearance never shifts the grid rows
+  under a pointer that's mid-gesture.
 
 ## Non-working time shading
 

@@ -2139,8 +2139,8 @@ export function GanttChart({
     container.addEventListener('wheel', zoomOnWheel, { passive: false, capture: true });
 
     // dhtmlx measures its container once at init. It listens for window resize,
-    // but not for the container changing size on its own — a split pane, a
-    // devtools panel opening, or the error banner appearing above the chart.
+    // but not for the container changing size on its own — a split pane
+    // resizing, or a devtools panel opening.
     const observer = new ResizeObserver(() => gantt.setSizes());
     observer.observe(container);
 

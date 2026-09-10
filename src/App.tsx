@@ -821,13 +821,12 @@ export default function App() {
         </button>
       </header>
 
-      {error && (
-        <p className="app__error" role="alert">
-          {error}
-        </p>
-      )}
-
       <div className="app__body">
+        {error && (
+          <p className="app__error" role="alert">
+            {error}
+          </p>
+        )}
         <GanttChart
           ref={chart}
           project={initialProject}
