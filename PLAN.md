@@ -57,16 +57,17 @@ uniforme.
       Nessun re-export ponte, nessun ciclo, `agentApi` non importa piu' da un
       componente.
 
-- [ ] T45 [impl] — S2: `zoomLevels.ts` + `timelineGeometry.ts`
-      Sposta 97 righe (`:118-214`) + 152 (`:415-566`) + 2 (`:1716-1717`). Export
-      `widestLabelWidth`, `appliedScrollX` — la cucitura di T33 §5b, senza
-      scrivere la probe. `registerQuarterUnit()` deve restare chiamato dove e'
-      ora nella sequenza di init (prima di `zoom.init`).
-      Accept, smoke: cinque livelli con ctrl+wheel **e** con i bottoni; Fit su
-      piano lungo; un task oltre il range non svuota il chart; zoom out→in
-      ripinna uguale (ratchet, `docs/view.md`); nome lungo oltre l'ultima barra
-      non tagliato. Nessuna fixture in repo: si costruisce via `yagni`.
-
+- [x] T45 [impl] — S2: `zoomLevels.ts` + `timelineGeometry.ts` — `25f6a54`
+      Accept tenuti, sei prove nel browser (zoom coi bottoni, Fit su piano
+      lungo, task fuori range, ratchet del ripin con le date registrate, label
+      lunga non tagliata). Chart 2132 → **1877**. Verbatim provato per hash: le
+      sole differenze sono otto `export` e un dedent; init byte-identica a HEAD
+      meno 244 righe. `widestLabelWidth` e `appliedScrollX` esportati — la
+      cucitura di T33 §5b e' consegnata, la probe non e' stata scritta.
+      **La prova ctrl+wheel era invalida come dichiarata** (un `wheel`
+      sintetico non misura quel percorso, `docs/dhtmlx.md:240`) ma non
+      portante: il listener non si e' mosso, della catena wheel e' migrata solo
+      la costante.
 - [ ] T46 [impl] — S3: `timelineOverlays.ts`
       Sposta 23+157+22+18 righe (`:1517-1697`, `:598-619`, `:51-68`).
       `mountOverlays` **restituisce il proprio detach** e il cleanup lo chiama:
@@ -192,23 +193,23 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 - Un brief che prescrive un testo *verbatim* si assume la responsabilita' di
   quel testo: il messaggio di T41 copriva un gesto rifiutato su tre. Se il
   brief fissa una stringa, deve enumerare i casi che quella stringa incontra.
-- Il critic che rimisura al viewport di default annulla le deviazioni
-  d'ambiente della corsia e trova cio' che l'accept non chiedeva: quello di T41
-  ha coperto due lacune della §9 di T26, quello di T42 ha trovato lo
-  spostamento di riga che e' diventato T43. Vale il costo, ogni volta.
+- Il critic trova cio' che l'accept non chiedeva (T41: due lacune di T26; T42:
+  il difetto diventato T43; T45: una prova invalida dichiarata passata). Su uno
+  spostamento, **chiedergli l'hash e non la lettura**: prova o smentisce il
+  "verbatim" in un colpo, dove `tsc` e' cieco.
 - **Chiedere al critic la domanda che fa paura.** Il brief di T42 gli ha
   ordinato di cercare i percorsi in cui l'imbuto scatta *senza* azione utente:
   e' l'unico rischio della decisione, e la risposta misurata (nessuno) e' cio'
   che ha reso il pass un pass e non una speranza.
 - **Una corsia che dichiara un'impossibilita' va confrontata con cio' che le
-  corsie precedenti hanno gia' fatto.** Quella di T43 ha dichiarato non
-  guidabile il drag reale del mouse; T41 e il critic di T42 lo avevano fatto,
-  con un altro strumento. Il brief del giro di correzione ha nominato lo
-  strumento e il drag e' riuscito al primo colpo.
-- T32: architect 235k / 27 tool use, nessun critic (un report non ha diff da
-  rivedere; ho spot-checkato io i `file:line` portanti, costo un grep). 235k su
-  un task di sola lettura di 3200 righe non e' sovradimensionamento: e' il
-  prezzo del censimento, e si paga una volta.
-- **Un passo di verifica deve essere osservabile.** La §6 di T32 chiedeva
-  `git status` = solo il report: impossibile, `.claude/*` e' ignorato. Se un
-  accept nomina git, prima verificare che git veda quel file.
+  precedenti hanno gia' fatto**: T43 dava il drag reale per non guidabile, T41
+  e il critic di T42 l'avevano fatto con un altro strumento — nominato nel
+  brief, e' riuscito al primo colpo.
+- **Un passo di verifica deve essere osservabile, e il brief lo deve provare
+  prima di chiederlo.** Due volte: T32 chiedeva `git status` = solo il report
+  (`.claude/*` e' ignorato), T45 chiedeva ctrl+wheel, che `docs/dhtmlx.md:240`
+  dichiara non misurabile in sintetico — e una corsia obbediente riporta
+  "passato". Leggere i docs delle trappole *mentre* si scrivono gli accept.
+- **Le sezioni di un brief vanno confrontate fra loro**: la §3 di T45 mostrava
+  `appliedScrollX(): number` come illustrazione, la §4 vietava di cambiare
+  firme. La corsia ha scelto la §4 (giusto), ma la contraddizione era mia.
