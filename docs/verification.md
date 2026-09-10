@@ -142,6 +142,15 @@ reports — the gap is the first rule.
   pipe never reaches the daemon, so the read looks empty rather than failed. Use
   `eval -b <base64>`; every script carrying quotes goes through base64.
 - **`mouse move` wants integer coordinates** — `Missing arguments` on `200.5`.
+- **dhtmlx's link drag needs CDP-level input, so drive it with `agent-browser
+  mouse move/down/up`.** Its `linksDnD` controller is bound to `$root` and
+  ignores `MouseEvent`s sent with `dispatchEvent` — on the control, on the
+  `elementFromPoint` target, on `document`, on `window`: `onBeforeLinkAdd`
+  never fires. A lane read that silence as "a real link drag cannot be driven
+  here" and swapped in a scripted `gantt.addLink`; the same gesture worked
+  first try through the CLI. The canvas also exposes one accessibility node
+  per bar, so uid-based `click`/`drag` have nothing to aim at — coordinates
+  are the way in.
 - **`elementFromPoint` inside a `.gantt_line_wrapper` returns its inner 2px div,
   not the wrapper.** Test with `contains`, not `===`, or every segment of a link
   reads as covered.
