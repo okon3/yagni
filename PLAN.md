@@ -99,7 +99,7 @@ l'alzata di 10 px della label si accetta (O5).
       resta disabled dopo `newProject`/`loadText`), nove comandi di sola vista
       lasciano il banner intatto, e `travel` non distrugge il ramo di redo.
 
-- [ ] T43 [impl] — Il banner che sposta la riga sotto il mouse
+- [x] T43 [impl] — Il banner che sposta la riga sotto il mouse — `fbd4507`
       Scope: `.app__error` e' un `<p>` in flusso dentro `.app__body`, quindi
       la sua comparsa **spinge in basso l'intera griglia**. Misurato dal critic
       di T42 al viewport 1264px: `.app__body` da y=48 a y=83, le righe da
@@ -109,15 +109,38 @@ l'alzata di 10 px della label si accetta (O5).
       diversa dalla prima. Il difetto e' preesistente a T42, ma sta dentro
       l'enunciato di Goal D — mirare a un bersaglio che si e' spostato — e non
       in manutenzione.
-      Da accertare prima di scegliere, non da assumere: se il banner debba
-      diventare un overlay, o se basti riservargli lo spazio sempre. Le due
-      strade hanno costi diversi e una sola va misurata contro l'altra.
+      Deciso con l'utente il 2026-09-10, con la ricognizione in mano:
+      **overlay**, terzo di `.app__body` (che e' gia' `position: relative` e
+      ospita `.empty` e `.app__dropzone` con lo stesso pattern), banda z-index
+      30 e `pointer-events: none`. Scartate: la fascia riservata sempre (~35 px
+      di righe perse per un messaggio raro) e il testo nella statusbar (un
+      ridisegno del canale, non una correzione dello spostamento).
       Accept (misurato nell'app, non dedotto dal foglio di stile): con e senza
       banner, il `getBoundingClientRect().top` di una riga campione e' lo
       stesso a meno di 1 px; **e** lo stesso gesto di link ripetuto dopo un
       rifiuto colpisce la riga a cui mira. La regola dell'80% vale: si corregge
       lo spostamento, non si ridisegna il banner.
+      **Costo dell'overlay, misurato dal critic e accettato dall'utente il
+      2026-09-10 — chiuso, non riproporre**: il banner (y 48..83) copre per
+      intero il testo di testata (y 66..80), 6 intestazioni di colonna su 6 e
+      tutte le etichette di data, in chiaro e in scuro. Le righe del piano non
+      sono **mai** coperte (`.gantt_data_area` parte a y=99 su tutti e sei i
+      passi di zoom) ed era quello il difetto. Residuo noto e accettato: sul
+      solo errore di apertura file il banner e' persistente — T42 lo azzera al
+      primo cambiamento del modello, e su un file che non si e' aperto non c'e'
+      nulla da cambiare — quindi li' la testata resta illeggibile finche'
+      l'utente non tocca il piano. Scartate: banner a larghezza del testo, e un
+      task per il congedo esplicito.
       Depends: T42 (`9630ea5`) e' dentro.
+      Nota di chiusura: un giro di correzione, causato da un `file:line` del
+      brief mai verificato — la ricognizione dava `.app__expansion` a z-index
+      20 in tabella e 30 in prosa, il brief ha copiato la tabella, e il banner
+      a 30 copriva il tooltip del brand. Corretto a **25**. Il critic ha anche
+      rovesciato la motivazione di `pointer-events: none`: sotto il banner non
+      c'e' nessuna riga, ci sono la testata e i suoi resizer di colonna — la
+      riga e' portante, non una salvaguardia, e senza il commento giusto il
+      prossimo la toglierebbe come ridondante. Trappola dello strumento
+      graduata in `docs/verification.md` (`210a1bf`).
 
 ## Maintenance — no goal
 Task che non servono una milestone: difetti puntuali e salute del codice,
@@ -197,11 +220,12 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   misura: T31 chiedeva misura + modifica e ha saturato tre contesti per 21
   righe di diff. T42 e' la conferma per la via opposta — una riga di codice piu'
   sei accept nel browser, scopato come misura, 99k/135k e zero correzioni.
-- Ricognizione `Explore` a monte del brief: paga. Su T26 due agenti sonnet (51k
-  l'uno, morti col loro contesto) hanno ucciso tre premesse del piano prima di
-  spendere un token di Fable; su T42 una sola passata sonnet ha dato tutti i
-  `file:line` del brief e la corsia non ha ri-esplorato nulla. I fatti trovati
-  vanno nel brief come *Fatti accertati*.
+- Ricognizione `Explore` a monte del brief: paga — su T42 una passata sonnet ha
+  dato tutti i `file:line` e la corsia non ha ri-esplorato nulla — **ma un
+  `file:line` copiato da una ricognizione non e' verificato**. Quella di T43 si
+  contraddiceva (`.app__expansion` a 20 in tabella, 30 in prosa), il brief ha
+  copiato la tabella, e il difetto e' arrivato fino al critic. Quando due parti
+  di un report non concordano, verificare costa una riga di grep.
 - Un brief che prescrive un testo *verbatim* si assume la responsabilita' di
   quel testo: il messaggio di T41 copriva un gesto rifiutato su tre. Se il
   brief fissa una stringa, deve enumerare i casi che quella stringa incontra.
@@ -216,6 +240,12 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 - Per T32: nessun brief di T12-T31 esiste piu', il conteggio degli accept sui
   task chiusi e' una stima. E la domanda "modularizzare o testare?" appartiene
   a T33 e non va riaperta li'.
+- **Una corsia che dichiara un'impossibilita' va confrontata con cio' che le
+  corsie precedenti hanno gia' fatto.** Quella di T43 ha dichiarato non
+  guidabile il drag reale del mouse; T41 e il critic di T42 lo avevano fatto,
+  con un altro strumento. Il brief del giro di correzione ha nominato lo
+  strumento e il drag e' riuscito al primo colpo.
 - T41: impl 117k / 103 tool use, critic 117k / 69, zero giri. T42: impl 99k /
-  74, critic 135k / 78, zero giri; l'unica modifica dell'hub una parola in
-  `view.md` (il banner ritira anche errori non di link).
+  74, critic 135k / 78, zero giri. T43: impl 128k + 170k (un giro), critic
+  155k / 104 — il piu' caro del goal, e il giro l'ha pagato un errore del
+  brief, non la corsia.
