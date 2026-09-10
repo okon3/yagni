@@ -166,6 +166,14 @@ touching `src/gantt` code that talks to the library.
   parent callback baked into the init effect tore down and rebuilt the chart per
   state change (and `ext.zoom.init()` reset the level). Callbacks go into refs;
   init deps stay empty.
+  **That rule is about React identity, not about talking to the library**:
+  `gantt` is a module singleton (*Licence boundary*), so code under
+  `src/gantt/` that touches no ref may import it directly — only
+  `useCallback`/ref values reaching the init effect are constrained.
+- **Every registration on `gantt`, `document` or the container returns its own
+  detach**, and the init effect's cleanup calls it. StrictMode mounts twice: a
+  module that registers without handing back how to undo it leaks a listener
+  per remount.
 
 ## Timeline range and zoom
 
@@ -239,6 +247,10 @@ touching `src/gantt` code that talks to the library.
   `zoomIn/zoomOut` are dead. Invisible in the config; shows only in
   `ext.zoom.getCurrentLevel()`. Fit sits in `App` after `loadProject` returns —
   also right, since undo shares `loadProject` and keeps its viewport.
+- **Three ordering constraints in the init sequence**, none of them visible in
+  a config: `plugins()` before `init()`; the custom quarter unit registered
+  before `ext.zoom.init()`; the grid/`$grid` width gap measured right after
+  `init()`. Getting the order wrong fails silently, not loudly.
 
 ## Tooltip
 
@@ -286,6 +298,9 @@ touching `src/gantt` code that talks to the library.
   `inlineEditors.attachEvent('onBeforeEditStart')`** — every way in passes
   through it.
 - `resource` is reserved in the task type; the custom field is `resource_id`.
+- **Refreshing the resource dropdown finds its column by `name ===
+  'resource_id'`** — renaming that column silently stops the options ever
+  updating, with no error anywhere.
 - **`moveTask(id, -1, parent)` appends** (dhtmlx's own indent convention;
   typings just say `tindex: number`).
 - **A parent that was a leaf renders collapsed** — set `$open` before
