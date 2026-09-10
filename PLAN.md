@@ -50,11 +50,12 @@ per T46 e T48, dove il rischio e' geometria in pixel e closure→getter su codic
 che dhtmlx richiama a ogni redraw. Verifica proporzionata al rischio, non
 uniforme.
 
-- [ ] T44 [impl] — S1: `ganttHandle.ts`, i tipi del contratto
-      Sposta 94 righe da `GanttChart.tsx:216-309` + 39 da `TaskDialog.tsx:9-47`.
-      `agentApi.ts` smette di importare da un componente.
-      Accept: `npm run build` verde — `tsc -b` **e' la verifica completa**, sono
-      solo tipi; nessuna sessione browser. Zero righe di runtime nel diff.
+- [x] T44 [impl] — S1: `ganttHandle.ts`, i tipi del contratto — `90855c0`
+      Accept tenuti: build/test/lint verdi, zero righe di runtime nel diff (le
+      sole aggiunte in `src/` sono import), chart 2228 → **2132**. Il critic ha
+      provato il verbatim per md5, non a lettura: blocchi identici byte a byte.
+      Nessun re-export ponte, nessun ciclo, `agentApi` non importa piu' da un
+      componente.
 
 - [ ] T45 [impl] — S2: `zoomLevels.ts` + `timelineGeometry.ts`
       Sposta 97 righe (`:118-214`) + 152 (`:415-566`) + 2 (`:1716-1717`). Export
@@ -182,12 +183,12 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   misura: T31 chiedeva misura + modifica e ha saturato tre contesti per 21
   righe di diff. T42 e' la conferma per la via opposta — una riga di codice piu'
   sei accept nel browser, scopato come misura, 99k/135k e zero correzioni.
-- Ricognizione `Explore` a monte del brief: paga — su T42 una passata sonnet ha
-  dato tutti i `file:line` e la corsia non ha ri-esplorato nulla — **ma un
-  `file:line` copiato da una ricognizione non e' verificato**. Quella di T43 si
-  contraddiceva (`.app__expansion` a 20 in tabella, 30 in prosa), il brief ha
-  copiato la tabella, e il difetto e' arrivato fino al critic. Quando due parti
-  di un report non concordano, verificare costa una riga di grep.
+- Ricognizione a monte del brief: paga (T42, zero ri-esplorazioni) **ma un
+  `file:line` copiato non e' verificato**: quella di T43 si contraddiceva, il
+  brief ha copiato, il difetto e' arrivato al critic. Mitigazione che funziona:
+  se il brief elenca fatti che non ha letto, **ordinare alla corsia di
+  verificarli invece di fidarsi** — su T44 ha scartato due percorsi di modulo
+  sbagliati del brief (`Project` da `../scheduler`, che non lo esporta).
 - Un brief che prescrive un testo *verbatim* si assume la responsabilita' di
   quel testo: il messaggio di T41 copriva un gesto rifiutato su tre. Se il
   brief fissa una stringa, deve enumerare i casi che quella stringa incontra.
