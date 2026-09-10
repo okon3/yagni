@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createAgentApi, type AgentApi } from './agentApi';
-import type { GanttHandle } from './GanttChart';
-import type { TaskDetails } from './TaskDialog';
+import type { GanttHandle, TaskDetails } from './ganttHandle';
 import type { Resource } from '../scheduler';
 
 const ALICE: Resource = { id: 'r1', name: 'Alice' };

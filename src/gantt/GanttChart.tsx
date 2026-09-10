@@ -7,7 +7,7 @@ import { formatDays } from './format';
 import { escapeHtml } from './html';
 import { isShared, renderSegments } from './segmentBar';
 import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges, isContended } from '../scheduler';
-import type { CalendarSpec, DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
+import type { DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
 import { renderLoadPanel, scrollLoadPanel, type LoadLane } from './loadPanel';
 import { DEFAULT_BAR_COLOR, avatarColorOf, initialsOf, resourceClass, shade } from './colors';
 import {
@@ -27,14 +27,13 @@ import {
   subtreeOf,
   type ChainState,
   type MarkedChain,
-  type MeasuredSlack,
   type Project,
   type ProjectTask,
   type SolvedProject,
 } from './project';
 import { matchesSearch, searchKey } from './search';
 import { keystrokeIsCaptured } from './shortcuts';
-import type { TaskDetails, TaskPatch } from './TaskDialog';
+import type { GanttHandle, LoadOptions } from './ganttHandle';
 import './gantt.css';
 
 /** dhtmlx link type for finish-to-start. */
@@ -212,101 +211,6 @@ export const INITIAL_SCALE_LABEL = SCALE_LABELS.week;
 
 /** How long one ctrl+wheel gesture holds the scale still after a step. */
 const WHEEL_ZOOM_COOLDOWN = 200;
-
-/**
- * What a new row may carry. Everything is optional and falls back to the
- * defaults the toolbar's button uses.
- */
-export interface NewTask {
-  name?: string;
-  nominalDays?: number;
-  /** Normalised to 08:00, as every other creation path does. */
-  start?: Date;
-  resourceId?: string;
-  color?: string;
-  disabled?: boolean;
-  parentId?: string;
-  /**
-   * Placed straight below this row, as its sibling, instead of at the end of a
-   * branch. Wins over `parentId`, which it derives: "below this" already says
-   * whose child the new row is.
-   */
-  after?: string;
-}
-
-export interface LoadOptions {
-  /**
-   * Keeps the scroll position and the selected row.
-   *
-   * What undo restores is the same project seen from the same place. Opening a
-   * file is the opposite case: there the viewport belongs to the plan that was
-   * on screen a moment ago and means nothing for the one arriving.
-   */
-  keepViewport?: boolean;
-}
-
-export interface GanttHandle {
-  getProject(): Project;
-  /** The solved schedule behind what is on screen. */
-  getSolved(): SolvedProject;
-  loadProject(project: Project, options?: LoadOptions): void;
-  /** Null when the row has meanwhile been deleted. */
-  getTaskDetails(id: string): TaskDetails | null;
-  /**
-   * How much room the row has, measured on the spot: the figure costs a search
-   * that a whole plan cannot afford on every edit. Null when the plan is past
-   * the limit for measuring at all.
-   */
-  getTaskSlack(id: string): MeasuredSlack | null;
-  /**
-   * Measures the critical chain now and redraws, whatever the plan's size.
-   *
-   * The path an explicit request takes: past the limit nothing measures on its
-   * own, and this is what a click on the control runs. It also turns the marking
-   * on, since asking to see it is asking for it to be shown.
-   */
-  measureCriticalChain(): void;
-  updateTask(id: string, patch: TaskPatch): void;
-  /** Takes the task's subtree with it, and clears dependencies on any of them. */
-  deleteTask(id: string): void;
-  getResources(): Resource[];
-  /** Tasks assigned to a removed resource are released to "no resource". */
-  setResources(resources: Resource[], releasedResourceIds: string[]): void;
-  getCalendar(): CalendarSpec;
-  setCalendar(calendar: CalendarSpec): void;
-  countTasksByResource(): Map<string, number>;
-  /** The id of the created row, which the caller needs to say anything else about it. */
-  addTask(task?: NewTask): string;
-  /** Null re-parents to the top level. */
-  setParent(id: string, parentId: string | null): void;
-  /** Finish-to-start. Silent on a link that already exists. */
-  addLink(from: string, to: string): void;
-  removeLink(from: string, to: string): void;
-  selectTask(id: string): void;
-  /** Opens whatever branches hide the task, then scrolls it into view. */
-  revealTask(id: string): void;
-  /**
-   * Marks the rows whose name matches, and answers with their ids in the order
-   * the grid shows them. An empty query marks nothing.
-   *
-   * The plan is never filtered, so this is a marking and a list to walk rather
-   * than a state the view is left in.
-   */
-  setSearch(query: string): string[];
-  zoomIn(): void;
-  zoomOut(): void;
-  zoomToFit(): void;
-  /** Collapses every branch of the grid. View state only: the project is untouched. */
-  collapseAll(): void;
-  expandAll(): void;
-  scrollToToday(): void;
-  /**
-   * Collapses the task grid to zero width, or restores it to the width it had
-   * a moment before — exactly, even across a divider drag in between. View
-   * state only, and not persisted: it does not survive a reload.
-   */
-  toggleGridCollapsed(): void;
-}
 
 function typeOf(task: ProjectTask, solved: SolvedProject): string {
   return isMilestone(task, solved.summaryIds) ? MILESTONE_TYPE : BAR_TYPE;

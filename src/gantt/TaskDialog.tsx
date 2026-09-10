@@ -3,48 +3,8 @@ import type { Resource } from '../scheduler';
 import { setAutofocus } from './autofocus';
 import { Dialog } from './Dialog';
 import { formatDays } from './format';
+import type { TaskDetails, TaskPatch } from './ganttHandle';
 import { CRITICAL_CHAIN_LIMIT, type MeasuredSlack } from './project';
-
-/** Everything the dialog shows, resolved by the chart: inputs and derived alike. */
-export interface TaskDetails {
-  id: string;
-  name: string;
-  nominalDays: number;
-  start: Date;
-  end: Date;
-  resourceId: string;
-  color: string;
-  /** Only a top-level task owns its colour; a subtask inherits it. */
-  ownsColor: boolean;
-  progress: number;
-  isSummary: boolean;
-  /** How many tasks sit under this one; they go with it when it is deleted. */
-  descendantCount: number;
-  /** Working days the task actually spans, stretching included. */
-  elapsedDays: number;
-  /** Effort rolled up from the leaves; equals `nominalDays` on a leaf. */
-  effortDays: number;
-  /** Ran below full rate, for whatever reason: the duration then exceeds the effort. */
-  shared: boolean;
-  /** Ran below full rate *because* the resource was split with another task. */
-  contended: boolean;
-  /** The task's own flag — not the effective (inherited) state a group shows. */
-  disabled: boolean;
-}
-
-export interface TaskPatch {
-  name: string;
-  nominalDays: number;
-  start: Date;
-  resourceId: string | undefined;
-  color: string | undefined;
-  progress: number;
-  /**
-   * Optional: absent means the caller left it alone. `false` deletes the
-   * stored flag rather than writing it — see `GanttChart.updateTask`.
-   */
-  disabled?: boolean;
-}
 
 const dayFormat = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',

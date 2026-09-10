@@ -1,6 +1,6 @@
 import helpMarkdown from './agentApi.help.md?raw';
 import { parseWallClock, serializeDate } from './dates';
-import type { GanttHandle } from './GanttChart';
+import type { GanttHandle, TaskDetails } from './ganttHandle';
 import { buildPlan, type Plan } from './plan';
 import { loadByResource, rejectionForLink, slackByRow, subtreeOf } from './project';
 import {
@@ -14,7 +14,6 @@ import {
   type ResourcePatch,
 } from './resources';
 import { serializeProject } from './serialization';
-import type { TaskDetails } from './TaskDialog';
 import type { AvailabilityOverride, CalendarSpec, Resource } from '../scheduler';
 
 /**
