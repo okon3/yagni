@@ -2,10 +2,10 @@
 
 ## Cosa resta sul tavolo
 
-Goal D e' chiuso. Restano tre cose, in nessun ordine obbligato: **T32** e' la
-raccomandazione di fondo (la tassa di contesto su `GanttChart.tsx` che ogni
-goal futuro paga), **O4** e' in giacenza e si riproporra' con la correzione di
-Goal D in mano, **T16** porterebbe Goal C alla sua review.
+Goal D e' chiuso e **T32 ha consegnato**: il report del refactor della vista
+e' in casa e la decisione e' tua. Restano tre cose: **il goal del refactor**
+da aprire (enunciato e fette da scegliere fra le cinque raccomandate, §8 del
+report), **T16** che porterebbe Goal C alla sua review, **O4** in giacenza.
 
 **Se si scegliesse T16, la guardia di T32 va scritta anche su Goal C prima di
 partire**: T16 e' il suo unico task e consegna un report, quindi alla sua
@@ -63,42 +63,11 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 
 - [x] T26 [architect] — UX dei link: analisi consegnata, tre premesse del
       piano cadute — `.claude/specs/T26-report.md`, trappole nei docs `a026435`
-- [ ] T32 [architect] — Riorganizzazione del codice della vista: analisi e piano
-      Scope: GanttChart.tsx è a 2115 righe e App.tsx a 933, i due file di
-      produzione più grossi del repo. Ogni task di questo goal è passato di lì,
-      e il costo si legge nei Log: worker a 200-350k token per diff da poche
-      decine di righe, quasi tutto speso a ricostruire il contesto del file.
-      Serve un'analisi vera prima di spostare una riga: censire che cosa vive
-      dentro il componente oggi (wiring dhtmlx, template, geometria, corsia di
-      carico, tooltip, zoom, undo, agent API, drag e scroll), stabilire quali
-      pezzi sono estraibili e quali no, e con quale ordine.
-      Vincoli da rispettare nell'analisi, non da riscoprire: il confine
-      engine/vista non è in discussione; nulla da cui dipende gantt.init() può
-      cambiare identità fra un render e l'altro (le callback del parent vanno
-      nei ref); una regola non deve mai esistere in due posti (l'agent API è un
-      adattatore, non una feature); l'undo passa da un imbuto solo
-      (applySolution) e dirty è derivato.
-      Output: report con la proposta di taglio in moduli, l'ordine di
-      esecuzione e il rischio di ciascun passo — NESSUNA implementazione. I
-      task implementativi si scopano dopo, col confronto utente.
-      Da portare nel report, non da nascondere: la vista non ha copertura di
-      test sul DOM, quindi ogni estrazione si verifica a mano nel browser. Un
-      refactor grosso in un colpo solo è il modo peggiore di spenderlo, e il
-      report deve dire quanto vale ogni fetta separatamente.
-      Il costo di verificare è di T33, non di questo task: qui si ragiona sul
-      costo di leggere e di ricostruire il contesto. L'analisi parte da quello
-      che T33 avrà deciso e non lo riapre.
-      **Un goal e' dovuto qui, e questa riga e' la sua guardia.** Decisione
-      utente (2026-09-08): T32 resta manutenzione *come analisi* — un report
-      non ha diff, quindi non c'e' nulla che un goal-reviewer possa leggere —
-      ma i task implementativi che ne discendono NON nascono in manutenzione.
-      Alla consegna del report si apre un goal e il suo enunciato si scrive
-      dal report (moduli, ordine, rischio), non prima: un enunciato generico
-      non fa da bar. La finestra fra il report e l'apertura del goal e' il
-      buco in cui e' caduta la review di B — non lasciarla aperta.
-      Depends: sciolta. T18, T20 e T22 sono chiusi; nessun task aperto
-      tocca ancora GanttChart.tsx, quindi l'analisi non parte piu' su un
-      file che sta per cambiare.
+- [x] T32 [architect] — Riorganizzazione della vista: censimento, tagli, piano
+      — `.claude/specs/T32-report.md`, note nei docs `9b735a6`. La guardia ha
+      tenuto: l'analisi resta manutenzione, i task implementativi **no**. Il
+      goal si apre dall'enunciato proposto in §5 del report, con le fette che
+      l'utente compra — non prima.
 
 ## Analisi in giacenza — non e' un task, e' materiale per decidere
 
@@ -110,6 +79,11 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   rimasti si ripaga sul goal dopo, non su questo. Da riproporre solo con un
   goal nuovo. **Prima di scopare la leva 1**: provare che la browser mode di
   vitest parta su questa macchina Windows, mai fatto.
+- `.claude/specs/T32-report.md` — refactor della vista. Non e' in giacenza per
+  scelta: e' il materiale del goal che sta per aprirsi, e T32 e' `[x]`, quindi
+  **lo sweep degli orfani lo cancellerebbe**. Sta qui finche' il goal ha preso
+  le sue fette; poi diventa la spec dei suoi task e muore col suo ultimo
+  commit.
 - `.claude/specs/T26-report.md` — UX dei link, tutto misurato nell'app. O1, O2
   e il banner sono chiusi con Goal D, ma **non cancellarlo**: e' il materiale
   di O4 (editor delle dipendenze), l'unica delle sue opzioni ancora in
@@ -146,15 +120,15 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   ordinato di cercare i percorsi in cui l'imbuto scatta *senza* azione utente:
   e' l'unico rischio della decisione, e la risposta misurata (nessuno) e' cio'
   che ha reso il pass un pass e non una speranza.
-- Per T32: nessun brief di T12-T31 esiste piu', il conteggio degli accept sui
-  task chiusi e' una stima. E la domanda "modularizzare o testare?" appartiene
-  a T33 e non va riaperta li'.
 - **Una corsia che dichiara un'impossibilita' va confrontata con cio' che le
   corsie precedenti hanno gia' fatto.** Quella di T43 ha dichiarato non
   guidabile il drag reale del mouse; T41 e il critic di T42 lo avevano fatto,
   con un altro strumento. Il brief del giro di correzione ha nominato lo
   strumento e il drag e' riuscito al primo colpo.
-- T41: impl 117k / 103 tool use, critic 117k / 69, zero giri. T42: impl 99k /
-  74, critic 135k / 78, zero giri. T43: impl 128k + 170k (un giro), critic
-  155k / 104 — il piu' caro del goal, e il giro l'ha pagato un errore del
-  brief, non la corsia.
+- T32: architect 235k / 27 tool use, nessun critic (un report non ha diff da
+  rivedere; ho spot-checkato io i `file:line` portanti, costo un grep). 235k su
+  un task di sola lettura di 3200 righe non e' sovradimensionamento: e' il
+  prezzo del censimento, e si paga una volta.
+- **Un passo di verifica deve essere osservabile.** La §6 di T32 chiedeva
+  `git status` = solo il report: impossibile, `.claude/*` e' ignorato. Se un
+  accept nomina git, prima verificare che git veda quel file.
