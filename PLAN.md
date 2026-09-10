@@ -1,17 +1,16 @@
 # Plan
 
-## Dopo Goal D
+## Cosa resta sul tavolo
 
-Goal D e' aperto (sotto) e la guardia di T26 e' onorata. Quando chiude, sul
-tavolo restano tre cose, in nessun ordine obbligato: **T32** e' la
-raccomandazione di fondo (la tassa di contesto su GanttChart.tsx che ogni
-goal futuro paga), **O4** e' in giacenza e si riproporra' con la correzione
-di Goal D in mano, **T16** porterebbe Goal C alla sua review.
+Goal D e' chiuso. Restano tre cose, in nessun ordine obbligato: **T32** e' la
+raccomandazione di fondo (la tassa di contesto su `GanttChart.tsx` che ogni
+goal futuro paga), **O4** e' in giacenza e si riproporra' con la correzione di
+Goal D in mano, **T16** porterebbe Goal C alla sua review.
 
 **Se si scegliesse T16, la guardia di T32 va scritta anche su Goal C prima di
 partire**: T16 e' il suo unico task e consegna un report, quindi alla sua
-chiusura la goal review scatterebbe su un diff che non esiste — il buco in
-cui e' caduta la review di B.
+chiusura la goal review scatterebbe su un diff che non esiste — il buco in cui
+e' caduta la review di B.
 
 ## Goal C — valutazione mobile-friendly                              [aperto]
 Agevolare la visualizzazione da smartphone/tablet nascondendo le azioni
@@ -27,120 +26,29 @@ superflue; non tutto deve funzionare da mobile.
       Depends: soddisfatta (T13-T15 e T18 chiusi: l'audit gira
       sull'UI finale, collapse della griglia incluso).
 
-## Goal D — creare una dipendenza senza mirare a 10x10 px            [aperto]
+## Goal D — creare una dipendenza senza mirare a 10x10 px            [chiuso]
 Rendere afferrabile l'handle del link e togliere l'ambiguita' semantica del
-gesto: creare una dipendenza non deve richiedere di centrare un pallino che
-un elemento nostro copre, e un tentativo mancato non deve riscrivere uno
-start dichiarato. Enunciato scritto dal report di T26 (§3, §8) alla sua
-consegna, come chiedeva la guardia. **Fuori scope, deciso con l'utente il
-2026-09-09**: l'accumulo di link sugli stessi pixel (O4, editor delle
-dipendenze) resta in giacenza e si riproporra' con la correzione in mano;
-l'handle sinistro non si nasconde (O2b), il modale vendor resta (O3b),
-l'alzata di 10 px della label si accetta (O5).
+gesto. Goal review del 2026-09-10: **ship** (fable-5-1 confermato in header),
+MISSING e SMUGGLED vuoti. Misurato dalla review nell'app: 24/24 px dell'handle
+destro appartengono al pallino su ogni foglia, sul summary e sul task gia'
+linkato, 17/17 sulla milestone, a Days/Weeks/Months e in entrambi gli schemi —
+cioe' tutti i casi che la §9 di T26 non aveva misurato. I gesti SS/FF/SF
+rifiutano senza toccare nessuno start; l'undo di un link creato col mouse
+funziona. Nessuna release: i tre task sono fix, e il changelog non prende fix.
 
 - [x] T41 [impl] — L'handle del link sotto la label, e il gesto che mente — `d970ca0`
-      Scope: due modifiche batchate, dallo stesso report e dalla stessa
-      campagna di misura, percio' un solo brief e una sola passata di critic.
-      **O1**: `.gantt_link_control { z-index: 3 }` in `gantt.css`, con il
-      perche' in un commento — la label (`.gantt_side_content.gantt_right`,
-      `gantt.css:269`) porta `z-index: 2` da `be35a75` e copre l'handle
-      destro per intero. Misurato: pallino raggiungibile su 0 px di 10 senza
-      il fix, 12/12 righe campionate con il fix.
-      **O2**: rifiuto dei tipi non finish-to-start nel handler che esiste
-      gia', `onBeforeLinkAdd` (`GanttChart.tsx:2070-2080`), con messaggio via
-      `rejectRef`. Il tipo e' un concetto **di vista** — lo script passa
-      sempre FS da `addLink` — quindi la regola sta nel handler e non in
-      `rejectionForLink`: un posto solo.
-      Accept (tutto misurato nell'app, non asserito dal codice):
-      1. `elementFromPoint` sull'handle destro di un task **senza** link
-         restituisce un nodo contenuto in `.gantt_link_control` su >=10 righe
-         y campionate lungo il pallino, non la label.
-      2. Un drag reale dal pallino destro **crea** il link: `getLinks().length`
-         +1.
-      3. Lo stesso drag **non** cambia lo start dichiarato della sorgente:
-         confronto prima/dopo sul task (era il difetto: 09-07 -> 09-03).
-      4. Un drag dal pallino **sinistro** produce il messaggio di rifiuto e
-         **nessun** link: `length` invariato.
-      5. Sul task **che ha** un link l'handle resta raggiungibile: la regola
-         vendor `gantt_link_crossing` (-10px) non deve peggiorare nulla.
-      Docs: la trappola dello z-index e' gia' in `dhtmlx.md` (`a026435`); a
-      T41 resta una riga in `view.md` sul gesto da sinistra che ora rifiuta.
-      Nessun CHANGELOG: e' un fix, non una feature che l'utente ha chiesto.
-      Depends: nessuna.
-      Nota di chiusura: il messaggio prescritto dal brief dava il consiglio
-      sbagliato al drop destro→destro (tipo 2: «trascina dal pallino destro»
-      a chi l'ha appena fatto). Corretto dall'hub nominando i due estremi.
-      Difetto del brief, non della corsia.
-
 - [x] T42 [impl] — Il banner di rifiuto che non se ne va — `9630ea5`
-      Scope: il canale del messaggio di rifiuto (`App.tsx:82,825`) non ha un
-      percorso di pulizia sul successo. Misurato dal critic di T41: dopo un
-      drag rifiutato il messaggio resta sullo schermo mentre una `yagni.link`
-      successiva riesce — si legge un errore accanto a un'operazione andata a
-      buon fine. Il canale e' preesistente, ma O2 lo rende raggiungibile con
-      un gesto sbagliato facile, percio' entra in questo goal e non in
-      manutenzione.
-      Da accertare prima di scegliere dove pulire, non da assumere: chi
-      possiede oggi la vita del banner (montaggio, timeout, dismissal a mano)
-      e se esista gia' un punto di successo da cui azzerarlo — l'imbuto di
-      ogni cambiamento al modello e' `applySolution`, ma un rifiuto **non**
-      passa da li', quindi il reset non puo' vivere solo nell'imbuto.
-      Accept: dopo un drag rifiutato, una creazione di link riuscita (mouse
-      **e** `yagni.link`) lascia lo schermo senza messaggio d'errore;
-      misurato nell'app, col testo del banner letto dal DOM prima e dopo.
-      Il rifiuto continua a comparire quando serve: lo stesso gesto sbagliato
-      ripetuto due volte mostra il messaggio entrambe le volte.
-      Depends: T41 (`d970ca0`) e' dentro.
-      Nota di chiusura: `setError(null)` in testa all'imbuto `onChange`, una
-      riga. Il critic ha rimisurato tutti e sei gli accept e ha chiuso la
-      domanda che il brief gli aveva posto: **nessun percorso fa scattare
-      l'imbuto senza un'azione utente** — `loadProject` non chiama
-      `applySolution`, quindi `adopt`/`reset`/`travel` non ci passano (Undo
-      resta disabled dopo `newProject`/`loadText`), nove comandi di sola vista
-      lasciano il banner intatto, e `travel` non distrugge il ramo di redo.
+- [x] T43 [impl] — Il banner che sposta la riga sotto il mouse — `fbd4507`,
+      docs `210a1bf`, commento z-index `1bf79cc`
 
-- [x] T43 [impl] — Il banner che sposta la riga sotto il mouse — `fbd4507`
-      Scope: `.app__error` e' un `<p>` in flusso dentro `.app__body`, quindi
-      la sua comparsa **spinge in basso l'intera griglia**. Misurato dal critic
-      di T42 al viewport 1264px: `.app__body` da y=48 a y=83, le righe da
-      117/153/189 a 152/188/224 — 35 px, ossia **una riga intera**. Effetto:
-      dopo un rifiuto il secondo tentativo di link mira alla riga sbagliata,
-      e chi riprova dove aveva appena sbagliato manca di nuovo per una ragione
-      diversa dalla prima. Il difetto e' preesistente a T42, ma sta dentro
-      l'enunciato di Goal D — mirare a un bersaglio che si e' spostato — e non
-      in manutenzione.
-      Deciso con l'utente il 2026-09-10, con la ricognizione in mano:
-      **overlay**, terzo di `.app__body` (che e' gia' `position: relative` e
-      ospita `.empty` e `.app__dropzone` con lo stesso pattern), banda z-index
-      30 e `pointer-events: none`. Scartate: la fascia riservata sempre (~35 px
-      di righe perse per un messaggio raro) e il testo nella statusbar (un
-      ridisegno del canale, non una correzione dello spostamento).
-      Accept (misurato nell'app, non dedotto dal foglio di stile): con e senza
-      banner, il `getBoundingClientRect().top` di una riga campione e' lo
-      stesso a meno di 1 px; **e** lo stesso gesto di link ripetuto dopo un
-      rifiuto colpisce la riga a cui mira. La regola dell'80% vale: si corregge
-      lo spostamento, non si ridisegna il banner.
-      **Costo dell'overlay, misurato dal critic e accettato dall'utente il
-      2026-09-10 — chiuso, non riproporre**: il banner (y 48..83) copre per
-      intero il testo di testata (y 66..80), 6 intestazioni di colonna su 6 e
-      tutte le etichette di data, in chiaro e in scuro. Le righe del piano non
-      sono **mai** coperte (`.gantt_data_area` parte a y=99 su tutti e sei i
-      passi di zoom) ed era quello il difetto. Residuo noto e accettato: sul
-      solo errore di apertura file il banner e' persistente — T42 lo azzera al
-      primo cambiamento del modello, e su un file che non si e' aperto non c'e'
-      nulla da cambiare — quindi li' la testata resta illeggibile finche'
-      l'utente non tocca il piano. Scartate: banner a larghezza del testo, e un
-      task per il congedo esplicito.
-      Depends: T42 (`9630ea5`) e' dentro.
-      Nota di chiusura: un giro di correzione, causato da un `file:line` del
-      brief mai verificato — la ricognizione dava `.app__expansion` a z-index
-      20 in tabella e 30 in prosa, il brief ha copiato la tabella, e il banner
-      a 30 copriva il tooltip del brand. Corretto a **25**. Il critic ha anche
-      rovesciato la motivazione di `pointer-events: none`: sotto il banner non
-      c'e' nessuna riga, ci sono la testata e i suoi resizer di colonna — la
-      riga e' portante, non una salvaguardia, e senza il commento giusto il
-      prossimo la toglierebbe come ridondante. Trappola dello strumento
-      graduata in `docs/verification.md` (`210a1bf`).
+Cio' che il goal ha deciso e che non va riproposto: l'overlay del banner copre
+per intero la testata della griglia finche' resta a schermo, ed e' persistente
+sul solo errore di apertura file — misurato e **accettato dall'utente** sotto
+la regola dell'80%. Restano fuori scope per decisione sua: l'editor delle
+dipendenze (O4, in giacenza), l'handle sinistro visibile (O2b), il modale
+vendor (O3b), l'alzata della label (O5). Adiacente, sotto il bar, da registrare
+solo se un utente lo segnala: un drag che parte dal *testo* della label (3 px
+oltre il pallino) muove ancora la barra — default vendor.
 
 ## Maintenance — no goal
 Task che non servono una milestone: difetti puntuali e salute del codice,
