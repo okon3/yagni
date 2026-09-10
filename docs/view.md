@@ -313,6 +313,10 @@ that isn't there.
   view concept — `syncLinks` reads every link as finish-to-start
   source→target regardless of what dhtmlx drew, so a start-to-start gesture
   would show one thing and schedule another.
+- The error banner (`.app__error`, `App.tsx`) — a rejected link, a failed open,
+  a failed PNG export — clears on the next successful model change, not on a
+  timeout: it's reset in the `onChange` funnel, the same place every model
+  change flows through.
 
 ## Non-working time shading
 

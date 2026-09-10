@@ -836,6 +836,7 @@ export default function App() {
           showLoad={showLoad}
           onChainState={setChainState}
           onChange={() => {
+            setError(null);
             syncFromChart();
             registerChange();
           }}
