@@ -2,10 +2,12 @@
 
 ## Cosa resta sul tavolo
 
-Goal D e' chiuso e **T32 ha consegnato**: il report del refactor della vista
-e' in casa e la decisione e' tua. Restano tre cose: **il goal del refactor**
-da aprire (enunciato e fette da scegliere fra le cinque raccomandate, §8 del
-report), **T16** che porterebbe Goal C alla sua review, **O4** in giacenza.
+**Goal E e' aperto**: le cinque fette del refactor della vista, comprate
+dall'utente il 2026-09-10 sul report di T32. Restano fuori **S5b** (unifica la
+mappa riga: l'unica fetta che cambia forma, in giacenza finche' un goal non
+aggiunge campi di riga) e **S6/S7** (`App.tsx` e i gesti: raccomandati contro).
+Aperti oltre a Goal E: **T16** che porterebbe Goal C alla sua review, **O4** in
+giacenza.
 
 **Se si scegliesse T16, la guardia di T32 va scritta anche su Goal C prima di
 partire**: T16 e' il suo unico task e consegna un report, quindi alla sua
@@ -25,6 +27,84 @@ superflue; non tutto deve funzionare da mobile.
       utente.
       Depends: soddisfatta (T13-T15 e T18 chiusi: l'audit gira
       sull'UI finale, collapse della griglia incluso).
+
+## Goal E — la vista si legge senza leggerla tutta                     [aperto]
+`GanttChart.tsx` sotto le 1300 righe in cinque commit di **puro spostamento**:
+nessun cambio di comportamento misurabile, la cucitura che T33 §5b chiedeva
+esposta come export normali. Il difetto che chiude e' il costo di contesto —
+ogni task di Goal D ha speso 100-350k token per diff di decine di righe, quasi
+tutti a ricostruire il contesto di un file da 2228 righe.
+
+Bar della goal review (oltre agli Accept dei task): il diff e' spostamenti +
+import, `git diff --stat` non mostra righe di logica nuova a parte le firme dei
+moduli, e le checklist di T46 e T48 risultano eseguite nel browser.
+
+Spec di tutti e cinque: `.claude/specs/T32-report.md` (§4 la tabella delle
+fette, §6 le decisioni tecniche vincolanti). Ordine obbligato: T47 precede T48
+(`MILESTONE_TYPE`/`BAR_TYPE` servono a entrambi — invertirli crea un import
+circolare).
+
+Bar di verifica, deciso dall'utente il 2026-09-10: **smoke** per gli
+spostamenti puri (T44 nemmeno quello: `tsc` e' la prova), **checklist piena**
+per T46 e T48, dove il rischio e' geometria in pixel e closure→getter su codice
+che dhtmlx richiama a ogni redraw. Verifica proporzionata al rischio, non
+uniforme.
+
+- [ ] T44 [impl] — S1: `ganttHandle.ts`, i tipi del contratto
+      Sposta 94 righe da `GanttChart.tsx:216-309` + 39 da `TaskDialog.tsx:9-47`.
+      `agentApi.ts` smette di importare da un componente.
+      Accept: `npm run build` verde — `tsc -b` **e' la verifica completa**, sono
+      solo tipi; nessuna sessione browser. Zero righe di runtime nel diff.
+
+- [ ] T45 [impl] — S2: `zoomLevels.ts` + `timelineGeometry.ts`
+      Sposta 97 righe (`:118-214`) + 152 (`:415-566`) + 2 (`:1716-1717`). Export
+      `widestLabelWidth`, `appliedScrollX` — la cucitura di T33 §5b, senza
+      scrivere la probe. `registerQuarterUnit()` deve restare chiamato dove e'
+      ora nella sequenza di init (prima di `zoom.init`).
+      Accept, smoke: cinque livelli con ctrl+wheel **e** con i bottoni; Fit su
+      piano lungo; un task oltre il range non svuota il chart; zoom out→in
+      ripinna uguale (ratchet, `docs/view.md`); nome lungo oltre l'ultima barra
+      non tagliato. Nessuna fixture in repo: si costruisce via `yagni`.
+
+- [ ] T46 [impl] — S3: `timelineOverlays.ts`
+      Sposta 23+157+22+18 righe (`:1517-1697`, `:598-619`, `:51-68`).
+      `mountOverlays` **restituisce il proprio detach** e il cleanup lo chiama:
+      StrictMode monta due volte. `paintLoad` resta nel chart e importa
+      `nonWorkingSpans`.
+      Accept, checklist piena: bande weekend a Days/Weeks/Months (a Months
+      spariscono, soglia 10px); shutdown su tutte le righe; assenza solo sulla
+      riga della persona, non su summary ne' ramo chiuso; hatch sopra la barra;
+      **differenza 0 px fra bande chart e corsia a scroll 0, intermedio e max**
+      (la misura di T31); linea di oggi a ogni zoom e nascosta fuori range;
+      nessun nodo doppio in `$task_data` dopo un remount.
+
+- [ ] T47 [impl] — S5a: `ganttRows.ts`, spostamento puro
+      Sposta ~150 righe (`:48-49`, `:311-388`, `:621-659`). Prerequisito di T48.
+      Rende lo schema riga leggibile in un file invece che sparso in cinque
+      punti su 1700 righe (`docs/view.md` §Grid). **Non** unifica la mappa:
+      quella e' S5b, fuori goal.
+      Accept, smoke: apri un piano → righe identiche (colori, summary scuro,
+      condivise pallide, milestone a rombo, Duration/End); un edit →
+      `applySolution` aggiorna.
+
+- [ ] T48 [deep] — S4: `gridColumns.ts`
+      Sposta 65+127+73+~45 righe (`:1158-1450`, `:70-116`, `:396-413`).
+      `DERIVED_ON_SUMMARY` va nel modulo, accanto agli editor che descrive; il
+      guard `onBeforeEditStart` resta nel chart e lo importa. Chi legge stato
+      React lo riceve come **getter** (schema `AgentHost`, `agentApi.ts:150`),
+      mai come valore. Lane deep e non impl: e' la fetta piu' grande, l'unica
+      dove il codice spostato viene richiamato da dhtmlx a ogni redraw, e un
+      giro di correzione qui costa piu' della differenza di modello.
+      Accept, checklist piena: le 8 colonne (nome con pallino/rombo, avatar,
+      stack `+n` con `title`, effort/start in corsivo sul summary, End/Duration
+      senza editor, info, toggle, `+`); editor (click apre, Tab/Shift+Tab/
+      Enter/Esc, summary rifiuta effort/start/resource); dropdown risorse
+      aggiornato dopo una persona aggiunta dal dialog **e** da
+      `yagni.addResource` (la colonna si trova per `name === 'resource_id'`);
+      marcature ricerca (`gantt-found`, `-below` su ramo chiuso); highlight
+      persona su righe/barre/link; anello critico e tratteggio stale; disabled
+      attenuato; segmenti della barra condivisa; `grid_width` = somma colonne
+      (nome a 230px).
 
 ## Goal D — creare una dipendenza senza mirare a 10x10 px            [chiuso]
 Rendere afferrabile l'handle del link e togliere l'ambiguita' semantica del
@@ -79,11 +159,10 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   rimasti si ripaga sul goal dopo, non su questo. Da riproporre solo con un
   goal nuovo. **Prima di scopare la leva 1**: provare che la browser mode di
   vitest parta su questa macchina Windows, mai fatto.
-- `.claude/specs/T32-report.md` — refactor della vista. Non e' in giacenza per
-  scelta: e' il materiale del goal che sta per aprirsi, e T32 e' `[x]`, quindi
-  **lo sweep degli orfani lo cancellerebbe**. Sta qui finche' il goal ha preso
-  le sue fette; poi diventa la spec dei suoi task e muore col suo ultimo
-  commit.
+- `.claude/specs/T32-report.md` — **e' la spec di T44-T48**, non un'analisi in
+  attesa: sta elencato qui perche' T32 e' `[x]` e lo sweep degli orfani lo
+  cancellerebbe. Muore col commit di T48. Contiene anche S5b, S6 e S7, che
+  restano fuori goal: se S5b si comprera' un giorno, il materiale e' qui.
 - `.claude/specs/T26-report.md` — UX dei link, tutto misurato nell'app. O1, O2
   e il banner sono chiusi con Goal D, ma **non cancellarlo**: e' il materiale
   di O4 (editor delle dipendenze), l'unica delle sue opzioni ancora in
