@@ -110,12 +110,13 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   rimasti si ripaga sul goal dopo, non su questo. Da riproporre solo con un
   goal nuovo. **Prima di scopare la leva 1**: provare che la browser mode di
   vitest parta su questa macchina Windows, mai fatto.
-- `.claude/specs/T26-report.md` — UX dei link, tutto misurato nell'app. Regge
-  il bar dei task implementativi che ne discendono: **non cancellarlo** finche'
-  quei task non sono chiusi (lo sweep degli orfani lo prenderebbe, T26 e'
-  `[x]`). Dentro, oltre a O1-O5: la §9 elenca cio' che non e' stato misurato
-  (schema chiaro, altri zoom, summary e milestone, undo della *creazione* di un
-  link), e va letta prima di dare per coperto un caso.
+- `.claude/specs/T26-report.md` — UX dei link, tutto misurato nell'app. O1, O2
+  e il banner sono chiusi con Goal D, ma **non cancellarlo**: e' il materiale
+  di O4 (editor delle dipendenze), l'unica delle sue opzioni ancora in
+  giacenza, e senza il report O4 si riaprirebbe da zero. Lo sweep degli orfani
+  lo prenderebbe, T26 e' `[x]`. La sua §9 non serve piu' come lista di lacune:
+  la goal review di Goal D le ha misurate tutte (schema chiaro, altri zoom,
+  summary, milestone, undo della creazione) e reggono.
 
 ## Log
 - Cap: 40 righe, una-due per voce, nessun elenco di task chiusi (il commit e' il
