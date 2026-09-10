@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, type Ref } from 'react';
-import { gantt, type ZoomLevel } from 'dhtmlx-gantt';
+import { gantt } from 'dhtmlx-gantt';
 import { Info, Ban } from 'lucide-static';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { barFactsOf, renderBarTooltip } from './barTooltip';
 import { formatDays } from './format';
 import { escapeHtml } from './html';
 import { isShared, renderSegments } from './segmentBar';
+import {
+  registerQuarterUnit,
+  ZOOM_LEVELS,
+  SCALE_LABELS,
+  WHEEL_ZOOM_COOLDOWN,
+} from './zoomLevels';
+import { fitRangeToPlan, repinRangeToScale, appliedScrollX } from './timelineGeometry';
 import { availabilityOnDay, dateOfDay, dayIndexOf, expandRanges, isContended } from '../scheduler';
-import type { DayRange, Resource, Schedule, ScheduledTask } from '../scheduler';
+import type { DayRange, Resource, ScheduledTask } from '../scheduler';
 import { renderLoadPanel, scrollLoadPanel, type LoadLane } from './loadPanel';
 import { DEFAULT_BAR_COLOR, avatarColorOf, initialsOf, resourceClass, shade } from './colors';
 import {
@@ -114,104 +121,6 @@ function sizedIcon(svg: string, size: number): string {
 const INFO_ICON = sizedIcon(Info, 15);
 const BAN_ICON = sizedIcon(Ban, 15);
 
-/**
- * Marks the scale cell holding today, whatever span that cell covers.
- *
- * A cell's own `css` hook only receives where the cell starts, so the span has
- * to come from the scale it is declared on. `gantt.templates.scale_cell_class`
- * would be the obvious place instead — it was dropped in dhtmlx 6 and still
- * compiles to nothing.
- */
-const marksToday = (unit: string, step: number, className: string) => (date: Date) => {
-  const now = new Date();
-  return now >= date && now < gantt.date.add(date, step, unit) ? className : '';
-};
-
-/** The finest row of a scale: a filled pill on the exact cell. */
-const todayCell = (unit: string, step = 1) => marksToday(unit, step, 'gantt-scale--today');
-
-/**
- * A coarser row above it: coloured text only. A filled pill on a week or a year
- * paints a band across the whole header.
- */
-const todaySpan = (unit: string, step = 1) => marksToday(unit, step, 'gantt-scale--today-span');
-
-/**
- * Quarters as a scale unit.
- *
- * dhtmlx builds a custom unit from `<unit>_start` and `add_<unit>`, and ships
- * neither for quarters. Without one the coarsest level draws a column per
- * month, so a project longer than about ten months cannot be fitted into the
- * timeline at all: `zoomToFit` then crops it — from the start, and in silence,
- * because smart rendering does not draw a row whose bar falls outside the
- * range.
- */
-function registerQuarterUnit(): void {
-  gantt.date.quarter_start = (date: Date) => {
-    const start = gantt.date.month_start(new Date(date));
-    start.setMonth(Math.floor(start.getMonth() / 3) * 3);
-    return start;
-  };
-  gantt.date.add_quarter = (date: Date, increment: number) =>
-    gantt.date.add(date, increment * 3, 'month');
-}
-
-const quarterLabel = (date: Date) => `T${Math.floor(date.getMonth() / 3) + 1}`;
-
-const ZOOM_LEVELS: ZoomLevel[] = [
-  {
-    name: 'day',
-    scale_height: 50,
-    scales: [{ unit: 'day', step: 1, format: '%d %M', css: todayCell('day') }],
-  },
-  {
-    name: 'week',
-    scale_height: 50,
-    scales: [
-      { unit: 'week', step: 1, format: 'Week %W', css: todaySpan('week') },
-      { unit: 'day', step: 1, format: '%d %M', css: todayCell('day') },
-    ],
-  },
-  {
-    name: 'month',
-    scale_height: 50,
-    scales: [
-      { unit: 'month', step: 1, format: '%F %Y', css: todaySpan('month') },
-      { unit: 'week', step: 1, format: 'Week %W', css: todayCell('week') },
-    ],
-  },
-  {
-    name: 'quarter',
-    scale_height: 50,
-    scales: [
-      { unit: 'quarter', step: 1, format: quarterLabel, css: todaySpan('quarter') },
-      { unit: 'month', step: 1, format: '%M', css: todayCell('month') },
-    ],
-  },
-  {
-    name: 'year',
-    scale_height: 50,
-    scales: [
-      { unit: 'year', step: 1, format: '%Y', css: todaySpan('year') },
-      { unit: 'quarter', step: 1, format: quarterLabel, css: todayCell('quarter') },
-    ],
-  },
-];
-
-/** What the status bar calls each zoom level: the band above its columns. */
-const SCALE_LABELS: Record<string, string> = {
-  day: 'Days',
-  week: 'Weeks',
-  month: 'Months',
-  quarter: 'Quarters',
-  year: 'Years',
-};
-
-export const INITIAL_SCALE_LABEL = SCALE_LABELS.week;
-
-/** How long one ctrl+wheel gesture holds the scale still after a step. */
-const WHEEL_ZOOM_COOLDOWN = 200;
-
 function typeOf(task: ProjectTask, solved: SolvedProject): string {
   return isMilestone(task, solved.summaryIds) ? MILESTONE_TYPE : BAR_TYPE;
 }
@@ -314,159 +223,6 @@ function resourceSelectOptions(resources: Resource[]) {
 function refreshResourceOptions(resources: Resource[]): void {
   const column = gantt.config.columns?.find((entry) => entry.name === 'resource_id');
   if (column?.editor) column.editor.options = resourceSelectOptions(resources);
-}
-
-/** The last width measured, against the names it was measured on. */
-let measuredLabels: { key: string; width: number } | null = null;
-
-/**
- * How much room past its bar the longest task name in the plan asks for.
- *
- * Measured on a throwaway row rather than on the rendered ones: smart rendering
- * gives a node only to what is on screen, and a name that runs off the end of
- * the plan belongs to a row as likely to be scrolled away as any other. Off the
- * DOM a chart that renders nothing answers zero — and that is precisely the
- * chart whose range has to grow.
- *
- * Every edit asks this, so the answer is kept against the names it was measured
- * on: on a plan of 300 the layout the probe forces comes to about a third of the
- * edit it rides on — the absolute figures move with the machine, that ratio did
- * not — while reading the names back is a tenth of a millisecond. The key is
- * rebuilt on every call rather than dropped on the edits that ought to move it —
- * there is no invalidation to forget. What else the width rests on is a
- * stylesheet the build fixes: the size, the padding, a summary's capitals.
- */
-function widestLabelWidth(): number {
-  const names: { text: string; summary: boolean }[] = [];
-  gantt.eachTask((task) => {
-    names.push({ text: String(task.text ?? ''), summary: Boolean(task.is_summary) });
-  });
-  const key = names.map((name) => `${name.summary ? '1' : '0'}${name.text}`).join('\n');
-  if (measuredLabels?.key === key) return measuredLabels.width;
-  const probe = document.createElement('div');
-  probe.style.cssText = 'position:absolute;visibility:hidden;left:0;top:0';
-  const labels = names.map((name) => {
-    const label = document.createElement('div');
-    label.className = 'gantt_side_content gantt_right';
-    label.textContent = name.text;
-    // A summary's name is set in smaller tracked-out capitals, so which bar the
-    // name hangs off decides its width as much as the text does.
-    const row = document.createElement('div');
-    row.className = name.summary ? 'gantt_task_line gantt-bar--summary' : 'gantt_task_line';
-    row.append(label);
-    probe.append(row);
-    return label;
-  });
-  // One subtree, attached once: every width is then read out of a single layout.
-  gantt.$task_data.append(probe);
-  const width = labels.reduce((widest, label) => Math.max(widest, label.offsetWidth), 0);
-  probe.remove();
-  measuredLabels = { key, width };
-  return width;
-}
-
-/**
- * The range to pin for a plan at the scale on screen: the plan, a column of
- * lead-in, and room past the last bar for the longest name in it.
- *
- * A function of those two alone — same plan, same level, same dates, whatever
- * was pinned before.
- */
-function planRange(schedule: Schedule, wanted: number): { from: Date; to: Date } {
-  const { unit, step } = gantt.getScale();
-  // Counted in columns of the narrowest width one can render at, never in the
-  // width on screen: dhtmlx stretches columns to fill the timeline and takes
-  // that back as their number grows, so a count measured before the render
-  // would come out short once the extra columns share the room.
-  //
-  // One column over the count, because the plan's end sits partway through a
-  // column and only the rest of that one is past the bar. What the library then
-  // rounds on top is welcome but never relied on: it adds a whole column only
-  // when the pinned end falls mid-column, and nothing at all when it lands on a
-  // boundary.
-  const columns = Math.ceil(wanted / gantt.config.min_column_width) + 1;
-  return {
-    from: gantt.date.add(schedule.projectStart, -step, unit),
-    to: gantt.date.add(schedule.projectEnd, columns * step, unit),
-  };
-}
-
-function pinRange({ from, to }: { from: Date; to: Date }): void {
-  gantt.config.start_date = from;
-  gantt.config.end_date = to;
-  gantt.render();
-}
-
-/**
- * Widens the timeline until it holds the whole plan and the names beside it,
- * and does nothing when it already does.
- *
- * dhtmlx computes the range at render time only, and `zoomToFit` pins it in
- * `config.start_date` / `config.end_date`, where it outranks the data from then
- * on. A plan that grows past the range is then not drawn at all — smart
- * rendering skips a row whose bar falls outside it — which showed as an empty
- * chart twice over: after the first task added to a fresh project, whose range
- * is three days around today, and after opening a file while the range was
- * pinned by Fit. `refreshData` redraws the bars but never the scales, hence
- * the render, and only when the plan no longer fits: `render()` is the whole
- * chart, on every edit.
- *
- * The widened range is pinned rather than handed back to the data, so that the
- * room past the last bar is the app's answer and not the path's: a plan reached
- * by editing gets what the same plan reached by opening its file gets. Left to
- * the data, dhtmlx pads by one column, which a name longer than that is simply
- * cut off by — the timeline ends where the range does and no scroll reaches
- * past it.
- *
- * What counts as holding it is measured in pixels, which is what a name is
- * measured in. Held in dates, a range that was wide enough goes short on its
- * own: the same two dates buy fewer pixels at a coarser scale, and a plan that
- * grows to just inside the pin keeps a margin of one column. Which is why the
- * zoom asks the question over — the level is half of the answer.
- *
- * An edit that leaves the range adequate leaves it alone, wider than the plan
- * asks for or not: the window a user has been given is not to be taken back
- * from under a keystroke.
- */
-function fitRangeToPlan(schedule: Schedule): void {
-  // An empty project has nothing to fit, and its start still resolves to a date.
-  if (schedule.tasks.size === 0) return;
-  const { min_date: from, max_date: to } = gantt.getState();
-  const holdsPlan =
-    from instanceof Date &&
-    to instanceof Date &&
-    schedule.projectStart >= from &&
-    schedule.projectEnd <= to;
-  const wanted = widestLabelWidth();
-  if (holdsPlan && gantt.posFromDate(to) - gantt.posFromDate(schedule.projectEnd) >= wanted) {
-    return;
-  }
-  pinRange(planRange(schedule, wanted));
-}
-
-/**
- * Puts the range back on what the plan asks for at the level just switched to.
- *
- * Recomputed, not repaired: a predicate that only ever finds a pin too narrow
- * widens on the way out to the coarser levels and keeps every one of those
- * widenings on the way back, so the same plan at the same level would end up
- * wider for having been zoomed out and in again. Measured before this: `day`
- * reached straight, 2470px past the last bar; reached via `Years`, 10590. What
- * the timeline holds is a question about the plan and the scale, and the route
- * is not part of it.
- */
-function repinRangeToScale(schedule: Schedule): void {
-  if (schedule.tasks.size === 0) return;
-  const range = planRange(schedule, widestLabelWidth());
-  const { start_date: pinnedFrom, end_date: pinnedTo } = gantt.config;
-  // A level that asks for the range already pinned must not cost a render.
-  const unchanged =
-    pinnedFrom instanceof Date &&
-    pinnedTo instanceof Date &&
-    +pinnedFrom === +range.from &&
-    +pinnedTo === +range.to;
-  if (unchanged) return;
-  pinRange(range);
 }
 
 /**
@@ -1609,17 +1365,6 @@ export function GanttChart({
      * render. The alignment is bought back by taking every x from
      * `posFromDate` and following the chart's horizontal scroll.
      */
-    // `getScrollState().x` reports what the chart was asked to scroll; at some
-    // device pixel ratios it over-reports what dhtmlx actually drew, by a
-    // fraction of a pixel at the scrollbar's maximum (docs/dhtmlx.md has the
-    // ratios and the ceiling on this recipe). `$task` stays put while
-    // `$task_data` carries the real translation, so their difference is the
-    // applied offset rather than the claimed one. Deliberately not rounded:
-    // the applied translation is itself fractional there, and rounding it is
-    // what puts the lane off.
-    const appliedScrollX = () =>
-      gantt.$task.getBoundingClientRect().left - gantt.$task_data.getBoundingClientRect().left;
-
     const paintLoad = () => {
       const panel = loadHost.current;
       if (!panel) return;

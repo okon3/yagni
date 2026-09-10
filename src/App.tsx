@@ -4,7 +4,8 @@ import { CircleHelp } from 'lucide-react';
 // where a URL beside the page would have nothing to point at.
 import markUrl from './assets/favicon.svg?inline';
 import type { CalendarSpec, Resource } from './scheduler';
-import { GanttChart, INITIAL_SCALE_LABEL } from './gantt/GanttChart';
+import { GanttChart } from './gantt/GanttChart';
+import { INITIAL_SCALE_LABEL } from './gantt/zoomLevels';
 import type { GanttHandle } from './gantt/ganttHandle';
 import { COLOR_OPTIONS } from './gantt/colors';
 import { CalendarDialog } from './gantt/CalendarDialog';
