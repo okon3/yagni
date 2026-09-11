@@ -174,6 +174,13 @@ touching `src/gantt` code that talks to the library.
   detach**, and the init effect's cleanup calls it. StrictMode mounts twice: a
   module that registers without handing back how to undo it leaks a listener
   per remount.
+  **A configuration slot is not a registration**: `gantt.templates.*` and
+  `config.columns` are single-valued fields the init effect overwrites, so a
+  remount replaces them instead of stacking them and there is nothing to undo
+  — measured on `gridColumns.ts`, whose six templates are the same function
+  objects across a remount and run once per visible row. A module that fills
+  slots is named `install*`, one that registers `attach*`/`mount*`; only the
+  second owes a detach.
 
 ## Timeline range and zoom
 
