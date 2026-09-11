@@ -2,8 +2,11 @@
 
 ## Cosa resta sul tavolo
 
-**Goal E e' aperto**, tre fette su cinque chiuse: restano **T47** e poi
-**T48** (ordine obbligato, invertirli crea un import circolare). Restano fuori
+**Goal E e' aperto**, quattro fette su cinque chiuse: resta **T48**, e col
+commit di T47 il suo prerequisito e' sciolto (`MILESTONE_TYPE`/`BAR_TYPE`
+sono export di `ganttRows.ts`, niente piu' rischio di import circolare).
+Chiuso T48, il goal e' finito e **deve la sua goal review** prima di
+qualunque potatura del piano. Restano fuori
 **S5b** (unifica la mappa riga: l'unica fetta che cambia forma, in giacenza
 finche' un goal non aggiunge campi di riga) e **S6/S7** (`App.tsx` e i gesti:
 raccomandati contro). Aperti oltre a Goal E: **T16** che porterebbe Goal C alla
@@ -96,14 +99,27 @@ uniforme.
       scatta dove deve: misurata a 9.999 px/giorno le bande sopravvivono, a
       2.3 no. Il time-off non ha soglia, per progetto.
 
-- [ ] T47 [impl] — S5a: `ganttRows.ts`, spostamento puro
-      Sposta ~150 righe (`:48-49`, `:311-388`, `:621-659`). Prerequisito di T48.
-      Rende lo schema riga leggibile in un file invece che sparso in cinque
-      punti su 1700 righe (`docs/view.md` §Grid). **Non** unifica la mappa:
-      quella e' S5b, fuori goal.
-      Accept, smoke: apri un piano → righe identiche (colori, summary scuro,
-      condivise pallide, milestone a rombo, Duration/End); un edit →
-      `applySolution` aggiorna.
+- [x] T47 [impl] — S5a: `ganttRows.ts`, spostamento puro — `e740d94`
+      Accept tenuti, smoke misurato due volte (corsia e critic, fixture
+      diverse): summary scuro `shade(colore, 0.55)` misurato col computed
+      style, condivise senza colore inline (`barBackground` → `''`), colore
+      ereditato dal padre, milestone a rombo 17×17, Duration/End popolate; un
+      edit rotola il summary e spinge la milestone linkata. Chart 1656 →
+      **1527**, modulo 150 righe. Verbatim provato: i nove blocchi sono
+      identici byte a byte a meno di dieci `export`, e il critic ha provato
+      **anche cio' che resta** (1475 righe, diff vuoto) — quindi nessun call
+      site passa argomenti diversi. Nessun ciclo: `ganttRows` e' importato da
+      un solo file e nessun modulo di `src/gantt/` importa dal componente.
+      `docs/view.md` §Grid aggiornato nello stesso commit (dei cinque punti
+      dello schema riga, uno ora vive altrove).
+      **La trappola era l'ordine di valutazione**, non le firme:
+      `MILESTONE_TYPE`/`BAR_TYPE` leggono `gantt.config.types` a livello di
+      modulo e ora quel modulo si valuta *prima* del corpo del chart. Provato
+      innocuo su quattro livelli (dhtmlx non scrive mai `.types` — zero
+      occorrenze nel bundle; i quattro moduli scavalcati non raggiungono
+      dhtmlx; valore identico misurato nell'app). E `toGanttData` costruisce
+      il formatter dentro la chiamata: hoistarlo avrebbe preso il
+      `date_format` di default invece del nostro.
 
 - [ ] T48 [deep] — S4: `gridColumns.ts`
       Sposta 65+127+73+~45 righe (`:1158-1450`, `:70-116`, `:396-413`).
@@ -221,11 +237,11 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   l'aveva fatto con un altro strumento. T46 dava per difetto dello scheduler
   uno stallo che due file di test smentivano: era la sua `setCalendar` con le
   finestre passate in stringhe dove il campo vuole minuti. Una grep e' bastata.
-- **Un accept deve essere osservabile e indipendente dalla scala, e il brief lo
-  deve provare prima di chiederlo.** T32 chiedeva `git status` (`.claude/*` e'
-  ignorato), T45 ctrl+wheel (non misurabile in sintetico), T46 «le bande
-  spariscono a Months» — vero su un piano corto, falso su uno lungo: dhtmlx
-  adatta le colonne al range. Formularlo sul meccanismo, non sullo zoom.
+- **Un accept deve essere osservabile, indipendente dalla scala, e provare cio'
+  che dice di provare.** T32 chiedeva `git status` (`.claude/*` e' ignorato),
+  T45 ctrl+wheel (non misurabile in sintetico), T46 «le bande spariscono a
+  Months» (vero su un piano corto, falso su uno lungo), T47 un link col mouse
+  per esercitare `FINISH_TO_START`, che quel gesto non tocca: lo pone dhtmlx.
 - **I documenti vanno confrontati fra loro, non solo col codice**: la §3 di T45
   illustrava una firma che la §4 vietava di cambiare; la §5 della spec di Goal E
   propone un detach che la sua §6 contraddice. Mie entrambe.
