@@ -178,9 +178,10 @@ touching `src/gantt` code that talks to the library.
   `config.columns` are single-valued fields the init effect overwrites, so a
   remount replaces them instead of stacking them and there is nothing to undo
   — measured on `gridColumns.ts`, whose six templates are the same function
-  objects across a remount and run once per visible row. A module that fills
-  slots is named `install*`, one that registers `attach*`/`mount*`; only the
-  second owes a detach.
+  objects across a remount and run once per visible row. The test is what a
+  function does, never what it is called: `installRowTemplates` fills slots and
+  owes nothing, while `installPrintFigure` (`printPlan.ts`) registers two
+  `window` listeners under the same prefix and returns its detach.
 
 ## Timeline range and zoom
 
