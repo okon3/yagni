@@ -2,15 +2,19 @@
 
 ## Cosa resta sul tavolo
 
-**Goal E e' aperto**, quattro fette su cinque chiuse: resta **T48**, e col
-commit di T47 il suo prerequisito e' sciolto (`MILESTONE_TYPE`/`BAR_TYPE`
-sono export di `ganttRows.ts`, niente piu' rischio di import circolare).
-Chiuso T48, il goal e' finito e **deve la sua goal review** prima di
-qualunque potatura del piano. Restano fuori
+**Goal E: cinque fette su cinque committate, il goal e' in attesa della sua
+goal review** — obbligatoria, e da eseguire prima di qualunque potatura,
+perche' gli Accept di T44-T48 sono metà del suo bar. Restano fuori
 **S5b** (unifica la mappa riga: l'unica fetta che cambia forma, in giacenza
 finche' un goal non aggiunge campi di riga) e **S6/S7** (`App.tsx` e i gesti:
 raccomandati contro). Aperti oltre a Goal E: **T16** che porterebbe Goal C alla
-sua review, **O4** in giacenza.
+sua review, **T49** e **T50** (usciti da T48, manutenzione), **O4** in giacenza.
+
+**Da decidere alla chiusura di Goal E**: il piano si contraddice su
+`.claude/specs/T32-report.md` — lo dà per morto col commit di T48 e insieme
+per unico materiale di S5b. Non cancellato: `.claude` non è tracciato, quindi
+la cancellazione è definitiva (i brief di T12-T31 sono andati così). Decide
+l'utente.
 
 **Se si scegliesse T16, la guardia di T32 va scritta anche su Goal C prima di
 partire**: T16 e' il suo unico task e consegna un report, quindi alla sua
@@ -31,7 +35,7 @@ superflue; non tutto deve funzionare da mobile.
       Depends: soddisfatta (T13-T15 e T18 chiusi: l'audit gira
       sull'UI finale, collapse della griglia incluso).
 
-## Goal E — la vista si legge senza leggerla tutta                     [aperto]
+## Goal E — la vista si legge senza leggerla tutta               [in review]
 `GanttChart.tsx` sotto le 1300 righe in cinque commit di **puro spostamento**:
 nessun cambio di comportamento misurabile, la cucitura che T33 §5b chiedeva
 esposta come export normali. Il difetto che chiude e' il costo di contesto —
@@ -121,15 +125,36 @@ uniforme.
       il formatter dentro la chiamata: hoistarlo avrebbe preso il
       `date_format` di default invece del nostro.
 
-- [ ] T48 [deep] — S4: `gridColumns.ts`
-      Sposta 65+127+73+~45 righe (`:1158-1450`, `:70-116`, `:396-413`).
-      `DERIVED_ON_SUMMARY` va nel modulo, accanto agli editor che descrive; il
-      guard `onBeforeEditStart` resta nel chart e lo importa. Chi legge stato
-      React lo riceve come **getter** (schema `AgentHost`, `agentApi.ts:150`),
-      mai come valore. Lane deep e non impl: e' la fetta piu' grande, l'unica
-      dove il codice spostato viene richiamato da dhtmlx a ogni redraw, e un
-      giro di correzione qui costa piu' della differenza di modello.
-      Accept, checklist piena: le 8 colonne (nome con pallino/rombo, avatar,
+- [x] T48 [deep] — S4: `gridColumns.ts` — `bd020a1`, docs `170f706`
+      Accept tenuti, checklist piena eseguita **in due metà disgiunte per
+      contratto** (corsia: colonne/editor/dropdown/`grid_width`; critic:
+      i sei template, su fixture propria) — la fetta piu' grande stava sopra
+      il contesto di una sola corsia e la partizione l'ha tenuta a 171k+171k
+      invece di sforare. Chart 1527 → **1205**: il goal chiudeva a 1300.
+      Le due prove meccaniche, entrambe del critic: verbatim A/B/D **zero
+      diff** su 66/65/73 righe, di C solo le righe di cornice (`return [` e la
+      firma di `columnsWidth`); e il diff complementare — il chart **fuori** dai
+      quattro range contro HEAD lascia solo le 8 cancellazioni di import
+      dichiarate e una riga vuota di giuntura. Sostituzioni 4/2/1 esatte,
+      zero `.current`/`useRef`/`react` nel modulo.
+      Misurato nel browser: `gantt-found-below` su ramo **chiuso** (le righe
+      che matchano assenti dal DOM) su entrambe le classi riga; link a tre
+      persone che portano le classi di **entrambi** i capi (opacity 1 vs 0.24
+      col computed style); `critical-old` tratteggiato oltre il limite delle
+      40 foglie; figlio di summary disabilitato che resta abilitato sul
+      **proprio** toggle; segmenti su 3 task contesi e `""` sui 7 non
+      condivisi; `grid_width` 706 = somma dichiarata, nome a 230px.
+      **La domanda sul remount ha risposta misurata, non dedotta**: i sei
+      template sono gli stessi oggetti funzione prima e dopo un edit (6/6),
+      un redraw li chiama una volta per riga visibile (11/11/11 su 11 righe),
+      e i tre getter risolvono sulle celle vive dopo il doppio mount di
+      StrictMode. Nessun lettore stale: `install*` riempie slot di config,
+      non registra — la regola del detach ora lo dice (`docs/dhtmlx.md`).
+      Due difetti della spec chiusi nel brief invece che riscoperti: le righe
+      `:NNNN` stale (rilocalizzate sul file: A `54-119`, B `648-712`,
+      C `740-866`, D `868-940`) e il tipo `GanttConfig['columns']`, che **non
+      esiste** — è `GridColumn`, esportato da dhtmlx.
+      Accept chiesti, checklist piena: le 8 colonne (nome con pallino/rombo, avatar,
       stack `+n` con `title`, effort/start in corsivo sul summary, End/Duration
       senza editor, info, toggle, `+`); editor (click apre, Tab/Shift+Tab/
       Enter/Esc, summary rifiuta effort/start/resource); dropdown risorse
@@ -167,8 +192,34 @@ oltre il pallino) muove ancora la barra — default vendor.
 ## Maintenance — no goal
 Task che non servono una milestone: difetti puntuali e salute del codice,
 arrivati come richieste singole. **Non ricevono la goal review**, ed e' il
-prezzo di stare qui — dichiarato adesso, non scoperto alla fine. Se uno dei
-tre cresce fino a meritarne una, si apre un goal e lo si sposta.
+prezzo di stare qui — dichiarato adesso, non scoperto alla fine. Se uno di
+questi cresce fino a meritarne una, si apre un goal e lo si sposta.
+
+- [ ] T49 [impl] — Un Tab salta una cella nell'editor della griglia
+      Un Tab avanza **due** celle editabili (`text` → `nominal_days`, salta
+      `resource_id`). Due handler keydown vivi chiamano entrambi
+      `editNextCell(true)`: `editorKeys` del chart e quello dell'extension
+      inline-editors. Il commento accanto a `editorKeys` assume che solo il
+      primo scatti — vero col vecchio harness sintetico, falso con tasti a
+      livello CDP, che portano un `keyCode` reale.
+      **Preesistente, non introdotto da T48**: misurato instrumentando
+      `startEdit` e contando le chiamate per keydown su HEAD e sul tree di
+      T48 — identico, chiamata per chiamata, su due run.
+      Accept: un Tab = una cella, Shift+Tab simmetrico, e la misura per
+      conteggio di `startEdit` (non a occhio) prima e dopo il fix.
+
+- [ ] T50 [impl] — Cosa può provare davvero una battuta di tasti da agente
+      `docs/verification.md` §«Synthetic keyboard events» dichiara che gli
+      handler dhtmlx che leggono `keyCode` non vedono mai un tasto premuto da
+      un tool. Con CDP (`Input.dispatchKeyEvent`) lo vedono: Escape, che quel
+      paragrafo dà per solo-tastiera-reale, ha chiuso l'editor in T48. La
+      riga non è falsa, è **specifica dell'harness** — e finché resta come
+      scritta ogni task futuro rinuncia a misure che può fare.
+      Task di **sola misura** (regola del Log): censire quali tasti arrivano
+      a quali handler con lo strumento in uso, poi riscrivere il paragrafo
+      distinguendo harness da harness. Nessun cambio di codice applicativo.
+      Accept: la tabella misurata, e il paragrafo che non sovra-dichiara in
+      nessuna delle due direzioni.
 
 - [x] T40 [self] — L'ultimo descendant override di una primitiva di dialog — `1d2cb2e`
 - [x] T36 [self] — Tracciare il piano e il binding in git — `35483e0`
@@ -228,15 +279,17 @@ task: nessuno le ha scopate, e vanno riproposte solo se qualcuno le vuole):
 - Un task il cui accept e' una campagna di misura va scopato come task di sola
   misura: T31 chiedeva misura + modifica e ha saturato tre contesti per 21
   righe di diff; T42, scopato come misura, 99k/135k e zero correzioni.
-- **T48 e' al limite prima di partire**: T46 (220 righe spostate + checklist
-  piena) e' costato 187k alla corsia, 205k cumulativi col giro di misura —
-  oltre il segnale dei 200k — e 144k al critic. T48 e' la fetta piu' grande e
-  ha la checklist piu' lunga: o si spezza la sua verifica in un secondo giro
-  previsto, o si accetta in partenza che sfori.
-- Ricognizione a monte del brief: paga, **ma un `file:line` copiato non e'
-  verificato** (T43: si contraddiceva, il brief ha copiato, il difetto e'
-  arrivato al critic). Mitigazione che ha pagato tre volte (T44, T46): i fatti
-  che il brief non ha letto, **ordinare alla corsia di verificarli**.
+- **Spezzare la checklist in due metà disgiunte tiene dentro il contesto un
+  task fuori misura**: T48 (331 righe, la checklist piu' lunga del goal) —
+  corsia e critic su liste e fixture diverse, 172k e 171k, zero giri, dove
+  T46 da solo aveva fatto 205k. La partizione va scritta nel brief: dire
+  «questa metà non e' tua» evita che la corsia la paghi comunque.
+- Ricognizione a monte del brief: paga, **ma una citazione copiata non e'
+  verificata** — ne' un `file:line` (T43: si contraddiceva, il difetto e'
+  arrivato al critic) ne' un nome di tipo (T48: la spec citava
+  `GanttConfig['columns']`, che non esiste). Mitigazione che ha pagato quattro
+  volte (T44, T46, T48): i fatti che il brief non ha letto, **ordinare alla
+  corsia di verificarli**; quelli che ha letto, risolverli nel brief.
 - Un brief che fissa una stringa si assume la responsabilita' di quel testo e
   deve enumerare i casi che incontra: il messaggio di T41 copriva un gesto
   rifiutato su tre.
@@ -251,10 +304,9 @@ task: nessuno le ha scopate, e vanno riproposte solo se qualcuno le vuole):
   uno stallo che due file di test smentivano: era la sua `setCalendar` con le
   finestre passate in stringhe dove il campo vuole minuti. Una grep e' bastata.
 - **Un accept deve essere osservabile, indipendente dalla scala, e provare cio'
-  che dice di provare.** T32 chiedeva `git status` (`.claude/*` e' ignorato),
-  T45 ctrl+wheel (non misurabile in sintetico), T46 «le bande spariscono a
-  Months» (vero su un piano corto, falso su uno lungo), T47 un link col mouse
-  per esercitare `FINISH_TO_START`, che quel gesto non tocca: lo pone dhtmlx.
+  che dice di provare.** T45 chiedeva ctrl+wheel (non misurabile in sintetico),
+  T46 «le bande spariscono a Months» (vero su un piano corto, falso su uno
+  lungo), T48 «Tab muove fra le celle» (ne muove due). Cinque fette su cinque.
 - **I documenti vanno confrontati fra loro, non solo col codice**: la §3 di T45
   illustrava una firma che la §4 vietava di cambiare; la §5 della spec di Goal E
   propone un detach che la sua §6 contraddice. Mie entrambe.
