@@ -2,9 +2,12 @@
 
 ## Cosa resta sul tavolo
 
-**Goal E: cinque fette su cinque committate, il goal e' in attesa della sua
-goal review** — obbligatoria, e da eseguire prima di qualunque potatura,
-perche' gli Accept di T44-T48 sono metà del suo bar. Restano fuori
+**Goal E: cinque fette su cinque committate e la goal review fatta**
+(fable-5-1 confermato in header): **fix-first**, MISSING e SMUGGLED vuoti, una
+sola COHERENCE — la convenzione dei nomi che avevo scritto nei docs, chiusa da
+T51. L'unica ACTIONS e' scaricata, quindi **il goal e' pronto alla chiusura**:
+restano da fare potatura e proposta di release, che l'utente conferma. Gli
+Accept di T44-T48 sono ancora qui perche' la potatura viene dopo. Restano fuori
 **S5b** (unifica la mappa riga: l'unica fetta che cambia forma, in giacenza
 finche' un goal non aggiunge campi di riga) e **S6/S7** (`App.tsx` e i gesti:
 raccomandati contro). Aperti oltre a Goal E: **T16** che porterebbe Goal C alla
@@ -35,7 +38,7 @@ superflue; non tutto deve funzionare da mobile.
       Depends: soddisfatta (T13-T15 e T18 chiusi: l'audit gira
       sull'UI finale, collapse della griglia incluso).
 
-## Goal E — la vista si legge senza leggerla tutta               [in review]
+## Goal E — la vista si legge senza leggerla tutta        [review: fix-first]
 `GanttChart.tsx` sotto le 1300 righe in cinque commit di **puro spostamento**:
 nessun cambio di comportamento misurabile, la cucitura che T33 §5b chiedeva
 esposta come export normali. Il difetto che chiude e' il costo di contesto —
@@ -124,6 +127,15 @@ uniforme.
       dhtmlx; valore identico misurato nell'app). E `toGanttData` costruisce
       il formatter dentro la chiamata: hoistarlo avrebbe preso il
       `date_format` di default invece del nostro.
+
+- [x] T51 [self] — La convenzione dei nomi che la goal review ha smentito — `bd092bf`
+      `170f706` aveva codificato «`install*` riempie slot, `attach*`/`mount*`
+      registra; solo il secondo deve un detach». Falsa su una delle due
+      funzioni che nomina: `installPrintFigure` (`printPlan.ts:23`) registra
+      due listener su `window` e restituisce il detach. Derivata da un modulo
+      e non confrontata col codice — la premessa ereditata di CLAUDE.md, e
+      l'ho scritta io. La regola ora dice che il test e' cosa la funzione fa,
+      non come si chiama, e porta il controesempio.
 
 - [x] T48 [deep] — S4: `gridColumns.ts` — `bd020a1`, docs `170f706`
       Accept tenuti, checklist piena eseguita **in due metà disgiunte per
@@ -272,10 +284,9 @@ task: nessuno le ha scopate, e vanno riproposte solo se qualcuno le vuole):
 ## Log
 - Cap: 40 righe, una-due per voce, nessun elenco di task chiusi (il commit e' il
   record; il resto della regola sta in `.claude/orchestrate.md`).
-- Dimensionamento, dai costi misurati: impl oltre ~200k = task sovradimensionato
-  da splittare (T35 a 215k, T18 a 182k+250k); il critic costa 100-160k a
-  passata; un giro di correzione sullo stesso agente via SendMessage costa meno
-  di un fresh spawn (che ripaga ~40k di ingresso).
+- Dimensionamento misurato: impl oltre ~200k = task da splittare (T35 215k, T18
+  182k+250k); critic 100-160k a passata; una correzione via SendMessage costa
+  meno di un fresh spawn (~40k di solo ingresso).
 - Un task il cui accept e' una campagna di misura va scopato come task di sola
   misura: T31 chiedeva misura + modifica e ha saturato tre contesti per 21
   righe di diff; T42, scopato come misura, 99k/135k e zero correzioni.
@@ -290,23 +301,24 @@ task: nessuno le ha scopate, e vanno riproposte solo se qualcuno le vuole):
   `GanttConfig['columns']`, che non esiste). Mitigazione che ha pagato quattro
   volte (T44, T46, T48): i fatti che il brief non ha letto, **ordinare alla
   corsia di verificarli**; quelli che ha letto, risolverli nel brief.
-- Un brief che fissa una stringa si assume la responsabilita' di quel testo e
-  deve enumerare i casi che incontra: il messaggio di T41 copriva un gesto
-  rifiutato su tre.
 - Il critic trova cio' che l'accept non chiedeva (T41, T42, T45). Su uno
-  spostamento **chiedergli l'hash e non la lettura** (T44, T46: provato in un
-  colpo, dove `tsc` e' cieco), e sempre **la domanda che fa paura** — su T46 se
-  chart e corsia possano leggere calendari diversi: la risposta misurata e' cio'
-  che rende il pass un pass e non una speranza.
+  spostamento **l'hash, non la lettura** — e il diff complementare di cio' che
+  resta (T47, T48: e' l'unica prova contro un ripristino sporco). E sempre **la
+  domanda che fa paura**: misurata, e' cio' che rende il pass non una speranza.
 - **Cio' che una corsia dichiara impossibile o preesistente va confrontato con
-  l'evidenza che c'e' gia'.** T43 dava il drag reale per non guidabile, T41
-  l'aveva fatto con un altro strumento. T46 dava per difetto dello scheduler
-  uno stallo che due file di test smentivano: era la sua `setCalendar` con le
-  finestre passate in stringhe dove il campo vuole minuti. Una grep e' bastata.
+  l'evidenza.** T43 dava il drag reale per non guidabile, T41 l'aveva fatto;
+  T46 dava per difetto dello scheduler la propria `setCalendar`. Fatto bene su
+  T48: il Tab misurato su HEAD **e** sul tree, prima di dirlo preesistente.
 - **Un accept deve essere osservabile, indipendente dalla scala, e provare cio'
   che dice di provare.** T45 chiedeva ctrl+wheel (non misurabile in sintetico),
   T46 «le bande spariscono a Months» (vero su un piano corto, falso su uno
   lungo), T48 «Tab muove fra le celle» (ne muove due). Cinque fette su cinque.
-- **I documenti vanno confrontati fra loro, non solo col codice**: la §3 di T45
-  illustrava una firma che la §4 vietava di cambiare; la §5 della spec di Goal E
-  propone un detach che la sua §6 contraddice. Mie entrambe.
+- **I documenti vanno confrontati fra loro e col codice**: la §3 di T45
+  illustrava una firma che la §4 vietava; la §5 della spec di Goal E propone un
+  detach che la §6 contraddice; e una regola che ho scritto su `install*` era
+  falsa sull'altra `install*` del repo. Mie tutte e tre. Una regola derivata da
+  un modulo si verifica su **tutti** i suoi casi prima di entrare nei docs.
+- **La porta va verificata, non dedotta da una notifica.** Ho scritto a una
+  corsia «nessun'altra e' viva, la porta e' tua» sulla fede del completamento
+  del critic, che stava ancora lavorando: il suo listener e' stato sfrattato.
+  La regola esiste in CLAUDE.md e non e' bastata — serve il controllo sul PID.
