@@ -2,18 +2,15 @@
 
 ## Cosa resta sul tavolo
 
-**Goal E: cinque fette su cinque committate e la goal review fatta**
-(fable-5-1 confermato in header): **fix-first**, MISSING e SMUGGLED vuoti, una
-sola COHERENCE — la convenzione dei nomi che avevo scritto nei docs, chiusa da
-T51. L'unica ACTIONS e' scaricata, quindi **il goal e' pronto alla chiusura**:
-restano da fare potatura e proposta di release, che l'utente conferma. Gli
-Accept di T44-T48 sono ancora qui perche' la potatura viene dopo. Restano fuori
-**S5b** (unifica la mappa riga: l'unica fetta che cambia forma, in giacenza
-finche' un goal non aggiunge campi di riga) e **S6/S7** (`App.tsx` e i gesti:
-raccomandati contro). Aperti oltre a Goal E: **T16** che porterebbe Goal C alla
-sua review, **T49** e **T50** (usciti da T48, manutenzione), **O4** in giacenza.
+**Goal E e' chiuso e potato** (review fix-first, unica azione scaricata da
+T51): chart 2228 → 1205. Nessuna release — refactoring, e il changelog non
+prende plumbing.
 
-**Da decidere alla chiusura di Goal E**: il piano si contraddice su
+Aperti: **T16**, unico task di Goal C, che lo porterebbe alla sua review;
+**T49** (un Tab salta una cella) e **T50** (cosa puo' provare una battuta di
+tasti da agente), usciti dalla checklist di T48; **O4** in giacenza.
+
+**Una decisione aperta, dell'utente**: il piano si contraddice su
 `.claude/specs/T32-report.md` — lo dà per morto col commit di T48 e insieme
 per unico materiale di S5b. Non cancellato: `.claude` non è tracciato, quindi
 la cancellazione è definitiva (i brief di T12-T31 sono andati così). Decide
@@ -38,144 +35,37 @@ superflue; non tutto deve funzionare da mobile.
       Depends: soddisfatta (T13-T15 e T18 chiusi: l'audit gira
       sull'UI finale, collapse della griglia incluso).
 
-## Goal E — la vista si legge senza leggerla tutta        [review: fix-first]
-`GanttChart.tsx` sotto le 1300 righe in cinque commit di **puro spostamento**:
-nessun cambio di comportamento misurabile, la cucitura che T33 §5b chiedeva
-esposta come export normali. Il difetto che chiude e' il costo di contesto —
-ogni task di Goal D ha speso 100-350k token per diff di decine di righe, quasi
-tutti a ricostruire il contesto di un file da 2228 righe.
+## Goal E — la vista si legge senza leggerla tutta                   [chiuso]
+`GanttChart.tsx` sotto le 1300 righe in cinque commit di puro spostamento, per
+togliere il costo di contesto: ogni task di Goal D aveva speso 100-350k token a
+ricostruire il contesto di un file da 2228 righe. Consegnato: **2228 → 1205**,
+sei moduli piatti in `src/gantt/`. Goal review dell'11-09: **fix-first**
+(fable-5-1 in header), MISSING e SMUGGLED vuoti, unica COHERENCE chiusa da T51.
+Misurato dalla review sul diff accumulato: le sole righe `+` nel chart sono
+import, il letterale `RowContext` e 12 call site; nessuna logica nuova oltre le
+firme; la sequenza di init e' ancora **una lista lineare in un posto solo**, coi
+tre vincoli d'ordine annotati accanto alle chiamate; e la cucitura che T33 §5b
+chiedeva e' esposta come export normali (`widestLabelWidth`, `appliedScrollX`,
+`nonWorkingSpans`). Il blocco di import del chart e' ora l'indice del modulo.
 
-Bar della goal review (oltre agli Accept dei task): il diff e' spostamenti +
-import, `git diff --stat` non mostra righe di logica nuova a parte le firme dei
-moduli, e le checklist di T46 e T48 risultano eseguite nel browser.
-
-Spec di tutti e cinque: `.claude/specs/T32-report.md` (§4 la tabella delle
-fette, §6 le decisioni tecniche vincolanti). Ordine obbligato: T47 precede T48
-(`MILESTONE_TYPE`/`BAR_TYPE` servono a entrambi — invertirli crea un import
-circolare).
-
-Due trappole per i brief di T47 e T48, pagate su T44-T46: le righe `:NNNN` che
-la spec cita sono **stale** (scritta su un chart di 350 righe piu' lungo, e
-ogni fetta lo accorcia ancora) — rilocalizzarle sul file prima di scrivere il
-brief, non copiarle; e la §5 della spec propone ancora un `unmountOverlays(o)`
-che la §6 contraddice (ogni `mount*` restituisce il proprio detach). T46 ha
-risolto per la §6: le altre due fette escono dalle stesse righe della §5.
-
-Bar di verifica, deciso dall'utente il 2026-09-10: **smoke** per gli
-spostamenti puri (T44 nemmeno quello: `tsc` e' la prova), **checklist piena**
-per T46 e T48, dove il rischio e' geometria in pixel e closure→getter su codice
-che dhtmlx richiama a ogni redraw. Verifica proporzionata al rischio, non
-uniforme.
-
-- [x] T44 [impl] — S1: `ganttHandle.ts`, i tipi del contratto — `90855c0`
-      Accept tenuti: build/test/lint verdi, zero righe di runtime nel diff (le
-      sole aggiunte in `src/` sono import), chart 2228 → **2132**. Il critic ha
-      provato il verbatim per md5, non a lettura: blocchi identici byte a byte.
-      Nessun re-export ponte, nessun ciclo, `agentApi` non importa piu' da un
-      componente.
-
+- [x] T44 [impl] — S1: `ganttHandle.ts` — `90855c0`
 - [x] T45 [impl] — S2: `zoomLevels.ts` + `timelineGeometry.ts` — `25f6a54`
-      Accept tenuti, sei prove nel browser (zoom coi bottoni, Fit su piano
-      lungo, task fuori range, ratchet del ripin con le date registrate, label
-      lunga non tagliata). Chart 2132 → **1877**. Verbatim provato per hash: le
-      sole differenze sono otto `export` e un dedent; init byte-identica a HEAD
-      meno 244 righe. `widestLabelWidth` e `appliedScrollX` esportati — la
-      cucitura di T33 §5b e' consegnata, la probe non e' stata scritta.
-      **La prova ctrl+wheel era invalida come dichiarata** (un `wheel`
-      sintetico non misura quel percorso, `docs/dhtmlx.md:240`) ma non
-      portante: il listener non si e' mosso, della catena wheel e' migrata solo
-      la costante.
 - [x] T46 [impl] — S3: `timelineOverlays.ts` — `ed64f5c`
-      Accept tenuti, checklist piena misurata due volte (corsia e critic, su
-      fixture diverse). Chart 1877 → **1656**; il critic ha provato il verbatim
-      per diff normalizzato: blocchi 1 e 2 identici byte a byte, e ogni riga
-      residua cade nelle quattro deroghe del brief. Diff del chart: 12 righe
-      aggiunte, tutte import o call site. Shutdown su tutte le righe
-      (`height` = `$task_bg.offsetHeight`, 180px su 5 righe, 108 su 3); assenza
-      solo sulla riga della persona, niente a `T0` ne' su ramo chiuso; z-order
-      osservato con un MutationObserver (`today` inserito per primo, bande non
-      raggruppate davanti), hatch sopra le barre; **0.000 px su 4/4 coppie
-      chart ↔ corsia a scroll 0, intermedio e max**; detach provato sulle
-      rimozioni registrate (non sul conteggio finale) — un `.gantt-today` e due
-      `.gantt-bands` vivi dopo il doppio mount.
-      **Un accept era formulato male, non il codice**: «a Months spariscono»
-      e' scale-dependent — dhtmlx adatta la larghezza delle colonne al range,
-      quindi le bande weekend muoiono a Quarter su un piano di 16 mesi
-      (2.300 px/giorno) e all'ultimo livello su uno di 3 settimane
-      (2.658 px/giorno). La soglia e' sui giorni resi (`10 / px-per-giorno`) e
-      scatta dove deve: misurata a 9.999 px/giorno le bande sopravvivono, a
-      2.3 no. Il time-off non ha soglia, per progetto.
-
-- [x] T47 [impl] — S5a: `ganttRows.ts`, spostamento puro — `e740d94`
-      Accept tenuti, smoke misurato due volte (corsia e critic, fixture
-      diverse): summary scuro `shade(colore, 0.55)` misurato col computed
-      style, condivise senza colore inline (`barBackground` → `''`), colore
-      ereditato dal padre, milestone a rombo 17×17, Duration/End popolate; un
-      edit rotola il summary e spinge la milestone linkata. Chart 1656 →
-      **1527**, modulo 150 righe. Verbatim provato: i nove blocchi sono
-      identici byte a byte a meno di dieci `export`, e il critic ha provato
-      **anche cio' che resta** (1475 righe, diff vuoto) — quindi nessun call
-      site passa argomenti diversi. Nessun ciclo: `ganttRows` e' importato da
-      un solo file e nessun modulo di `src/gantt/` importa dal componente.
-      `docs/view.md` §Grid aggiornato nello stesso commit (dei cinque punti
-      dello schema riga, uno ora vive altrove).
-      **La trappola era l'ordine di valutazione**, non le firme:
-      `MILESTONE_TYPE`/`BAR_TYPE` leggono `gantt.config.types` a livello di
-      modulo e ora quel modulo si valuta *prima* del corpo del chart. Provato
-      innocuo su quattro livelli (dhtmlx non scrive mai `.types` — zero
-      occorrenze nel bundle; i quattro moduli scavalcati non raggiungono
-      dhtmlx; valore identico misurato nell'app). E `toGanttData` costruisce
-      il formatter dentro la chiamata: hoistarlo avrebbe preso il
-      `date_format` di default invece del nostro.
-
-- [x] T51 [self] — La convenzione dei nomi che la goal review ha smentito — `bd092bf`
-      `170f706` aveva codificato «`install*` riempie slot, `attach*`/`mount*`
-      registra; solo il secondo deve un detach». Falsa su una delle due
-      funzioni che nomina: `installPrintFigure` (`printPlan.ts:23`) registra
-      due listener su `window` e restituisce il detach. Derivata da un modulo
-      e non confrontata col codice — la premessa ereditata di CLAUDE.md, e
-      l'ho scritta io. La regola ora dice che il test e' cosa la funzione fa,
-      non come si chiama, e porta il controesempio.
-
+- [x] T47 [impl] — S5a: `ganttRows.ts` — `e740d94`
 - [x] T48 [deep] — S4: `gridColumns.ts` — `bd020a1`, docs `170f706`
-      Accept tenuti, checklist piena eseguita **in due metà disgiunte per
-      contratto** (corsia: colonne/editor/dropdown/`grid_width`; critic:
-      i sei template, su fixture propria) — la fetta piu' grande stava sopra
-      il contesto di una sola corsia e la partizione l'ha tenuta a 171k+171k
-      invece di sforare. Chart 1527 → **1205**: il goal chiudeva a 1300.
-      Le due prove meccaniche, entrambe del critic: verbatim A/B/D **zero
-      diff** su 66/65/73 righe, di C solo le righe di cornice (`return [` e la
-      firma di `columnsWidth`); e il diff complementare — il chart **fuori** dai
-      quattro range contro HEAD lascia solo le 8 cancellazioni di import
-      dichiarate e una riga vuota di giuntura. Sostituzioni 4/2/1 esatte,
-      zero `.current`/`useRef`/`react` nel modulo.
-      Misurato nel browser: `gantt-found-below` su ramo **chiuso** (le righe
-      che matchano assenti dal DOM) su entrambe le classi riga; link a tre
-      persone che portano le classi di **entrambi** i capi (opacity 1 vs 0.24
-      col computed style); `critical-old` tratteggiato oltre il limite delle
-      40 foglie; figlio di summary disabilitato che resta abilitato sul
-      **proprio** toggle; segmenti su 3 task contesi e `""` sui 7 non
-      condivisi; `grid_width` 706 = somma dichiarata, nome a 230px.
-      **La domanda sul remount ha risposta misurata, non dedotta**: i sei
-      template sono gli stessi oggetti funzione prima e dopo un edit (6/6),
-      un redraw li chiama una volta per riga visibile (11/11/11 su 11 righe),
-      e i tre getter risolvono sulle celle vive dopo il doppio mount di
-      StrictMode. Nessun lettore stale: `install*` riempie slot di config,
-      non registra — la regola del detach ora lo dice (`docs/dhtmlx.md`).
-      Due difetti della spec chiusi nel brief invece che riscoperti: le righe
-      `:NNNN` stale (rilocalizzate sul file: A `54-119`, B `648-712`,
-      C `740-866`, D `868-940`) e il tipo `GanttConfig['columns']`, che **non
-      esiste** — è `GridColumn`, esportato da dhtmlx.
-      Accept chiesti, checklist piena: le 8 colonne (nome con pallino/rombo, avatar,
-      stack `+n` con `title`, effort/start in corsivo sul summary, End/Duration
-      senza editor, info, toggle, `+`); editor (click apre, Tab/Shift+Tab/
-      Enter/Esc, summary rifiuta effort/start/resource); dropdown risorse
-      aggiornato dopo una persona aggiunta dal dialog **e** da
-      `yagni.addResource` (la colonna si trova per `name === 'resource_id'`);
-      marcature ricerca (`gantt-found`, `-below` su ramo chiuso); highlight
-      persona su righe/barre/link; anello critico e tratteggio stale; disabled
-      attenuato; segmenti della barra condivisa; `grid_width` = somma colonne
-      (nome a 230px).
+- [x] T51 [self] — La convenzione dei nomi che la review ha smentito — `bd092bf`
+
+Cio' che il goal ha deciso e che non va riproposto: **S5b, S6 e S7 restano
+fuori** (S5b unifica la mappa riga — l'unica fetta che cambia forma, in
+giacenza finche' un goal non aggiunge campi di riga; S6/S7 su `App.tsx` e i
+gesti, raccomandati contro dalla spec). Il corpo del handle (268 righe) e gli
+handler del modello restano nel chart per scelta: sono le operazioni e il
+codice che muta il modello, e il file di destinazione sarebbe grande quanto
+quello che lascia. Nessuna release: cinque fette di refactoring, e il
+changelog non prende plumbing.
+Due trappole graduate nei docs invece di restare qui: lo slot di config che non
+deve un detach, e la lettura di `gantt.config.*` a livello di modulo che
+precede il corpo del componente (`docs/dhtmlx.md`).
 
 ## Goal D — creare una dipendenza senza mirare a 10x10 px            [chiuso]
 Rendere afferrabile l'handle del link e togliere l'ambiguita' semantica del

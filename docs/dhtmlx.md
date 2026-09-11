@@ -182,6 +182,15 @@ touching `src/gantt` code that talks to the library.
   function does, never what it is called: `installRowTemplates` fills slots and
   owes nothing, while `installPrintFigure` (`printPlan.ts`) registers two
   `window` listeners under the same prefix and returns its detach.
+- **A module-level read of `gantt.config.*` happens before the component
+  body.** Extracting a constant into `src/gantt/` moves *when* it is read: ES
+  modules evaluate dependencies first, so the read now precedes every effect.
+  `MILESTONE_TYPE`/`BAR_TYPE` (`ganttRows.ts`) survive it only because dhtmlx
+  never writes `config.types` — zero occurrences in the bundle. `date_format`
+  is the opposite case: the chart assigns it from the init effect, so
+  `toGanttData` builds its formatter **inside** the call; hoisting it would
+  capture the vendor default instead. Read config at call time unless you have
+  checked who writes it and when.
 
 ## Timeline range and zoom
 
