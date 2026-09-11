@@ -175,6 +175,19 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
 
 - [x] T31 [impl] — Il pixel di scroll: premessa falsa, nota nei docs corretta — `d9d2356`
 
+**Due proposte emerse da Goal E, offerte all'utente e non comprate** (non sono
+task: nessuno le ha scopate, e vanno riproposte solo se qualcuno le vuole):
+- `yagni.setCalendar` accetta un `CalendarSpec` malformato e lo memorizza
+  verbatim — finestre passate come `'08:00'` dove il campo vuole minuti da
+  mezzanotte. L'esito e' «Scheduler stalled: pending tasks are unreachable»,
+  e in un ordinamento la tab si e' piantata. Il formato file rifiuta invece di
+  riparare (gate stretto); l'agent API no. Scoperto da una corsia su T46, che
+  l'aveva preso per un difetto dello scheduler.
+- La soglia dei 10px delle bande e la regola «nessuna banda su un summary o su
+  un ramo chiuso» vivono ora in `timelineOverlays.ts`, importabile, ma sono
+  appuntate solo dalla misura nel browser. Un test le fisserebbe, al prezzo di
+  un mock di `gantt`.
+
 - [x] T26 [architect] — UX dei link: analisi consegnata, tre premesse del
       piano cadute — `.claude/specs/T26-report.md`, trappole nei docs `a026435`
 - [x] T32 [architect] — Riorganizzazione della vista: censimento, tagli, piano
