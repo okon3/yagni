@@ -324,6 +324,10 @@ touching `src/gantt` code that talks to the library.
   scheduled FS, redrawn FS after a reload (the file carries no `type`). Refuse
   non-FS in `onBeforeLinkAdd` — the type is a view concept, so the rule belongs
   in the handler, not in `rejectionForLink`.
+- **A synthetic link drag must start on `.gantt_link_point`, not on the
+  `.gantt_link_control` centre**: a press a few pixels off the point creates
+  nothing and reports no error. Measured while verifying T47 — the first
+  attempt, at the control's centre, silently produced no link.
 - **`onLinkDblClick` fires in the Community build, and `return false` suppresses
   the vendor modal.** Deletion is dhtmlx's own `gantt.confirm`, not
   `window.confirm` — see [verification.md](verification.md).

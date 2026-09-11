@@ -149,7 +149,8 @@ that isn't there.
   nothing here depends on an internal side effect it doesn't own. Not
   persisted — it does not survive a reload, and it is view state only: no
   undo entry, no dirty flag.
-- **The dhtmlx row schema is written in five places** (`GanttChart.tsx`):
+- **The dhtmlx row schema is written in five places** (`toGanttData` in
+  `ganttRows.ts`, the other four in `GanttChart.tsx`):
   `toGanttData` and `applySolution` map model → row, `handle.addTask` and
   `onAfterTaskAdd` build a new row, `pullFromView` reads row → model. A new row
   field goes in all of them; a field added to one only is the shape of the bug
