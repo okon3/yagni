@@ -2,12 +2,12 @@
 
 ## Cosa resta sul tavolo
 
-**Goal E e' aperto**: le cinque fette del refactor della vista, comprate
-dall'utente il 2026-09-10 sul report di T32. Restano fuori **S5b** (unifica la
-mappa riga: l'unica fetta che cambia forma, in giacenza finche' un goal non
-aggiunge campi di riga) e **S6/S7** (`App.tsx` e i gesti: raccomandati contro).
-Aperti oltre a Goal E: **T16** che porterebbe Goal C alla sua review, **O4** in
-giacenza.
+**Goal E e' aperto**, tre fette su cinque chiuse: restano **T47** e poi
+**T48** (ordine obbligato, invertirli crea un import circolare). Restano fuori
+**S5b** (unifica la mappa riga: l'unica fetta che cambia forma, in giacenza
+finche' un goal non aggiunge campi di riga) e **S6/S7** (`App.tsx` e i gesti:
+raccomandati contro). Aperti oltre a Goal E: **T16** che porterebbe Goal C alla
+sua review, **O4** in giacenza.
 
 **Se si scegliesse T16, la guardia di T32 va scritta anche su Goal C prima di
 partire**: T16 e' il suo unico task e consegna un report, quindi alla sua
@@ -44,6 +44,13 @@ fette, §6 le decisioni tecniche vincolanti). Ordine obbligato: T47 precede T48
 (`MILESTONE_TYPE`/`BAR_TYPE` servono a entrambi — invertirli crea un import
 circolare).
 
+Due trappole per i brief di T47 e T48, pagate su T44-T46: le righe `:NNNN` che
+la spec cita sono **stale** (scritta su un chart di 350 righe piu' lungo, e
+ogni fetta lo accorcia ancora) — rilocalizzarle sul file prima di scrivere il
+brief, non copiarle; e la §5 della spec propone ancora un `unmountOverlays(o)`
+che la §6 contraddice (ogni `mount*` restituisce il proprio detach). T46 ha
+risolto per la §6: le altre due fette escono dalle stesse righe della §5.
+
 Bar di verifica, deciso dall'utente il 2026-09-10: **smoke** per gli
 spostamenti puri (T44 nemmeno quello: `tsc` e' la prova), **checklist piena**
 per T46 e T48, dove il rischio e' geometria in pixel e closure→getter su codice
@@ -68,17 +75,26 @@ uniforme.
       sintetico non misura quel percorso, `docs/dhtmlx.md:240`) ma non
       portante: il listener non si e' mosso, della catena wheel e' migrata solo
       la costante.
-- [ ] T46 [impl] — S3: `timelineOverlays.ts`
-      Sposta 23+157+22+18 righe (`:1517-1697`, `:598-619`, `:51-68`).
-      `mountOverlays` **restituisce il proprio detach** e il cleanup lo chiama:
-      StrictMode monta due volte. `paintLoad` resta nel chart e importa
-      `nonWorkingSpans`.
-      Accept, checklist piena: bande weekend a Days/Weeks/Months (a Months
-      spariscono, soglia 10px); shutdown su tutte le righe; assenza solo sulla
-      riga della persona, non su summary ne' ramo chiuso; hatch sopra la barra;
-      **differenza 0 px fra bande chart e corsia a scroll 0, intermedio e max**
-      (la misura di T31); linea di oggi a ogni zoom e nascosta fuori range;
-      nessun nodo doppio in `$task_data` dopo un remount.
+- [x] T46 [impl] — S3: `timelineOverlays.ts` — `ed64f5c`
+      Accept tenuti, checklist piena misurata due volte (corsia e critic, su
+      fixture diverse). Chart 1877 → **1656**; il critic ha provato il verbatim
+      per diff normalizzato: blocchi 1 e 2 identici byte a byte, e ogni riga
+      residua cade nelle quattro deroghe del brief. Diff del chart: 12 righe
+      aggiunte, tutte import o call site. Shutdown su tutte le righe
+      (`height` = `$task_bg.offsetHeight`, 180px su 5 righe, 108 su 3); assenza
+      solo sulla riga della persona, niente a `T0` ne' su ramo chiuso; z-order
+      osservato con un MutationObserver (`today` inserito per primo, bande non
+      raggruppate davanti), hatch sopra le barre; **0.000 px su 4/4 coppie
+      chart ↔ corsia a scroll 0, intermedio e max**; detach provato sulle
+      rimozioni registrate (non sul conteggio finale) — un `.gantt-today` e due
+      `.gantt-bands` vivi dopo il doppio mount.
+      **Un accept era formulato male, non il codice**: «a Months spariscono»
+      e' scale-dependent — dhtmlx adatta la larghezza delle colonne al range,
+      quindi le bande weekend muoiono a Quarter su un piano di 16 mesi
+      (2.300 px/giorno) e all'ultimo livello su uno di 3 settimane
+      (2.658 px/giorno). La soglia e' sui giorni resi (`10 / px-per-giorno`) e
+      scatta dove deve: misurata a 9.999 px/giorno le bande sopravvivono, a
+      2.3 no. Il time-off non ha soglia, per progetto.
 
 - [ ] T47 [impl] — S5a: `ganttRows.ts`, spostamento puro
       Sposta ~150 righe (`:48-49`, `:311-388`, `:621-659`). Prerequisito di T48.
@@ -182,34 +198,34 @@ tre cresce fino a meritarne una, si apre un goal e lo si sposta.
   di un fresh spawn (che ripaga ~40k di ingresso).
 - Un task il cui accept e' una campagna di misura va scopato come task di sola
   misura: T31 chiedeva misura + modifica e ha saturato tre contesti per 21
-  righe di diff. T42 e' la conferma per la via opposta — una riga di codice piu'
-  sei accept nel browser, scopato come misura, 99k/135k e zero correzioni.
-- Ricognizione a monte del brief: paga (T42, zero ri-esplorazioni) **ma un
-  `file:line` copiato non e' verificato**: quella di T43 si contraddiceva, il
-  brief ha copiato, il difetto e' arrivato al critic. Mitigazione che funziona:
-  se il brief elenca fatti che non ha letto, **ordinare alla corsia di
-  verificarli invece di fidarsi** — su T44 ha scartato due percorsi di modulo
-  sbagliati del brief (`Project` da `../scheduler`, che non lo esporta).
-- Un brief che prescrive un testo *verbatim* si assume la responsabilita' di
-  quel testo: il messaggio di T41 copriva un gesto rifiutato su tre. Se il
-  brief fissa una stringa, deve enumerare i casi che quella stringa incontra.
-- Il critic trova cio' che l'accept non chiedeva (T41: due lacune di T26; T42:
-  il difetto diventato T43; T45: una prova invalida dichiarata passata). Su uno
-  spostamento, **chiedergli l'hash e non la lettura**: prova o smentisce il
-  "verbatim" in un colpo, dove `tsc` e' cieco.
-- **Chiedere al critic la domanda che fa paura.** Il brief di T42 gli ha
-  ordinato di cercare i percorsi in cui l'imbuto scatta *senza* azione utente:
-  e' l'unico rischio della decisione, e la risposta misurata (nessuno) e' cio'
-  che ha reso il pass un pass e non una speranza.
-- **Una corsia che dichiara un'impossibilita' va confrontata con cio' che le
-  precedenti hanno gia' fatto**: T43 dava il drag reale per non guidabile, T41
-  e il critic di T42 l'avevano fatto con un altro strumento — nominato nel
-  brief, e' riuscito al primo colpo.
-- **Un passo di verifica deve essere osservabile, e il brief lo deve provare
-  prima di chiederlo.** Due volte: T32 chiedeva `git status` = solo il report
-  (`.claude/*` e' ignorato), T45 chiedeva ctrl+wheel, che `docs/dhtmlx.md:240`
-  dichiara non misurabile in sintetico — e una corsia obbediente riporta
-  "passato". Leggere i docs delle trappole *mentre* si scrivono gli accept.
-- **Le sezioni di un brief vanno confrontate fra loro**: la §3 di T45 mostrava
-  `appliedScrollX(): number` come illustrazione, la §4 vietava di cambiare
-  firme. La corsia ha scelto la §4 (giusto), ma la contraddizione era mia.
+  righe di diff; T42, scopato come misura, 99k/135k e zero correzioni.
+- **T48 e' al limite prima di partire**: T46 (220 righe spostate + checklist
+  piena) e' costato 187k alla corsia, 205k cumulativi col giro di misura —
+  oltre il segnale dei 200k — e 144k al critic. T48 e' la fetta piu' grande e
+  ha la checklist piu' lunga: o si spezza la sua verifica in un secondo giro
+  previsto, o si accetta in partenza che sfori.
+- Ricognizione a monte del brief: paga, **ma un `file:line` copiato non e'
+  verificato** (T43: si contraddiceva, il brief ha copiato, il difetto e'
+  arrivato al critic). Mitigazione che ha pagato tre volte (T44, T46): i fatti
+  che il brief non ha letto, **ordinare alla corsia di verificarli**.
+- Un brief che fissa una stringa si assume la responsabilita' di quel testo e
+  deve enumerare i casi che incontra: il messaggio di T41 copriva un gesto
+  rifiutato su tre.
+- Il critic trova cio' che l'accept non chiedeva (T41, T42, T45). Su uno
+  spostamento **chiedergli l'hash e non la lettura** (T44, T46: provato in un
+  colpo, dove `tsc` e' cieco), e sempre **la domanda che fa paura** — su T46 se
+  chart e corsia possano leggere calendari diversi: la risposta misurata e' cio'
+  che rende il pass un pass e non una speranza.
+- **Cio' che una corsia dichiara impossibile o preesistente va confrontato con
+  l'evidenza che c'e' gia'.** T43 dava il drag reale per non guidabile, T41
+  l'aveva fatto con un altro strumento. T46 dava per difetto dello scheduler
+  uno stallo che due file di test smentivano: era la sua `setCalendar` con le
+  finestre passate in stringhe dove il campo vuole minuti. Una grep e' bastata.
+- **Un accept deve essere osservabile e indipendente dalla scala, e il brief lo
+  deve provare prima di chiederlo.** T32 chiedeva `git status` (`.claude/*` e'
+  ignorato), T45 ctrl+wheel (non misurabile in sintetico), T46 «le bande
+  spariscono a Months» — vero su un piano corto, falso su uno lungo: dhtmlx
+  adatta le colonne al range. Formularlo sul meccanismo, non sullo zoom.
+- **I documenti vanno confrontati fra loro, non solo col codice**: la §3 di T45
+  illustrava una firma che la §4 vietava di cambiare; la §5 della spec di Goal E
+  propone un detach che la sua §6 contraddice. Mie entrambe.
